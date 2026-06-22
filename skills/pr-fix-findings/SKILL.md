@@ -1,0 +1,92 @@
+---
+name: pr-fix-findings
+description: "Fix findings from a PR Review"
+user_invocable: true
+---
+
+# PR Fix Findings Skill
+
+Valides a pull request review, fixes any found issues, and updates the PR
+
+## Usage
+
+```
+/pr-fix-findings <link to PR>
+/pr-fix-findings PR #1
+/pr-fix-findings 1
+```
+
+If no argument is provided, list open PRs and prompt the user to specify one.
+
+## Process
+
+### 1. Ensure ce-debug skill is available
+
+If the `/ce-debug` skill is not available, stop and alert the user. Do not continue
+
+### 2. Gather the state of the pull request
+
+- Get the latest version of the pull request
+- Review all open conversations and change requests for findings
+- For each finding, do the following:
+  - Check if the finding is already resolved. If it is, then it doesn't require remediation.
+  - Validate whether the finding is valid
+  - Make note of any instructions or detailed descriptions are given
+  - Make note of any comments in the conversation thread. They may provide additional context.
+- If you are unsure whether a finding is valid, prompt the user, do not make an arbitrary decision
+- If you feel a particular finding is larger than a simple bug fix, alert the user and ask them what they would like to do with it. Large remediations may require a separate planning session.
+- If there aren't any findings, alert the user and stop. Do not continue.
+
+### 2a. Check for merge conflicts
+
+Before reviewing findings, check whether the PR branch has conflicts with the base branch. If conflicts exist, prompt the user: resolve them as part of this workflow, or skip and resolve separately. Do not proceed to finding review until the user decides.
+
+### 2b. Present finding dispositions to the user
+
+Before planning fixes, list every finding with its proposed action: **fix**, **decline**, or **needs input**. Do not proceed until the user confirms or redirects. Findings where you are unsure of validity must be marked "needs input" — do not decline a finding on your own.
+
+### 3. Plan the fix for each finding
+
+- The plan should be documented in `docs/pull_requests/<pr#>_xxx` where `<pr#>` is the number of the pull request and `xxx` is the fix iteration number, incrementing up from 001.
+- If your plan to remediate a finding will have an outcome different than what the reviewer requested, that needs to be explicitly noted in the plan.
+
+### 4. Validate the plan against the findings
+
+- Review each of your proposed remediations in the plan and verify:
+  - It will remediate the finding 
+  - The remediation resolves it based on the criteria given by the reviewer unless you have explicitly decided otherwise and noted it in the plan
+- If your proposed fix will not properly remediate a finding, then repeat the process from step 3 for that finding
+  - If you have looped a particular finding 10 times, then skip it with a note that you are having trouble finding a proper remediation for the finding and that the user should review the latest remediation plan
+
+### 5. Remediate valid findings
+
+- Use the `/ce-debug` skill to perform the remediation. Make sure you pass it any necessary context, including the plan document.
+
+### 6. Review your remediations
+
+- For each fix you performed, answer these questions:
+  - Does it match the plan?
+  - Does it remediate the finding as stated in the review?
+    - If your planned remediation didn't match the criteria given by the reviewer, skip this question
+- If the answer to any of those questions is "no", then repeat the process from step 3 for that finding.
+  - If you have looped a particular finding 10 times, then skip it with a note that you are having trouble finding a proper remediation for the finding and that the user should review the latest remediation plan  
+  
+### 7. Update the pull request with your results
+
+- If the reviewer used threaded conversations for the findings, make sure you note each one with their specific notes
+- For each finding, make a brief note about what your remediation was for it.
+  - If you deemed it to be invalid an invalidi finding, then include your reasoning why.
+  - If there is additional context required (such as an explanation as to why your remediation doesn't doesn't meet the reviewers criteria), make sure it is added
+- If the finding was part of a threaded conversation, mark that conversation as Resolved
+- If necessary, mark the PR and/or reviewer as ready for review again
+
+### 8. Display a summary to the user
+
+- Give a brief summary of each remediation
+- Include a table with the results:
+
+| # | Severity | File | Remediation |
+|---|----------|------|-------------|
+
+Group by severity (Critical -> High -> Moderate -> Minor -> Info)
+- Include a final verdict
