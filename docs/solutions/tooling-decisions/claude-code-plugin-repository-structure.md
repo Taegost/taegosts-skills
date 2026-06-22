@@ -29,7 +29,7 @@ The repo root manifest must be `.claude-plugin/marketplace.json` — not `plugin
 
 ### Directory structure
 
-```
+```text
 .claude-plugin/
   marketplace.json
 skills/
@@ -111,7 +111,7 @@ Dependency assumptions must also be verified per-skill, not assumed from the plu
 
 **Before (incorrect — uses `plugin.json`, which is the wrong manifest for a repo root):**
 
-```
+```text
 .claude-plugin/
   plugin.json          <-- WRONG: this is for subdirectories within a marketplace tree
 skills/
@@ -121,7 +121,7 @@ skills/
 
 **After (correct — uses `marketplace.json`):**
 
-```
+```text
 .claude-plugin/
   marketplace.json     <-- CORRECT: repo root uses marketplace.json
 skills/

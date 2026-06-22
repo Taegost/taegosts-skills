@@ -10,7 +10,7 @@ Reviews a pull request, notes the PR, and gives AI instructions to follow
 
 ## Usage
 
-```
+```bash
 /pr-review <link to PR>
 /pr-review PR #1
 /pr-review 1

@@ -1,9 +1,9 @@
 ---
-name: Taegotss Skills
+name: Taegosts Skills
 last_updated: 2026-06-22
 ---
 
-# Taegotss Skills Strategy
+# Taegosts Skills Strategy
 
 ## Target problem
 

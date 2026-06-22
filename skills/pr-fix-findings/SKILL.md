@@ -6,11 +6,11 @@ user_invocable: true
 
 # PR Fix Findings Skill
 
-Valides a pull request review, fixes any found issues, and updates the PR
+Validates a pull request review, fixes any found issues, and updates the PR
 
 ## Usage
 
-```
+```bash
 /pr-fix-findings <link to PR>
 /pr-fix-findings PR #1
 /pr-fix-findings 1
@@ -48,7 +48,7 @@ Before planning fixes, list every finding with its proposed action: **fix**, **d
 ### 3. Plan the fix for each finding
 
 - The plan should be documented in `docs/pull_requests/<pr#>_xxx` where `<pr#>` is the number of the pull request and `xxx` is the fix iteration number, incrementing up from 001.
-- If your plan to remediate a finding will have an outcome different than what the reviewer requested, that needs to be explicitly noted in the plan.
+- If your plan to remediate a finding will have an outcome different from what the reviewer requested, that needs to be explicitly noted in the plan.
 
 ### 4. Validate the plan against the findings
 
@@ -75,8 +75,8 @@ Before planning fixes, list every finding with its proposed action: **fix**, **d
 
 - If the reviewer used threaded conversations for the findings, make sure you note each one with their specific notes
 - For each finding, make a brief note about what your remediation was for it.
-  - If you deemed it to be invalid an invalidi finding, then include your reasoning why.
-  - If there is additional context required (such as an explanation as to why your remediation doesn't doesn't meet the reviewers criteria), make sure it is added
+  - If you deemed it to be an invalid finding, then include your reasoning why.
+  - If there is additional context required (such as an explanation as to why your remediation doesn't meet the reviewer's criteria), make sure it is added
 - If the finding was part of a threaded conversation, mark that conversation as Resolved
 - If necessary, mark the PR and/or reviewer as ready for review again
 
