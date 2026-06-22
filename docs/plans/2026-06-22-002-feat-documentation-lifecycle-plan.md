@@ -1,7 +1,7 @@
 ---
 title: "feat: Add install, usage, and contribution documentation"
 type: feat
-status: active
+status: completed
 date: 2026-06-22
 ---
 
