@@ -60,6 +60,14 @@ Determine how to proceed based on what was provided in `<input_document>`.
    - **Do not skip this** - better to ask questions now than build the wrong thing
    - **Do not edit the plan body during execution.** The plan is a decision artifact; progress lives in git commits and the task tracker, not the plan. `ce-work` does not mutate the plan — whether it shipped is derived from git, not recorded in the doc. Legacy plans may contain `- [ ]` / `- [x]` marks on unit headings or a `status:` field — ignore them as state; per-unit completion is determined during execution by reading the current file state.
 
+   - **Cross-check against repo conventions.** After reading the plan, extract the key resource types and patterns it uses (e.g., Deployments, NetworkPolicies, cache URLs, probe configs). For each, grep `docs/solutions/` for relevant conventions:
+     ```bash
+     # Example: if the plan creates a Valkey deployment
+     grep -ril "valkey\|redis" docs/solutions/
+     grep -ril "networkpolicy" docs/solutions/
+     ```
+     If a documented convention contradicts the plan's approach, surface it as a clarifying question before implementing. Log the cross-check results so the user can see what was checked. The plan is a decision artifact, but documented conventions are the accumulated lessons — when they conflict, conventions win unless the user explicitly overrides.
+
 2. **Setup Environment**
 
    First, check the current branch:
@@ -126,6 +134,9 @@ Determine how to proceed based on what was provided in `<input_document>`.
    - Prioritize based on what needs to be done first
    - Include testing and quality check tasks
    - Keep tasks specific and completable
+
+
+   - **Detect missing convention artifacts.** After building the task list, pick a reference app from the same category (e.g., `apps/plane/` for a new app deployment, or the most similar existing skill for skill work). List the reference's files and diff against the plan's file list. Files present in the reference but absent from the plan are either intentional omissions (confirm with user) or missing convention artifacts that should be created. For repos without a clear reference app, check for common patterns: READMEs, SealedSecret templates, ConfigMaps, NetworkPolicies, etc.
 
 4. **Choose Execution Strategy**
 
@@ -207,6 +218,7 @@ Determine how to proceed based on what was provided in `<input_document>`.
      - Add, update, or remove tests to match implementation changes (see Test Discovery below)
      - Run System-Wide Test Check (see below)
      - Run tests after changes
+     - **Run pre-commit validation before staging.** If a pre-commit hook exists (`.git/hooks/pre-commit` or `.githooks/pre-commit`), run the validation scripts directly against working tree files before staging. If validation fails, fix issues before staging. This replaces the discover-at-commit-time cycle with a validate-before-staging cycle.
      - Assess testing coverage: did this task change behavior? If yes, were tests written or updated? If no tests were added, is the justification deliberate (e.g., pure config, no behavioral change)?
      - Mark task as completed
      - Evaluate for incremental commit (see below)
