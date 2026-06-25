@@ -37,6 +37,15 @@ Then enable the plugin in `enabledPlugins`:
 | `/pr-review` | Reviews a pull request and posts inline findings | `code-review` plugin (claude-plugins-official) |
 | `/pr-fix-findings` | Fixes findings from a PR review and updates the PR | `/ce-debug` (included) |
 | `/verify-implementation` | Verifies a feature branch against its plan | None (self-contained) |
+| `/do-work-loop` | Run ce-work and verify-implementation in a loop until the plan is fully satisfied | `/ce-work`, `/verify-implementation`, `/ce-compound` |
+
+### 
+
+The central implementation loop. Runs ce-work and verify-implementation in cycles until verification passes. Most plans require multiple passes — a single ce-work run typically misses things.
+
+```bash
+/do-work-loop docs/plans/my-plan.md
+```
 
 ### Compound Engineering Skills (Extracted)
 
