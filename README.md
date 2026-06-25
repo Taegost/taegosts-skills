@@ -48,7 +48,7 @@ These 9 skills were extracted from [EveryInc/compound-engineering-plugin](https:
 | `/ce-plan` | Planning and architecture | ce-brainstorm |
 | `/ce-doc-review` | Document review with persona lenses | None |
 | `/ce-code-review` | Code review with dynamic personas | None |
-| `/ce-compound` | Solution documentation capture | ce-work, ce-debug |
+| `/ce-compound` | Solution documentation capture | None (standalone) |
 | `/ce-debug` | Debugging workflow | None |
 | `/ce-brainstorm` | Requirements brainstorming | None |
 | `/ce-commit` | Commit workflow | None |

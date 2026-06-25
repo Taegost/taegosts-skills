@@ -31,22 +31,30 @@ The [Compound Engineering plugin](https://github.com/EveryInc/compound-engineeri
 
 ## What Was Removed
 
+
 ### Personas (ce-code-review)
+
 - `swift-ios-reviewer.md` — iOS/Swift specific, not relevant to DevOps/k8s
 - `julik-frontend-races-reviewer.md` — Frontend race conditions
 - `agent-native-reviewer.md` — Claude Code meta-reviewer
 
+
 ### Agents (ce-plan, ce-brainstorm)
+
 - `slack-researcher.md` — No Slack integration in this workflow
 - `agent-native-planning-strategist.md` — Platform meta-agent
 
+
 ### Scripts (ce-brainstorm, ce-compound)
+
 - `visual-probe-server.js` + `visual-probes.md` — Node.js visual probe server (optional)
 - `session-historian.md` — Session history scripts, Claude Code specific
 
+
 ## Dependency Chain
 
-```
+
+```text
 ce-brainstorm → ce-plan → ce-work → ce-code-review
                                       → ce-commit
                                       → ce-commit-push-pr
