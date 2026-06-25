@@ -148,6 +148,12 @@ Produce a complete Go/No-Go checklist that an engineer can literally execute:
 ## When to Use This Agent
 
 Invoke this agent when:
-Invoke this agent when the migration-artifact gate applies **and** the change is risky (destructive DDL, backfills, NOT NULL without default, column renames/drops).
+- PR contains migration artifacts that modify existing data (backfills, column transforms, data migrations)
+- PR introduces destructive DDL (DROP TABLE/COLUMN, TRUNCATE, ALTER TYPE with data loss)
+- PR adds NOT NULL columns to populated tables without a default
+- PR renames or drops columns that may have downstream consumers
+- PR touches hot tables requiring index builds or lock-heavy operations
+- PR involves schema changes with rollback risk (complex multi-step migrations)
+- The `data-migration` persona flags critical findings requiring deployment-level review
 
 Be thorough. Be specific. Produce executable checklists, not vague recommendations.

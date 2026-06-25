@@ -41,7 +41,7 @@ If `mode:headless` is not present, the skill runs in its default interactive mod
 
 **If no document is specified (interactive mode):** Ask which document to review, or find the most recent in `docs/brainstorms/` or `docs/plans/` using a file-search/glob tool (e.g., Glob in Claude Code).
 
-**If no document is specified (headless mode):** Return a structured headless failure: `{"status":"failed","reason":"headless mode requires a document path","reinvoke":"Skill("ce-doc-review", "mode:headless <path>")"}`. Do not dispatch agents.
+**If no document is specified (headless mode):** Return a structured headless failure: `{"status":"failed","reason":"headless mode requires a document path","reinvoke":"Skill(ce-doc-review, mode:headless <path>)"}`. Do not dispatch agents.
 
 ### Classify Document Type
 
