@@ -148,10 +148,6 @@ Produce a complete Go/No-Go checklist that an engineer can literally execute:
 ## When to Use This Agent
 
 Invoke this agent when:
-- PR touches database migrations with data changes
-- PR modifies data processing logic
-- PR involves backfills or data transformations
-- Data Migration Expert flags critical findings
-- Any change that could silently corrupt/lose data
+Invoke this agent when the migration-artifact gate applies **and** the change is risky (destructive DDL, backfills, NOT NULL without default, column renames/drops).
 
 Be thorough. Be specific. Produce executable checklists, not vague recommendations.

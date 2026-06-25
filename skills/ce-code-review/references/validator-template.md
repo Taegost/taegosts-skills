@@ -46,7 +46,7 @@ Your task is to answer three questions:
    - The persona misread types or signatures
    - The persona flagged a pattern that is intentional in this codebase (check comments, parallel handlers, project conventions)
 
-2. **Is the issue introduced by THIS diff?** Use git blame or diff inspection. If the cited line predates this PR's commits and the diff does not interact with it (does not call into it, does not change its callers in a way that newly exposes the issue), the finding is pre-existing — not validated for externalization regardless of whether it is a real issue.
+2. **Is the issue introduced by THIS diff?** In local-aligned scope, use git blame or diff inspection. In `pr-remote` / `branch-remote`, determine this from the provided diff and remote-head `git show` output only. If the cited line predates this PR's commits and the diff does not interact with it (does not call into it, does not change its callers in a way that newly exposes the issue), the finding is pre-existing — not validated for externalization regardless of whether it is a real issue.
 
 3. **Is the issue not handled elsewhere?** Look for guards in callers, middleware in the request chain, framework defaults, type system constraints, or parallel handlers that already address the concern. If the issue is functionally prevented by surrounding infrastructure, the finding is invalid.
 
