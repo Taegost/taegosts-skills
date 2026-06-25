@@ -1,88 +1,76 @@
-# CE Skills Extraction — 2026-06-24
+---
+title: "CE Skills Extraction — Customizing Compound Engineering for Homelab Workflow"
+date: 2026-06-25
+category: tooling-decisions
+module: homelab
+problem_type: tooling_decision
+tags: [compound-engineering, claude-code, skills, extraction, customization]
+---
 
-## Decision
-
-Extract 9 skills from [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) into our own repo for customization.
+# CE Skills Extraction
 
 ## Context
 
-The homelab-k8s plan (2026-06-23-006) identified 10 findings against the CE plugin that require skill-level changes. We can't PR those changes upstream yet — they're specific to our DevOps/k8s workflow. Extracting the skills lets us iterate locally while tracking upstream for future convergence.
-
-## Motivating Findings (from homelab-k8s plan)
-
-1. ce-work doesn't cross-check conventions before dispatching
-2. ce-work artifact detection is fragile (looks for specific filenames)
-3. ce-work no pre-commit validation before claiming done
-4. ce-doc-review missing domain-specific security/networking personas
-5. ce-doc-review no convention cross-check during review
-6. ce-compound subagent contract violation (passes wrong args to /ce-work)
-7. ce-code-review has platform-specific personas not relevant to k8s workflow
-8. ce-plan includes Slack-specific agents we don't use
-9. ce-brainstorm includes visual probe server we don't need
-10. ce-compound includes session historian scripts we don't need
+The [Compound Engineering plugin](https://github.com/EveryInc/compound-engineering-plugin) (EveryInc) ships 25+ skills for Claude Code. Mike's homelab-k8s workflow uses 9 of them. The plugin has gaps that cause friction during implementation (documented in 10 findings from the Honcho deployment). Rather than building wrappers around a third-party plugin, the 9 relevant skills are extracted into this repo for direct ownership and customization.
 
 ## Skills Extracted
 
-| Skill | Purpose | Dependencies |
-|-------|---------|-------------|
-| ce-work | Plan execution and implementation | ce-plan, ce-debug |
-| ce-plan | Planning and architecture | ce-brainstorm |
-| ce-doc-review | Document review with persona lenses | None |
-| ce-code-review | Code review with dynamic personas | None |
-| ce-compound | Solution documentation capture | ce-work, ce-debug |
-| ce-debug | Debugging workflow | None |
-| ce-brainstorm | Requirements brainstorming | None |
-| ce-commit | Commit workflow | None |
-| ce-commit-push-pr | Commit + PR creation | None |
+| Skill | Lines (with deps) | Purpose |
+|-------|-------------------|---------|
+| ce-plan | ~4,448 | Planning and architecture |
+| ce-compound | ~3,495 | Solution documentation capture |
+| ce-code-review | ~2,982 | Code review with dynamic personas |
+| ce-brainstorm | ~2,541 | Requirements brainstorming |
+| ce-doc-review | ~2,095 | Document review with persona lenses |
+| ce-work | ~974 | Plan execution and implementation |
+| ce-debug | ~752 | Debugging workflow |
+| ce-commit-push-pr | ~304 | Commit + PR creation |
+| ce-commit | ~105 | Commit workflow |
+
+**Total:** ~17,700 lines across ~90 files.
+
+## What Was Removed
+
+### Personas (ce-code-review)
+- `swift-ios-reviewer.md` — iOS/Swift specific, not relevant to DevOps/k8s
+- `julik-frontend-races-reviewer.md` — Frontend race conditions
+- `agent-native-reviewer.md` — Claude Code meta-reviewer
+
+### Agents (ce-plan, ce-brainstorm)
+- `slack-researcher.md` — No Slack integration in this workflow
+- `agent-native-planning-strategist.md` — Platform meta-agent
+
+### Scripts (ce-brainstorm, ce-compound)
+- `visual-probe-server.js` + `visual-probes.md` — Node.js visual probe server (optional)
+- `session-historian.md` — Session history scripts, Claude Code specific
 
 ## Dependency Chain
 
 ```
-ce-brainstorm -> ce-plan -> ce-work -> ce-compound
-                       \\            /
-                       ce-debug
+ce-brainstorm → ce-plan → ce-work → ce-code-review
+                                      → ce-commit
+                                      → ce-commit-push-pr
+                ce-doc-review ↗ (headless review)
+                ce-compound (standalone)
+                ce-debug (standalone)
 ```
 
-- ce-brainstorm feeds requirements into ce-plan
-- ce-plan produces plans consumed by ce-work
-- ce-work uses ce-debug for error investigation
-- ce-compound captures solutions using ce-work + ce-debug
-- ce-doc-review, ce-code-review, ce-commit, ce-commit-push-pr are independent
+## Motivating Findings (10 gaps from Honcho deployment)
 
-## What Was Removed
+| # | Finding | Skill | Status |
+|---|---------|-------|--------|
+| 1 | ce-work doesn't cross-check plans against repo conventions | ce-work | Pending PR 2 |
+| 2 | ce-work doesn't detect missing convention artifacts | ce-work | Pending PR 2 |
+| 3 | ce-work doesn't validate against pre-commit proactively | ce-work | Pending PR 2 |
+| 4 | verify-implementation conflates missing with awaiting manual step | verify-implementation | Pending PR 5 |
+| 5 | verify-implementation subagents run stale context on re-verification | verify-implementation | Pending PR 5 |
+| 6 | doc-review missed domain-specific security/networking issues | ce-doc-review | Pending PR 3 |
+| 7 | ce-compound Solution Extractor created file (violates contract) | ce-compound | Pending PR 4 |
+| 8 | No mechanism to detect plan-vs-convention conflicts during doc-review | ce-doc-review | Pending PR 3 |
+| 9 | pr-fix-findings doesn't fetch issue-level comments | pr-fix-findings | Pending PR 5 |
+| 10 | pr-fix-findings doesn't check conversation resolution status | pr-fix-findings | Pending PR 5 |
 
-### From ce-code-review (3 persona files)
-- `references/personas/swift-ios-reviewer.md` — iOS-specific, not relevant to k8s
-- `references/personas/julik-frontend-races-reviewer.md` — Frontend race conditions, not relevant
-- `references/personas/agent-native-reviewer.md` — Claude Code meta-reviewer, platform-specific
+## Source
 
-### From ce-plan (2 agent files)
-- `references/agents/slack-researcher.md` — No Slack integration in our workflow
-- `references/agents/agent-native-planning-strategist.md` — Platform meta-agent, not needed
-
-### From ce-brainstorm (3 files)
-- `references/agents/slack-researcher.md` — No Slack integration
-- `scripts/visual-probe-server.js` — Node.js visual probe, not needed
-- `references/visual-probes.md` — Companion to the visual probe server
-
-### From ce-compound (1 file)
-- `references/agents/session-historian.md` — Session history scripts, Claude Code specific
-
-### NOT removed from ce-doc-review
-All 7 personas in ce-doc-review are relevant to Mike's DevOps/k8s workflow and were kept.
-
-## PR Plan
-
-1. **PR 1 (this)** — Pure extraction with unused parts removed, no behavior changes
-2. **PR 2** — ce-work fixes (convention cross-check, artifact detection, pre-commit validation)
-3. **PR 3** — ce-doc-review fixes (domain-specific security/networking, convention cross-check at review)
-4. **PR 4** — ce-compound fix (subagent contract violation)
-5. **PR 5** — Existing skill fixes (verify-implementation, pr-fix-findings)
-
-## Status
-
-- [x] Skills extracted
-- [x] Unused files removed
-- [ ] Platform fallback scaffolding removed (PR 2+)
-- [ ] Homelab-specific fixes applied (PR 2-4)
-- [ ] Upstream convergence plan drafted
+- Upstream: https://github.com/everyinc/compound-engineering-plugin
+- Motivating plan: https://github.com/Taegost/homelab-k8s/blob/main/docs/plans/2026-06-23-006-chore-skill-improvements-from-honcho-deployment.md
