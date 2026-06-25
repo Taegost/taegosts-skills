@@ -5,7 +5,26 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SCRIPT="$REPO_ROOT/scripts/solutions-search.sh"
-SOLUTIONS_DIR="/tmp/homelab-k8s/docs/solutions"
+# Create temp fixture instead of relying on external repo
+FIXTURE_DIR=$(mktemp -d)
+mkdir -p "$FIXTURE_DIR/docs/solutions/conventions" "$FIXTURE_DIR/docs/solutions/runtime-errors"
+cat > "$FIXTURE_DIR/docs/solutions/conventions/valkey-pattern.md" << 'FIXTURE'
+---
+title: "Valkey Cache Auth Pattern"
+tags: [valkey, redis, cache, networkpolicy]
+module: homelab
+---
+Run Valkey without auth, use NetworkPolicy for namespace isolation.
+FIXTURE
+cat > "$FIXTURE_DIR/docs/solutions/runtime-errors/longhorn-mount.md" << 'FIXTURE'
+---
+title: "Longhorn PVC Mount Failures"
+tags: [longhorn, storage, multipathd]
+module: longhorn
+---
+multipathd claims iSCSI devices via device-mapper.
+FIXTURE
+SOLUTIONS_DIR="$FIXTURE_DIR/docs/solutions"
 
 pass=0
 fail=0
@@ -42,17 +61,17 @@ else
 fi
 
 # Check that valkey results contain expected file
-if grep -q "base-images-redis-valkey" /tmp/u3-test.json; then
-  ok "found valkey base-images doc"
+if grep -q "valkey-pattern" /tmp/u3-test.json; then
+  ok "found valkey fixture doc"
 else
-  die "missing valkey base-images doc"
+  die "missing valkey fixture doc"
 fi
 
 # Check that title is present for honcho-deployment-patterns
-if grep -q "Honcho Deployment Patterns" /tmp/u3-test.json; then
-  ok "found honcho-deployment-patterns title"
+if grep -q "Valkey Cache Auth Pattern" /tmp/u3-test.json; then
+  ok "found valkey-pattern title"
 else
-  die "missing honcho-deployment-patterns title"
+  die "missing valkey-pattern title"
 fi
 
 # Given: keyword "networkpolicy"

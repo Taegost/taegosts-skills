@@ -2,7 +2,7 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [[ "${1:-}" == "--help" ]]; then
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   echo "Usage: detect-diff-scope.sh [--base <ref>] [--pr <number>] [--branch <name>]"
   echo ""
   echo "Compute diff scope and detect which reviewers apply."
@@ -31,13 +31,19 @@ if [[ "$mode" == "pr-remote" ]]; then
   head_ref=$(gh pr view "$pr_number" --json headRefName --jq '.headRefName' 2>/dev/null || echo "unknown")
   base_ref=$(gh pr view "$pr_number" --json baseRefName --jq '.baseRefName' 2>/dev/null || echo "unknown")
 else
-  [[ -n "$branch_name" ]] && git checkout "$branch_name" 2>/dev/null || true
-  head_ref=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+  # Use branch_name directly in diff if provided — do not checkout
   base_ref="$base"
-  diff_output=$(git diff "${base}...HEAD" 2>/dev/null || echo "")
+  if [[ -n "$branch_name" ]]; then
+    diff_output=$(git diff "${base}...${branch_name}" 2>/dev/null || echo "")
+    head_ref="$branch_name"
+  else
+    diff_output=$(git diff "${base}...HEAD" 2>/dev/null || echo "")
+    head_ref=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+  fi
 fi
 
 files_changed=() has_migrations=false has_tests=false diff_line_count=0
+[[ -z "$diff_output" ]] && diff_output=""
 while IFS= read -r line; do
   if [[ "$line" == "diff --git"* ]]; then
     file=$(echo "$line" | sed 's|diff --git a/||;s| b/.*||')

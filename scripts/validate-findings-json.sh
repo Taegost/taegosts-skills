@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-if [[ "${1:-}" == "--help" ]]; then
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   echo "Usage: validate-findings-json.sh <findings-json-file>"
   echo "Validates findings JSON has required fields: title, severity, file, description"
   echo "Valid severities: Critical, High, Moderate, Minor, Info"
@@ -14,7 +14,7 @@ findings_file="${1:-}"
 
 python3 -c "
 import json, sys
-with open('$findings_file') as f:
+with open(sys.argv[1]) as f:
     data = json.load(f)
 if not isinstance(data, list):
     print('fail'); print('Error: root must be an array', file=sys.stderr); sys.exit(2)

@@ -48,12 +48,12 @@ if [[ "$doc_path" =~ [\;\|\&\$\`\] ]]; then
 fi
 
 if [[ ! -f "$doc_path" ]]; then
-  echo "{"error":"file not found: $doc_path"}" >&2
+  echo '{"error":"file not found"}' >&2
   exit 1
 fi
 
 if [[ ! -r "$doc_path" ]]; then
-  echo "{"error":"file not readable: $doc_path"}" >&2
+  echo '{"error":"file not readable"}' >&2
   exit 1
 fi
 

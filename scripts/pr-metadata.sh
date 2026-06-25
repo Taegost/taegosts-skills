@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-if [[ "${1:-}" == "--help" ]]; then
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   echo "Usage: pr-metadata.sh --repo owner/repo --pr <number>"
   echo "Fetch PR metadata from GitHub API as JSON."
   echo "Output: JSON with number, title, state, base, head, head_sha, url, files_count, review_comments, issue_comments"
@@ -22,7 +22,7 @@ done
 gh auth status >/dev/null 2>&1 || { echo "gh auth not configured" >&2; exit 1; }
 
 pr_json=$(gh pr view "$pr_number" --repo "$repo" --json \
-  number,title,state,baseRefName,headRefName,headRefOid,isCrossRepository,url,files,reviews,comments 2>/dev/null) \
+  number,title,state,baseRefName,headRefName,headRefOid,isCrossRepository,url,files,reviews,comments,mergeable 2>/dev/null) \
   || { echo "failed to fetch PR $pr_number from $repo" >&2; exit 1; }
 
 python3 -c "
@@ -38,7 +38,7 @@ result = {
     'is_cross_repo': data.get('isCrossRepository', False),
     'url': data.get('url'),
     'files_count': len(data.get('files', [])),
-    'has_conflicts': False,
+    'has_conflicts': data.get('mergeable', 'UNKNOWN') == 'CONFLICTING',
     'review_comments': sum(1 for r in data.get('reviews', []) if r.get('state') != 'PENDING'),
     'issue_comments': len(data.get('comments', []))
 }
