@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # U15: detect-file-status.sh - determine if a file is committed, on disk (gitignored), or missing
 # Input: file path (relative to repo root)
-# Output: JSON with {path, status: "committed"|"on_disk_gitignored"|"missing"}
+# Output: JSON with {path, status: "committed"|"on_disk_gitignored"|"on_disk_untracked"|"missing"}
 # Exit codes: 0 success, 1 error, 2 file missing
 
 set -uo pipefail
@@ -20,6 +20,7 @@ Output: JSON with:
   status - one of:
     "committed"          - tracked by git (in index or HEAD)
     "on_disk_gitignored" - exists on disk but listed in .gitignore
+    "on_disk_untracked"  - exists on disk, not tracked, not gitignored
     "missing"            - not found on disk and not tracked
 
 Exit codes:
@@ -66,7 +67,7 @@ if [[ -f "$file_path" ]]; then
     echo "{\"path\":\"$escaped_path\",\"status\":\"on_disk_gitignored\"}"
   else
     # Exists on disk, not tracked, not gitignored = untracked
-    echo "{\"path\":\"$escaped_path\",\"status\":\"on_disk_gitignored\"}"
+    echo "{\"path\":\"$escaped_path\",\"status\":\"on_disk_untracked\"}"
   fi
   exit 0
 fi

@@ -71,6 +71,23 @@ else
   die "expected on_disk_gitignored, got $status"
 fi
 
+# Given: an untracked file (exists on disk, not tracked, not gitignored)
+echo "new content" > untracked.txt
+
+output=$("$SCRIPT" untracked.txt 2>&1) && rc=0 || rc=$?
+echo "$output" > "$tmpdir/result2b.json"
+if [[ $rc -eq 0 ]]; then
+  ok "exits 0 for untracked file"
+else
+  die "exit code for untracked file (rc=$rc)"
+fi
+status=$(python3 -c "import json; d=json.load(open('$tmpdir/result2b.json')); print(d['status'])")
+if [[ "$status" == "on_disk_untracked" ]]; then
+  ok "untracked file status is 'on_disk_untracked'"
+else
+  die "expected on_disk_untracked, got $status"
+fi
+
 # Given: a missing file
 output=$("$SCRIPT" nonexistent.txt 2>&1) && rc=0 || rc=$?
 echo "$output" > "$tmpdir/result3.json"
