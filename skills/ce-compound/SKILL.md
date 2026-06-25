@@ -173,7 +173,7 @@ Pass `{run_id}` (the resolved `$RUN_ID` value) into every Phase 1 subagent promp
    - Reads `references/schema.yaml` for track classification (bug vs knowledge)
    - Adapts output structure based on the problem_type track
    - **Writes the full doc-body prose** (all track-appropriate sections below) to `solution.md` and returns only the artifact path. This is the subagent most prone to the issue #956 summary-collapse, so its prose must land on disk rather than only in the inline return.
-   - **IMPORTANT:** Write ONLY to the scratch artifact (`solution.md` under the run directory). Do NOT create or write files in `docs/`, `skills/`, or any tracked path. Return the artifact path as your final output — the orchestrator handles all product file writes.
+   - **IMPORTANT:** Write ONLY to the scratch artifact (`solution.md` under the run directory). Do NOT create or write files in `docs/`, `skills/`, or any tracked path. If the artifact write fails (path unresolvable, permission denied, disk error), return your full structured output inline instead — the orchestrator handles missing artifacts in Phase 2. Return the artifact path only when the write is confirmed on disk.
    - Incorporates auto memory excerpts (if provided by the orchestrator) as supplementary evidence -- conversation history and the verified fix take priority; if memory notes contradict the conversation, note the contradiction as cautionary context
 
    **Bug track output sections:**
