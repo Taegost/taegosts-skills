@@ -39,7 +39,6 @@ Then enable the plugin in `enabledPlugins`:
 | `/verify-implementation` | Verifies a feature branch against its plan | None (self-contained) |
 | `/do-work-loop` | Run ce-work and verify-implementation in a loop until the plan is fully satisfied | `/ce-work`, `/verify-implementation`, `/ce-compound` |
 
-### 
 
 The central implementation loop. Runs ce-work and verify-implementation in cycles until verification passes. Most plans require multiple passes — a single ce-work run typically misses things.
 

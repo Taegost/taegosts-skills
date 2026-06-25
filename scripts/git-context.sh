@@ -89,7 +89,8 @@ json_array() {
   printf '['
   for i in "${!arr[@]}"; do
     [[ $i -gt 0 ]] && printf ','
-    printf '"%s"' "$(echo "${arr[$i]}" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+    printf '"%s"' "$(echo "${arr[$i]}" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g; s//\\r/g' | tr '
+' ' ')"
   done
   printf ']'
 }

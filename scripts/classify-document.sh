@@ -71,7 +71,7 @@ if echo "$content" | grep -qE '## U[0-9]+:'; then
 fi
 
 # Check for U# ID references
-if echo "$content" | grep -qE 'U[0-9]+'; then
+if echo "$content" | grep -qE '\bU[0-9]+\b'; then
   signals+=("has_u_ids")
   plan_score=$((plan_score + 2))
 fi

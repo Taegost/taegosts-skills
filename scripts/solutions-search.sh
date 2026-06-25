@@ -67,7 +67,7 @@ done
 
 # Check solutions directory exists
 if [[ ! -d "$SOLUTIONS_DIR" ]]; then
-  echo "{\"error\":\"solutions directory not found: $SOLUTIONS_DIR\"}" >&2
+  echo '{"error":"solutions directory not found"}' >&2
   exit 1
 fi
 

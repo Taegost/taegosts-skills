@@ -71,8 +71,8 @@ Each finding MUST be a separate inline review comment (conversation thread), not
 **Line number mapping (CRITICAL for speed):** The diff line number is NOT the new-file line number. To map correctly, parse the saved diff file once to build a lookup:
 
 ```bash
-awk '/^diff --git /{file=$0; sub("diff --git a/",""); sub(" b/.*","",""); next}
-     /^@@ -[0-9]+,[0-9]+ \+[0-9]+/{split($3,a,"+"); split(a[2],b,","); line=b[1]; next}
+awk '/^diff --git /{split($0,p," "); file=p[3]; sub(/^a\//,"",file); next}
+     /^@@ -[0-9]+,[0-9]+, [0-9]+,[0-9]+ \+[0-9]+/{split($3,a,"+"); split(a[2],b,","); line=b[1]; next}
      /^\+/{print file ":" line; line++; next}
      /^ /{line++}' /tmp/pr-review-diff.txt
 ```
