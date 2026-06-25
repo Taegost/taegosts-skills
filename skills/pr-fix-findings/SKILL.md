@@ -30,9 +30,11 @@ If the `/ce-debug` skill is not available, stop and alert the user. Do not conti
 - Review all open conversations and change requests for findings
 - For each finding, do the following:
   - Check if the finding is already resolved. If it is, then it doesn't require remediation.
+  - **Check conversation resolution status.** For each threaded review conversation, check whether it has been resolved using the GraphQL API (gh api graphql with reviewThreads query checking isResolved). Skip any conversation where isResolved is true. Only unresolved conversations require remediation.
   - Validate whether the finding is valid
   - Make note of any instructions or detailed descriptions are given
   - Make note of any comments in the conversation thread. They may provide additional context.
+- **Fetch issue-level comments.** Run gh api repos/{owner}/{repo}/issues/{pr_number}/comments to get comments posted directly on the PR (not threaded inline). These may contain corrections, updated assessments, or context that changes the validity of review findings. Check each issue-level comment for references to specific findings and update dispositions accordingly. Compare timestamps against the review submission time to identify comments that came after the review.
 - If you are unsure whether a finding is valid, prompt the user, do not make an arbitrary decision
 - If you feel a particular finding is larger than a simple bug fix, alert the user and ask them what they would like to do with it. Large remediations may require a separate planning session.
 - If there aren't any findings, alert the user and stop. Do not continue.

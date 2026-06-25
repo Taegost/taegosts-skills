@@ -39,9 +39,18 @@ Read `docs/plans/$ARGUMENTS`. If no argument was provided, run `ls docs/plans/` 
 git diff ${base_branch}...HEAD
 ```
 
+### 3a. Detect missing vs. awaiting manual step
+
+After getting the diff, check whether files listed in the plan that are absent from the diff exist on disk (even if gitignored). Distinguish between:
+- **Missing entirely** — file does not exist on disk (Critical)
+- **Awaiting manual step** — file exists on disk but is gitignored, e.g. SealedSecret templates awaiting kubeseal (Warning, not Critical)
+- **Committed** — file is in the diff (Pass)
+
 ### 4. Launch 4 parallel subagents
 
-Each subagent receives the plan content and the git diff. Launch all 4 in parallel:
+Each subagent receives the plan content and the git diff. If this is a re-verification run (commits after initial implementation), pass context about what was previously found and fixed so subagents can focus on verifying fixes landed correctly and checking for NEW issues. Do not re-verify already-fixed findings.
+
+Launch all 4 in parallel:
 
 **Subagent 1 — Correctness:**
 For each changed file, verify the implementation matches the plan. Flag logic errors, behavioral deviations, or anything that contradicts the plan.
