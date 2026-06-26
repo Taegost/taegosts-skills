@@ -15,6 +15,11 @@ This is the required process for ALL coding tasks across ALL projects. Do not sk
 
 ## The Workflow
 
+### Phase 0: Setup
+
+1. **Load script-index** — read `skills/script-index/SKILL.md` to know what tools are available
+2. **Add scripts to PATH** — `export PATH="/tmp/taegosts-skills-fork/scripts:$PATH"`
+
 ### Phase 1: Planning
 
 1. **Create a new branch** from main (or sync fork first if working from a fork)
@@ -57,3 +62,24 @@ Mike has ADHD. Follow-through is hard. The plan-review-doc-review cycle creates 
 - Rework from misunderstood requirements
 
 The workflow is the ADHD coping mechanism for coding. Respect it.
+
+## Verification Scripts (MUST use)
+
+Before committing ANY code change, run these scripts:
+
+```bash
+# After each file edit — confirm the change actually landed
+verify-fix.sh --file <path> --should-contain "new text"
+verify-fix.sh --file <path> --should-not-contain "old text"
+
+# Before committing — check all scripts pass validation
+verify-scripts.sh --all
+
+# When building JSON output in bash — use this instead of printf
+to-json.sh key1=value1 key2=value2
+```
+
+These scripts are at `/tmp/taegosts-skills-fork/scripts/` — add to PATH at session start.
+
+**Do NOT use grep/sed/Python str.replace for verification.** Use verify-fix.sh.
+**Do NOT use printf for JSON construction.** Use to-json.sh.
