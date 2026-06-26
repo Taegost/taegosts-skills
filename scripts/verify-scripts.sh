@@ -10,12 +10,11 @@
 #
 # Checks per file:
 #   .sh files: bash -n, control chars, --help flag, executable
-#   .py files: python3 -m py_compile, --help flag, executable
-#   JSON output: if script outputs JSON, validate it
+#   .py files: python3 -m py_compile, control chars, --help flag, executable
 #
 # Exit codes: 0 (all pass), 1 (one or more failures)
 
-set -euo pipefail
+set -eo pipefail
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   echo "Usage: verify-scripts.sh [dir|--file path|--all]"
@@ -27,74 +26,85 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   exit 0
 fi
 
-total_pass=0
-total_fail=0
+total_files=0
 failures=()
 
 check_file() {
   local f="$1"
-  local name=$(basename "$f")
-  
+  local name
+  name=$(basename "$f")
+  local file_failures=0
+  local is_supported=false
+
   if [[ "$f" == *.sh ]]; then
-    # bash -n syntax check
+    is_supported=true
     if ! bash -n "$f" 2>/dev/null; then
       failures+=("$name: bash syntax error")
-      total_fail=$((total_fail + 1))
-      return
+      file_failures=$((file_failures + 1))
     fi
-    
-    # Control character check
-    if cat -A "$f" | grep -qP '[\x00-\x08\x0b\x0c\x0e-\x1f]' 2>/dev/null; then
-      failures+=("$name: control characters found")
-      total_fail=$((total_fail + 1))
-    fi
-    
-    # Executable check
-    if [[ ! -x "$f" ]]; then
-      failures+=("$name: not executable")
-      total_fail=$((total_fail + 1))
-    fi
-    
-    # --help flag check
-    if ! grep -q '\-\-help' "$f" 2>/dev/null; then
-      failures+=("$name: missing --help flag")
-      total_fail=$((total_fail + 1))
-    fi
-    
   elif [[ "$f" == *.py ]]; then
-    # Python syntax check
+    is_supported=true
     if ! python3 -m py_compile "$f" 2>/dev/null; then
       failures+=("$name: Python syntax error")
-      total_fail=$((total_fail + 1))
-      return
-    fi
-    
-    # Executable check
-    if [[ ! -x "$f" ]]; then
-      failures+=("$name: not executable")
-      total_fail=$((total_fail + 1))
-    fi
-    
-    # --help flag check
-    if ! grep -q '\-\-help' "$f" 2>/dev/null; then
-      failures+=("$name: missing --help flag")
-      total_fail=$((total_fail + 1))
+      file_failures=$((file_failures + 1))
     fi
   fi
-  
-  total_pass=$((total_pass + 1))
+
+  # Skip remaining checks for unsupported extensions
+  if [[ "$is_supported" != "true" ]]; then
+    return 0
+  fi
+
+  # Control character check (portable — no grep -P)
+  if ! python3 -c "
+import sys
+with open(sys.argv[1], 'rb') as f:
+    data = f.read()
+for b in data:
+    if b in (0x09, 0x0a, 0x0d):
+        continue
+    if 0x00 <= b <= 0x1f or b == 0x7f:
+        sys.exit(1)
+" "$f" 2>/dev/null; then
+    failures+=("$name: control characters found")
+    file_failures=$((file_failures + 1))
+  fi
+
+  # Executable check
+  if [[ ! -x "$f" ]]; then
+    failures+=("$name: not executable")
+    file_failures=$((file_failures + 1))
+  fi
+
+  # --help flag check
+  if ! grep -q '\-\-help' "$f" 2>/dev/null; then
+    failures+=("$name: missing --help flag")
+    file_failures=$((file_failures + 1))
+  fi
+
+  # Only count as passed if no failures
+  if [[ $file_failures -eq 0 ]]; then
+    total_files=$((total_files + 1))
+  fi
 }
 
 # Determine what to check
 if [[ "${1:-}" == "--all" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
   files=()
-  [[ -d "scripts" ]] && while IFS= read -r f; do files+=("$f"); done < <(find scripts -name "*.sh" -o -name "*.py" | sort)
-  [[ -d "skills" ]] && while IFS= read -r f; do files+=("$f"); done < <(find skills -path "*/scripts/*.sh" -o -path "*/scripts/*.py" | sort)
+  if [[ -d "$REPO_ROOT/scripts" ]]; then
+    while IFS= read -r f; do files+=("$f"); done < <(find "$REPO_ROOT/scripts" \( -name "*.sh" -o -name "*.py" \) | sort)
+  fi
+  if [[ -d "$REPO_ROOT/skills" ]]; then
+    while IFS= read -r f; do files+=("$f"); done < <(find "$REPO_ROOT/skills" \( -path "*/scripts/*.sh" -o -path "*/scripts/*.py" \) | sort)
+  fi
 elif [[ "${1:-}" == "--file" ]]; then
   files=("$2")
 elif [[ -d "${1:-.}" ]]; then
   files=()
-  while IFS= read -r f; do files+=("$f"); done < <(find "${1:-.}" -name "*.sh" -o -name "*.py" | sort)
+  while IFS= read -r f; do files+=("$f"); done < <(find "${1:-.}" \( -name "*.sh" -o -name "*.py" \) | sort)
 else
   echo "verify-scripts.sh: no files to check" >&2
   exit 1
@@ -107,7 +117,7 @@ for f in "${files[@]}"; do
 done
 
 echo ""
-echo "=== Results: $total_pass checked, ${#failures[@]} failures ==="
+echo "=== Results: $total_files passed, ${#failures[@]} failures ==="
 
 if [[ ${#failures[@]} -gt 0 ]]; then
   for f in "${failures[@]}"; do
