@@ -52,5 +52,25 @@ assert '\$pecial' in d['error'], f'error: {d[\"error\"]}'
   echo "PASS: special chars values survived"; pass=$((pass+1))
 else echo "FAIL: special chars corrupted"; fail=$((fail+1)); fi
 
+
+# --strings flag: all values forced to strings
+output=$("$SCRIPT" --strings count=5 active=true version=1.2)
+if echo "$output" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d['count']=='5'; assert d['active']=='true'; assert d['version']=='1.2'" 2>/dev/null; then
+  echo "PASS: --strings mode"; pass=$((pass+1))
+else echo "FAIL: --strings mode"; fail=$((fail+1)); fi
+
+# version=1.2 stays as string with --strings (was coerced to float before)
+output=$("$SCRIPT" --strings version=1.2)
+if echo "$output" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d['version']=='1.2', f'got {d["version"]}'" 2>/dev/null; then
+  echo "PASS: version string preserved"; pass=$((pass+1))
+else echo "FAIL: version string coerced"; fail=$((fail+1)); fi
+
+# invalid argument should error
+if "$SCRIPT" "no-equals-sign" 2>/dev/null; then
+  echo "FAIL: invalid arg should error"; fail=$((fail+1))
+else
+  echo "PASS: invalid arg errors"; pass=$((pass+1))
+fi
+
 echo "Results: $pass passed, $fail failed"
 [[ $fail -eq 0 ]] && exit 0 || exit 1

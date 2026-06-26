@@ -101,7 +101,15 @@ if [[ "${1:-}" == "--all" ]]; then
     while IFS= read -r f; do files+=("$f"); done < <(find "$REPO_ROOT/skills" \( -path "*/scripts/*.sh" -o -path "*/scripts/*.py" \) | sort)
   fi
 elif [[ "${1:-}" == "--file" ]]; then
+  if [[ -z "${2:-}" ]]; then
+    echo "verify-scripts.sh: --file requires a path argument" >&2
+    exit 1
+  fi
   files=("$2")
+elif [[ "${1:-}" == -* ]]; then
+  echo "verify-scripts.sh: unknown option '${1:-}'" >&2
+  echo "Run 'verify-scripts.sh --help' for usage" >&2
+  exit 1
 elif [[ -d "${1:-.}" ]]; then
   files=()
   while IFS= read -r f; do files+=("$f"); done < <(find "${1:-.}" \( -name "*.sh" -o -name "*.py" \) | sort)
@@ -128,3 +136,4 @@ fi
 
 echo "All checks passed."
 exit 0
+

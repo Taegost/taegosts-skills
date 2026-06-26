@@ -14,9 +14,14 @@ triggers:
 **These scripts exist so you don't have to figure things out. USE THEM.**
 
 Before doing ANY coding work, run:
+
 ```bash
 SKILL_DIR="$(cd "$(dirname "$(find . -name "script-index" -path "*/skills/*" -type d | head -1)")" && pwd)"
-export PATH="$SKILL_DIR/../scripts:$SKILL_DIR/../skills/*/scripts:$PATH"
+SKILL_BASE="$SKILL_DIR/.."
+export PATH="$SKILL_BASE/scripts:$PATH"
+for d in "$SKILL_BASE/skills"/*/scripts; do
+  [[ -d "$d" ]] && export PATH="$d:$PATH"
+done
 ```
 
 ## Situation Routing Table
@@ -78,7 +83,7 @@ export PATH="$SKILL_DIR/../scripts:$SKILL_DIR/../skills/*/scripts:$PATH"
 | Script | When to use | Example |
 |--------|-------------|---------|
 | `detect-diff-scope.sh` | What files changed, what reviewers apply | `detect-diff-scope.sh --base main` |
-| `select-reviewers.sh` | Which code-review personas apply | `echo "src/auth/login.py" | select-reviewers.sh` |
+| `select-reviewers.sh` | Which code-review personas apply | `echo "src/auth/login.py" \| select-reviewers.sh` |
 
 ## Document Analysis
 
@@ -114,3 +119,4 @@ export PATH="$SKILL_DIR/../scripts:$SKILL_DIR/../skills/*/scripts:$PATH"
 3. **NEVER commit without `verify-scripts.sh --all`**
 4. **NEVER manually check git state** — use `git-context.sh`
 5. **NEVER guess which reviewers apply** — use `select-reviewers.sh`
+

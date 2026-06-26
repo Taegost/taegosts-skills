@@ -73,7 +73,7 @@ while [[ $# -gt 0 ]]; do
     --should-match)
       pattern="$2"
       checks_run=$((checks_run + 1))
-      if ! grep -qE "$pattern" "$filepath" 2>/dev/null; then
+      if ! grep -qE -- "$pattern" "$filepath" 2>/dev/null; then
         failures+=("should-match: pattern '$pattern' not found in $filepath")
       fi
       shift 2 ;;
@@ -120,6 +120,17 @@ for b in data:
   esac
 done
 
+if [[ -z "$filepath" ]]; then
+  echo "FAIL: --file is required" >&2
+  echo "Run 'verify-fix.sh --help' for usage" >&2
+  exit 1
+fi
+
+if [[ ! -f "$filepath" ]]; then
+  echo "FAIL: file not found: $filepath" >&2
+  exit 1
+fi
+
 if [[ $checks_run -eq 0 ]]; then
   echo "FAIL: no checks specified for $filepath" >&2
   echo "Run 'verify-fix.sh --help' for usage" >&2
@@ -136,3 +147,4 @@ else
   done
   exit 1
 fi
+

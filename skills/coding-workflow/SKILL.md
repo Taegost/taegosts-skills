@@ -19,9 +19,14 @@ This is the required process for ALL coding tasks across ALL projects. Do not sk
 
 1. **Load script-index** — read `skills/script-index/SKILL.md` to know what tools are available
 2. **Add scripts to PATH** — detect skill directory and add both `scripts/` and `skills/*/scripts/` to PATH:
+
    ```bash
    SKILL_DIR="$(cd "$(dirname "$(find . -name "script-index" -path "*/skills/*" -type d | head -1)")" && pwd)"
-   export PATH="$SKILL_DIR/../scripts:$SKILL_DIR/../skills/*/scripts:$PATH"
+   SKILL_BASE="$SKILL_DIR/.."
+   export PATH="$SKILL_BASE/scripts:$PATH"
+   for d in "$SKILL_BASE/skills"/*/scripts; do
+     [[ -d "$d" ]] && export PATH="$d:$PATH"
+   done
    ```
 
 ### Phase 1: Planning
@@ -83,7 +88,8 @@ verify-scripts.sh --all
 to-json.sh key1=value1 key2=value2
 ```
 
-These scripts are in the skills repo — detect the skill directory and add `scripts/` and `skills/*/scripts/` to PATH at session start.
+These scripts are in the skills repo — detect the skill directory and add `scripts/` and `skills/*/scripts/` to PATH at session start (use the loop pattern from Phase 0).
 
 **Do NOT use grep/sed/Python str.replace for verification.** Use verify-fix.sh.
 **Do NOT use printf for JSON construction.** Use to-json.sh.
+
