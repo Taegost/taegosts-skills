@@ -42,7 +42,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      echo '{"error":"unknown argument: '"$1"'"}' >&2
+      echo '{"error":"unknown argument"}' &>2
       exit 1
       ;;
   esac
@@ -91,6 +91,7 @@ with open(plan_file) as f:
 # Scan reference directory
 results = []
 for root, dirs, files in os.walk(ref_dir):
+    dirs[:] = [d for d in dirs if d not in (".git", "node_modules", "__pycache__", ".venv")]
     for fname in sorted(files):
         full_path = os.path.join(root, fname)
         rel_path = os.path.relpath(full_path, ref_dir)

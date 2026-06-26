@@ -14,19 +14,24 @@ dir="${1:-.}"
 
 echo "$dir" | grep -qE '[;&|$\`]' && echo "invalid characters in path" >&2 && exit 1
 
+# Fix #1 + #2: Use while/read loop instead of for-in-subshell
+# Fix #6: Escape file paths for JSON
 found_any=false
 printf '['
 first=true
 
-for f in $(find "$dir" -name "*.yaml" -o -name "*.yml" 2>/dev/null); do
-  content=$(cat "$f" 2>/dev/null || continue)
+while IFS= read -r -d '' f; do
+  content=$(cat "$f" 2>/dev/null) || continue
+
+  # JSON-escape the file path
+  f_escaped=$(echo "$f" | sed 's/\\/\\\\/g; s/"/\\"/g')
 
   # Check for namespaceSelector used with external IPs
   if echo "$content" | grep -q "namespaceSelector"; then
     if echo "$content" | grep -qE 'ipBlock|cidr.*192\.168|cidr.*10\.'; then
       found_any=true
       [[ "$first" == "true" ]] && first=false || printf ','
-      printf '\n  {"file":"%s","issue":"namespaceSelector used alongside ipBlock for local network IPs — MetalLB hairpin risk","selector_type":"namespaceSelector","recommendation":"Use namespaceSelector for cluster services, port-based rules for external services"}' "$f"
+      printf '\n  {"file":"%s","issue":"namespaceSelector used alongside ipBlock for local network IPs - MetalLB hairpin risk","selector_type":"namespaceSelector","recommendation":"Use namespaceSelector for cluster services, port-based rules for external services"}' "$f_escaped"
     fi
   fi
 
@@ -34,16 +39,16 @@ for f in $(find "$dir" -name "*.yaml" -o -name "*.yml" 2>/dev/null); do
   if echo "$content" | grep -qE 'ipBlock' && echo "$content" | grep -qE 'cidr.*192\.168\.[0-9]+\.[0-9]+/32'; then
     found_any=true
     [[ "$first" == "true" ]] && first=false || printf ','
-    printf '\n  {"file":"%s","issue":"ipBlock targeting single MetalLB IP — will fail with L2 hairpin","selector_type":"ipBlock","recommendation":"Replace ipBlock with namespaceSelector targeting the LoadBalancer backend namespace"}' "$f"
+    printf '\n  {"file":"%s","issue":"ipBlock targeting single MetalLB IP - will fail with L2 hairpin","selector_type":"ipBlock","recommendation":"Replace ipBlock with namespaceSelector targeting the LoadBalancer backend namespace"}' "$f_escaped"
   fi
 
   # Check for missing DNS egress
   if echo "$content" | grep -q "Egress" && ! echo "$content" | grep -qE 'port.*53|dns'; then
     found_any=true
     [[ "$first" == "true" ]] && first=false || printf ','
-    printf '\n  {"file":"%s","issue":"egress policy may be missing DNS port 53 rule","selector_type":"egress","recommendation":"Add UDP/TCP port 53 egress to kube-system namespace for DNS resolution"}' "$f"
+    printf '\n  {"file":"%s","issue":"egress policy may be missing DNS port 53 rule","selector_type":"egress","recommendation":"Add UDP/TCP port 53 egress to kube-system namespace for DNS resolution"}' "$f_escaped"
   fi
-done
+done < <(find "$dir" \( -name "*.yaml" -o -name "*.yml" \) -print0 2>/dev/null)
 
 printf '\n]\n'
 

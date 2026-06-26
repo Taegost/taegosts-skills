@@ -40,7 +40,7 @@ else
   die "exit code (rc=$rc)"
 fi
 
-expected="${today}-001-feat-my-feature.md"
+expected="${today}-001-feat-my-feature-plan.md"
 if [[ "$output" == "$expected" ]]; then
   ok "first plan filename is $expected"
 else
@@ -54,7 +54,7 @@ mkdir -p docs/plans
 touch "docs/plans/${today}-001-feat-existing.md"
 
 output=$("$SCRIPT" --type fix --slug bug-fix 2>&1) && rc=0 || rc=$?
-expected="${today}-002-fix-bug-fix.md"
+expected="${today}-002-fix-bug-fix-plan.md"
 if [[ "$output" == "$expected" ]]; then
   ok "second plan filename is $expected"
 else
@@ -68,7 +68,7 @@ touch "docs/plans/${today}-002-fix-another.md"
 touch "docs/plans/${today}-005-chore-cleanup.md"
 
 output=$("$SCRIPT" --type chore --slug refactoring 2>&1) && rc=0 || rc=$?
-expected="${today}-006-chore-refactoring.md"
+expected="${today}-006-chore-refactoring-plan.md"
 if [[ "$output" == "$expected" ]]; then
   ok "increments past 005 to 006"
 else

@@ -29,7 +29,7 @@ CRED_PATTERNS = [
     (re.compile(r'(?i)["\']?(?:api[_-]?key)["\']?\s*[:=]\s*(.+)'), 'api_key', 'high'),
     (re.compile(r'(?i)["\']?(?:credential)s?["\']?\s*[:=]\s*(.+)'), 'credential', 'high'),
     (re.compile(r'(?i)["\']?(?:token)["\']?\s*[:=]\s*(.+)'), 'token', 'medium'),
-    (re.compile(r'(?i)(?<!api[_-])key\s*[:=]\s*(["\']?[A-Za-z0-9+/=_-]{8,}["\']?)'), 'key', 'medium'),
+    (re.compile(r'(?i)(?<!api[_-])(?<!api)key\s*[:=]\s*(["\']?[A-Za-z0-9+/=_-]{8,}["\']?)'), 'key', 'medium'),
 ]
 
 

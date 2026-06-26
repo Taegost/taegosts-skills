@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
@@ -13,7 +13,7 @@ fi
 files_input=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --files) files_input="$2"; shift 2 ;;
+    --files) files_input="${2:-}"; [[ -z "$files_input" ]] && echo "missing value for --files" >&2 && exit 1; shift 2 ;;
     *) shift ;;
   esac
 done
@@ -25,7 +25,7 @@ else
   files=$(cat)
 fi
 
-echo "$files_input" | grep -qE '[;&|$\`]' && echo "invalid characters" >&2 && exit 1
+if [[ -n "$files_input" ]]; then echo "$files_input" | grep -qE '[;&|$`]' && echo "invalid characters" >&2 && exit 1; fi
 
 always_on='["correctness","testing","maintainability","project-standards"]'
 conditional=()
@@ -64,7 +64,10 @@ cond_json+="]"
 
 rationale_json="{"
 first=true
-for r in "${rationale_parts[@]}"; do
+# Deduplicate rationale_parts
+readarray -t rationale_unique < <(printf "%s
+" "${rationale_parts[@]}" | sort -u)
+for r in "${rationale_unique[@]}" "${rationale_parts[@]}"; do
   [[ -z "$r" ]] && continue
   [[ "$first" == "true" ]] && first=false || rationale_json+=","
   rationale_json+="$r"

@@ -53,7 +53,7 @@ find "$dir" -maxdepth 3 -name "*.sh" 2>/dev/null | head -1 | grep -q . && langua
 # Detect common config files
 [[ -f "$dir/Dockerfile" ]] && config_files+=("Dockerfile")
 [[ -f "$dir/docker-compose.yml" || -f "$dir/docker-compose.yaml" ]] && config_files+=("docker-compose.yml")
-[[ -f "$dir/.github/workflows" ]] && config_files+=(".github/workflows")
+[[ -d "$dir/.github/workflows" ]] && config_files+=(".github/workflows")
 [[ -f "$dir/Makefile" ]] && config_files+=("Makefile")
 [[ -f "$dir/CLAUDE.md" || -f "$dir/AGENTS.md" ]] && config_files+=("CLAUDE.md/AGENTS.md")
 

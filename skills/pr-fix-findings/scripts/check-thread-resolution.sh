@@ -19,7 +19,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ -z "$repo" || -z "$pr_number" ]] && { echo "--repo and --pr required" >&2; exit 1; }
-echo "$repo$pr_number" | grep -qE '[;&|$\`]' && { echo "invalid characters" >&2; exit 1; }
+echo "$repo$pr_number" | grep -qE '[;&|"$`' && { echo "invalid characters" >&2; exit 1; }
 gh auth status >/dev/null 2>&1 || { echo "gh auth not configured" >&2; exit 1; }
 
 IFS='/' read -r owner name <<< "$repo"

@@ -4,7 +4,7 @@
 # Output: filename like 2026-06-25-002-feat-my-plan.md
 # Exit codes: 0 success, 1 error
 
-set -uo pipefail
+set -euo pipefail
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'
@@ -43,7 +43,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      echo "{\"error\":\"unknown argument: $1\"}" >&2
+      echo '{"error":"unknown argument"}' >&2
       exit 1
       ;;
   esac
@@ -64,7 +64,7 @@ fi
 case "$plan_type" in
   feat|fix|chore) ;;
   *)
-    echo "{\"error\":\"--type must be feat, fix, or chore; got: $plan_type\"}" >&2
+    echo '{"error":"--type must be feat, fix, or chore"}' >&2
     exit 1
     ;;
 esac
@@ -102,6 +102,6 @@ next_seq=$((max_seq + 1))
 seq_padded=$(printf "%03d" "$next_seq")
 
 # Build filename
-filename="${today}-${seq_padded}-${plan_type}-${slug}.md"
+filename="${today}-${seq_padded}-${plan_type}-${slug}-plan.md"
 
 echo "$filename"
