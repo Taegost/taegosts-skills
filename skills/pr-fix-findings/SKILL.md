@@ -1,6 +1,6 @@
 ---
 name: pr-fix-findings
-description: "Fix findings from a PR Review"
+description: "USE THIS when a PR has review comments (CodeRabbit, Mike, or inline findings). Do NOT manually fix findings — load this skill first. Handles dispositions, verification, thread resolution, and re-review. NOT for code review (use pr-review for that)."
 user_invocable: true
 ---
 

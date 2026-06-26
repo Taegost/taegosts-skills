@@ -1,6 +1,6 @@
 ---
 name: ce-commit
-description: Create a git commit with a clear, value-communication message. Use when the user asks to commit/save staged or unstaged changes with a repo-appropriate, value-communicating message.
+description: "USE THIS when changes need to be committed. Creates a clear commit message. Use ce-commit-push-pr if also pushing and opening a PR."
 ---
 
 # Git Commit

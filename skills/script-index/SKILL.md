@@ -15,6 +15,31 @@ triggers:
 
 Before doing ANY coding work, run: `export PATH="/tmp/taegosts-skills-fork/scripts:$PATH"`
 
+## Situation Routing Table
+
+**Before doing ANYTHING, consult this table.** It tells you which skill to load and which scripts to use.
+
+| Situation | Load this skill | Then use these scripts |
+|-----------|----------------|----------------------|
+| Starting any coding task | `coding-workflow` | `script-index` (this file) |
+| PR has review comments | `pr-fix-findings` | `verify-fix.sh`, `verify-scripts.sh` |
+| Need to review a PR | `pr-review` | `detect-diff-scope.sh`, `select-reviewers.sh` |
+| Need to create a plan | `ce-plan` | `scan-repo-structure.sh`, `generate-plan-filename.sh` |
+| Need to review a plan/doc | `ce-doc-review` | `classify-document.sh`, `solutions-search.sh` |
+| Implementing a plan | `do-work-loop` | `git-context.sh`, `verify-scripts.sh` |
+| Something is broken | `ce-debug` | `git-context.sh` |
+| About to commit | — | `verify-scripts.sh --all` |
+| After any file edit | — | `verify-fix.sh` |
+| Need JSON output from bash | — | `to-json.sh` |
+| After solving a problem | `ce-compound` | `validate-frontmatter.py`, `detect-overlap.py` |
+| Need to check conventions | — | `solutions-search.sh` |
+
+**Rules:**
+1. Load the skill BEFORE starting work, not after
+2. Use scripts INSTEAD of grep/sed/Python heredocs
+3. `verify-fix.sh` after EVERY edit
+4. `verify-scripts.sh --all` before EVERY commit
+
 ## Verification (use EVERY time)
 
 | Script | When to use | Example |

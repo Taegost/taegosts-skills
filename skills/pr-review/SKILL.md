@@ -1,6 +1,6 @@
 ---
 name: pr-review
-description: "Review a pull request"
+description: "USE THIS when asked to review a PR or when a PR needs a fresh review. Dispatches parallel reviewer personas, posts findings as inline comments. NOT for fixing findings (use pr-fix-findings for that)."
 user_invocable: true
 ---
 

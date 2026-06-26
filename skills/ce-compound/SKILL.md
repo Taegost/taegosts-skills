@@ -1,6 +1,6 @@
 ---
 name: ce-compound
-description: Document a recently solved problem or durable project vocabulary in docs/solutions/ or CONCEPTS.md. Use when capturing a learning after work.
+description: "USE THIS after solving a non-trivial problem, fixing a tricky bug, or making an architectural decision. Captures the solution as a durable doc in docs/solutions/. NOT for plans (use ce-plan) or brainstorming (use ce-brainstorm)."
 argument-hint: "[optional: brief context] [mode:headless] "
 ---
 
