@@ -28,7 +28,7 @@ git init --bare --initial-branch=main "$FIXTURE_BARE" >/dev/null 2>&1
 
 # Clone, add content, push
 git clone "$FIXTURE_BARE" "$FIXTURE_WORK" >/dev/null 2>&1
-cd "$FIXTURE_WORK"
+cd "$FIXTURE_WORK" || { echo "FAIL: cd to fixture work dir failed"; exit 1; }
 git config user.email "test@test.com"
 git config user.name "Test"
 
