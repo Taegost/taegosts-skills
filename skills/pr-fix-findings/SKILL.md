@@ -33,6 +33,8 @@ Before any work, determine which repository the PR lives in. **Do NOT guess or l
 
 Store the resolved `owner/repo` for all subsequent `gh` commands using `-R {owner}/{repo}`.
 
+After resolving, persist the owner/repo to session memory so future invocations can use it as a fallback. Use `honcho_conclude` or equivalent.
+
 ### 1. Ensure ce-debug skill is available
 
 If the `/ce-debug` skill is not available, stop and alert the user. Do not continue
@@ -64,7 +66,7 @@ Before planning fixes, list every finding with its proposed action: **fix**, **d
 
 After the user confirms dispositions, create a Kanban board for tracking:
 
-1. Create a board named `pr-fix-{pr_number}` using `hermes kanban boards create`
+1. Check if a board named `pr-fix-{pr_number}` already exists (`hermes kanban boards list`). If it exists, reuse it. If not, create it using `hermes kanban boards create`
 2. For each finding, create a card with:
    - **Title:** `Finding #{id}: {severity} — {file}`
    - **Body:** Disposition (fix/decline/needs-input), the finding summary, and planned remediation

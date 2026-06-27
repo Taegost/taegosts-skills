@@ -16,7 +16,7 @@
 set -euo pipefail
 
 HERMES_HOME="${HERMES_HOME:-$HOME}"
-REPO_URL="https://github.com/Taegost/taegosts-skills.git"
+REPO_URL="${SYNC_REPO_URL:-https://github.com/Taegost/taegosts-skills.git}"
 CLONE_DIR="$HERMES_HOME/taegosts-skills"
 SKILLS_DIR="$HERMES_HOME/skills"
 DRY_RUN=false
@@ -74,7 +74,7 @@ sync_skills() {
             else
                 # Compare only files that exist in source
                 while IFS= read -r src_file; do
-                    local rel="${src_file#$skill_dir}"
+                    local rel="${src_file#"$skill_dir"}"
                     if [[ ! -f "$dest_skill/$rel" ]] || ! diff -q "$src_file" "$dest_skill/$rel" >/dev/null 2>&1; then
                         needs_sync=true
                         break
@@ -88,14 +88,13 @@ sync_skills() {
                 up_to_date=$((up_to_date + 1))
             fi
         else
-            mkdir -p "$dest_skill"
             local needs_sync=false
             if [[ ! -d "$dest_skill" ]]; then
                 needs_sync=true
             else
                 # Compare only files that exist in source
                 while IFS= read -r src_file; do
-                    local rel="${src_file#$skill_dir}"
+                    local rel="${src_file#"$skill_dir"}"
                     if [[ ! -f "$dest_skill/$rel" ]] || ! diff -q "$src_file" "$dest_skill/$rel" >/dev/null 2>&1; then
                         needs_sync=true
                         break
@@ -103,6 +102,7 @@ sync_skills() {
                 done < <(find "$skill_dir" -type f)
             fi
             if $needs_sync; then
+                mkdir -p "$dest_skill"
                 cp -r "$skill_dir/." "$dest_skill/"
                 echo "  synced: $skill_name"
                 synced=$((synced + 1))
