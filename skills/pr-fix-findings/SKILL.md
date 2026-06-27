@@ -11,14 +11,29 @@ Validates a pull request review, fixes any found issues, and updates the PR
 ## Usage
 
 ```bash
-/pr-fix-findings <link to PR>
+/pr-fix-findings <number> [owner/repo]
+/pr-fix-findings 13 Taegost/taegosts-skills
+/pr-fix-findings 14 cinandriel/taegosts-skills
 /pr-fix-findings PR #1
 /pr-fix-findings 1
 ```
 
-If no argument is provided, list open PRs and prompt the user to specify one.
+The `owner/repo` argument is **recommended**. If omitted, the skill determines the repo using Step 0 below.
 
 ## Process
+
+### 0. Determine repository context
+
+Before any work, determine which repository the PR lives in. **Do NOT guess or list repos sequentially.**
+
+1. If the user provided `owner/repo` in the invocation, use it directly.
+2. If the current directory is a git repository, try `gh pr view {number}` in CWD.
+3. If neither works, check session memory for recent PR/repo context.
+4. If still unresolved, **ask the user once** which repo. Do not list repos, do not check forks, do not search.
+
+Store the resolved `owner/repo` for all subsequent `gh` commands using `-R {owner}/{repo}`.
+
+After resolving, persist the owner/repo to session memory so future invocations can use it as a fallback. Use `honcho_conclude` or equivalent.
 
 ### 1. Ensure ce-debug skill is available
 
@@ -47,6 +62,17 @@ Before reviewing findings, check whether the PR branch has conflicts with the ba
 
 Before planning fixes, list every finding with its proposed action: **fix**, **decline**, or **needs input**. Do not proceed until the user confirms or redirects. Findings where you are unsure of validity must be marked "needs input" — do not decline a finding on your own.
 
+### 2c. Create Kanban board and cards
+
+After the user confirms dispositions, create a Kanban board for tracking:
+
+1. Check if a board named `pr-fix-{pr_number}` already exists (`hermes kanban boards list`). If it exists, reuse it. If not, create it using `hermes kanban boards create`
+2. For each finding, create a card with:
+   - **Title:** `Finding #{id}: {severity} — {file}`
+   - **Body:** Disposition (fix/decline/needs-input), the finding summary, and planned remediation
+   - **Status:** `todo`
+3. This board serves as persistent working memory across sessions. If a session is interrupted, the next session can read the board to see what's been completed.
+
 ### 3. Plan the fix for each finding
 
 - The plan should be documented in `docs/pull_requests/<pr#>_xxx` where `<pr#>` is the number of the pull request and `xxx` is the fix iteration number, incrementing up from 001.
@@ -62,7 +88,10 @@ Before planning fixes, list every finding with its proposed action: **fix**, **d
 
 ### 5. Remediate valid findings
 
-- Use the `/ce-debug` skill to perform the remediation. Make sure you pass it any necessary context, including the plan document.
+- For each finding being remediated:
+  1. Move the finding's Kanban card to `running`
+  2. Use the `/ce-debug` skill to perform the remediation. Make sure you pass it any necessary context, including the plan document.
+  3. After remediation, move the card to `done`
 
 ### 6. Review your remediations
 
@@ -84,7 +113,7 @@ If any verification step fails, fix the issue before proceeding. Do not commit a
 
 - If the answer to any of those questions is "no", then repeat the process from step 3 for that finding.
   - If you have looped a particular finding 10 times, then skip it with a note that you are having trouble finding a proper remediation for the finding and that the user should review the latest remediation plan  
-  
+ 
 ### 7. Update the pull request with your results
 
 - If the reviewer used threaded conversations for the findings, make sure you note each one with their specific notes
