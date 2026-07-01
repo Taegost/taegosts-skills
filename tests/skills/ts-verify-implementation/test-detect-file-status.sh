@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Test: skills/verify-implementation/scripts/detect-file-status.sh
+# Test: skills/ts-verify-implementation/scripts/detect-file-status.sh
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-SCRIPT="$REPO_ROOT/skills/verify-implementation/scripts/detect-file-status.sh"
+SCRIPT="$REPO_ROOT/skills/ts-verify-implementation/scripts/detect-file-status.sh"
 
 pass=0
 fail=0

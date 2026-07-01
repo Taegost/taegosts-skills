@@ -4,7 +4,7 @@
 
 The diff is already visible on GitHub. The description exists to explain what the diff cannot show: what was impossible before and is now possible, what was broken and is now fixed, what shape changed. Cut any sentence a reader could reconstruct from the diff itself.
 
-- Bad: "Adds `evidence-decider.ts`, modifies `ce-commit-push-pr/SKILL.md` to call it, and updates two test files."
+- Bad: "Adds `evidence-decider.ts`, modifies `ts-commit-push-pr/SKILL.md` to call it, and updates two test files."
 - Good: "Evidence capture now decides automatically whether a change has observable behavior. CLI tools and libraries are now eligible alongside web UIs."
 
 If the lead sentence describes what was moved, renamed, or added rather than what's now possible or fixed, rewrite it. This applies to every section, not just the opening — restating the diff is the failure mode this skill exists to prevent.
@@ -83,7 +83,7 @@ For small + non-trivial bugfixes, the 3-5 sentence target still needs a user-vis
 
 ## Step C: Assemble the body
 
-In order: opening → body sections that earn their keep → test plan if non-obvious → evidence block if one exists → Compound Engineering badge after a `---` rule.
+In order: opening → body sections that earn their keep → test plan if non-obvious → evidence block if one exists → Taegost's Skills badge after a `---` rule.
 
 The opening goes under `## Summary` if the body uses any `##` headings; bare paragraph otherwise. No orphaned opening paragraphs above the first heading.
 
@@ -100,7 +100,7 @@ The opening goes under `## Summary` if the body uses any `##` headings; bare par
 ```markdown
 ---
 
-[![Compound Engineering](https://img.shields.io/badge/Built_with-Compound_Engineering-6366f1)](https://github.com/EveryInc/compound-engineering-plugin)
+[![Taegost's Skills](https://img.shields.io/badge/Built_with-Taegosts_Skills-6366f1)](https://github.com/EveryInc/taegosts-skills-plugin)
 ![HARNESS](https://img.shields.io/badge/MODEL_SLUG-COLOR?logo=LOGO&logoColor=white)
 ```
 

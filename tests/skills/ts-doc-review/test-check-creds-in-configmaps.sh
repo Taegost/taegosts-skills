@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Test: skills/ce-doc-review/scripts/check-credentials-in-configmaps.py
+# Test: skills/ts-doc-review/scripts/check-credentials-in-configmaps.py
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-SCRIPT="$REPO_ROOT/skills/ce-doc-review/scripts/check-credentials-in-configmaps.py"
+SCRIPT="$REPO_ROOT/skills/ts-doc-review/scripts/check-credentials-in-configmaps.py"
 
 pass=0
 fail=0

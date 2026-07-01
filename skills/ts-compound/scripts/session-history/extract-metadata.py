@@ -259,7 +259,7 @@ def _extract_user_assistant_text(filepath):
                     # wrapper before counting. Without this, generic wrapper terms
                     # (e.g., "Conductor", environment labels) false-match against
                     # boilerplate the user did not author. Mirrors the same split
-                    # used in ce-session-extract/scripts/extract-skeleton.py.
+                    # used in ts-session-extract/scripts/extract-skeleton.py.
                     msg = p.get("message", "")
                     if isinstance(msg, str):
                         parts = msg.split("</system_instruction>")

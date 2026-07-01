@@ -76,7 +76,7 @@ Narrow the search to the discovered subdirectories that match the caller's Domai
 # Pick fields and synonym sets that match the caller's input shape; mix across shapes when the input is ambiguous.
 content-search: pattern="title:.*(dispatch|orchestration|pipeline)" path=docs/solutions/ files_only=true case_insensitive=true
 content-search: pattern="tags:.*(subagent|orchestration|token-efficiency)" path=docs/solutions/ files_only=true case_insensitive=true
-content-search: pattern="module:.*(compound-engineering|skill-design)" path=docs/solutions/ files_only=true case_insensitive=true
+content-search: pattern="module:.*(taegosts-skills|skill-design)" path=docs/solutions/ files_only=true case_insensitive=true
 content-search: pattern="problem_type:.*(architecture_pattern|design_pattern|tooling_decision)" path=docs/solutions/ files_only=true case_insensitive=true
 ```
 

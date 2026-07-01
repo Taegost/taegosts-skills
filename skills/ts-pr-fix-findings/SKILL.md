@@ -1,5 +1,5 @@
 ---
-name: pr-fix-findings
+name: ts-pr-fix-findings
 description: "Fix findings from a PR Review"
 user_invocable: true
 ---
@@ -11,18 +11,18 @@ Validates a pull request review, fixes any found issues, and updates the PR
 ## Usage
 
 ```bash
-/pr-fix-findings <link to PR>
-/pr-fix-findings PR #1
-/pr-fix-findings 1
+/ts-pr-fix-findings <link to PR>
+/ts-pr-fix-findings PR #1
+/ts-pr-fix-findings 1
 ```
 
 If no argument is provided, list open PRs and prompt the user to specify one.
 
 ## Process
 
-### 1. Ensure ce-debug skill is available
+### 1. Ensure ts-debug skill is available
 
-If the `/ce-debug` skill is not available, stop and alert the user. Do not continue
+If the `/ts-debug` skill is not available, stop and alert the user. Do not continue
 
 ### 2. Gather the state of the pull request
 
@@ -62,7 +62,7 @@ Before planning fixes, list every finding with its proposed action: **fix**, **d
 
 ### 5. Remediate valid findings
 
-- Use the `/ce-debug` skill to perform the remediation. Make sure you pass it any necessary context, including the plan document.
+- Use the `/ts-debug` skill to perform the remediation. Make sure you pass it any necessary context, including the plan document.
 
 ### 6. Review your remediations
 

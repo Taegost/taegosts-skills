@@ -1,5 +1,5 @@
 ---
-name: ce-commit
+name: ts-commit
 description: Create a git commit with a clear, value-communication message. Use when the user asks to commit/save staged or unstaged changes with a repo-appropriate, value-communicating message.
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: ce-brainstorm
+name: ts-brainstorm
 description: 'Explore vague or ambitious ideas into right-sized requirements. Use when the user wants to brainstorm, think through scope, decide what to build, or needs collaborative product framing before planning.'
 argument-hint: "[feature idea or problem to explore] [output:html]"
 ---
@@ -8,7 +8,7 @@ argument-hint: "[feature idea or problem to explore] [output:html]"
 
 **Note: The current year is 2026.** Use this when dating requirements documents.
 
-Brainstorming helps answer **WHAT** to build through collaborative dialogue. It precedes `/ce-plan`, which answers **HOW** to build it.
+Brainstorming helps answer **WHAT** to build through collaborative dialogue. It precedes `/ts-plan`, which answers **HOW** to build it.
 
 The durable output of this workflow is a **requirements document**. In other workflows this might be called a lightweight PRD or feature brief. In compound engineering, keep the workflow name `brainstorm`, but make the written artifact strong enough that planning does not need to invent product behavior, scope boundaries, or success criteria.
 
@@ -49,7 +49,7 @@ Sub-agent dispatch is tiered by task shape, never hardcoded to a model name:
 - **Generation tier** — the claim verifier: evidence-driven mechanical verification. Use the platform's mid-tier model when the current harness exposes a known override. If model names are unknown, omit the override and inherit rather than guessing.
 - **Ceiling tier** — the dialogue itself. Questions, approaches, synthesis, and the requirements doc run in the main conversation on the orchestrator's model; nothing is dispatched for them.
 
-**Degradation rule.** When the platform's subagent primitive does not support per-agent model selection, dispatch the scout and verifier on the inherited model and keep their read budgets and output caps — cost control then comes from structure, not tiering. When the platform has no subagent primitive at all, do the topic scan inline at Phase 1.1 — still writing the grounding dossier to the scratch path, because downstream consumers (the Phase 2.6 verifier, the ce-plan handoff) receive that path — and verify claims inline before the Phase 3 write, with the same budgets.
+**Degradation rule.** When the platform's subagent primitive does not support per-agent model selection, dispatch the scout and verifier on the inherited model and keep their read budgets and output caps — cost control then comes from structure, not tiering. When the platform has no subagent primitive at all, do the topic scan inline at Phase 1.1 — still writing the grounding dossier to the scratch path, because downstream consumers (the Phase 2.6 verifier, the ts-plan handoff) receive that path — and verify claims inline before the Phase 3 write, with the same budgets.
 
 ## Feature Description
 
@@ -70,7 +70,7 @@ Determine `OUTPUT_FORMAT` before any other phase fires. Output mode is **exclusi
 **Read config.** The repo root is pre-resolved at skill load:
 !`git rev-parse --show-toplevel 2>/dev/null || true`
 
-If the line above is an absolute path, use it as `<repo-root>`. If it is empty or still shows a backtick command string (a non-Claude harness that did not run the pre-resolution), resolve `<repo-root>` at runtime by running `git rev-parse --show-toplevel` with the shell tool. Then read `<repo-root>/.compound-engineering/config.local.yaml` with the native file-read tool. If the root cannot be resolved (not a git repo) or the file does not exist, fall through to the defaults below.
+If the line above is an absolute path, use it as `<repo-root>`. If it is empty or still shows a backtick command string (a non-Claude harness that did not run the pre-resolution), resolve `<repo-root>` at runtime by running `git rev-parse --show-toplevel` with the shell tool. Then read `<repo-root>/.taegosts-skills/config.local.yaml` with the native file-read tool. If the root cannot be resolved (not a git repo) or the file does not exist, fall through to the defaults below.
 
 Resolution steps:
 
@@ -79,13 +79,13 @@ Resolution steps:
    - `output:<unknown>` (e.g., `output:pdf`) → drop the token, fall through to step 2, and remember to emit a one-line note above the post-generation menu after final resolution: `Ignored unknown output: value '<value>' — using <resolved_format> instead.` where `<resolved_format>` is the value `OUTPUT_FORMAT` actually resolved to after steps 2-4. Do not hardcode `md` in the note — that misleads users when config has set HTML.
 2. **Config.** If step 1 did not resolve and the config file read above has an **active (non-commented)** `brainstorm_output:` key whose value matches `md` or `html` (case-insensitive), use it. Missing, invalid, or commented values fall through silently. Critical: lines starting with `#` are YAML comments and must be ignored — the shipped config template includes commented examples like `# brainstorm_output: html` to document the option, and matching those as active settings would silently force HTML mode on every run without the user having opted in.
 3. **Default.** Otherwise `OUTPUT_FORMAT=md`.
-4. **Pipeline override.** When invoked from LFG or any `disable-model-invocation` context, force `OUTPUT_FORMAT=md` regardless of steps 1-3. Downstream consumers (`ce-plan`, `ce-work`) parse markdown reliably; HTML in pipeline runs is unnecessary friction.
+4. **Pipeline override.** When invoked from LFG or any `disable-model-invocation` context, force `OUTPUT_FORMAT=md` regardless of steps 1-3. Downstream consumers (`ts-plan`, `ts-work`) parse markdown reliably; HTML in pipeline runs is unnecessary friction.
 
 **Token-parsing convention:** only literal-prefix flag tokens (`output:`, `mode:`, `delegate:` where applicable) are consumed and stripped. Other `<word>:<word>` tokens — including conventional commit prefixes like `feat:`, `fix:`, `chore:` that may appear inside a feature description — pass through verbatim.
 
 **Resolve the format here; load the rendering reference at Phase 3, not now.** The format-rendering reference (`references/markdown-rendering.md` for `md`, `references/html-rendering.md` for `html`) is consumed only when the doc is composed — loading it during Phase 0 would carry 200+ lines through the entire dialogue. Phase 3 names the load. Section content is the same in either format; presentation differs.
 
-The `output:` preference does NOT auto-propagate to `ce-plan` on handoff — ce-plan re-resolves its own `plan_output` config independently. Asymmetric output (`requirements.html` + `plan.md`) is acceptable; users who want HTML for both set both keys in `.compound-engineering/config.local.yaml`.
+The `output:` preference does NOT auto-propagate to `ts-plan` on handoff — ts-plan re-resolves its own `plan_output` config independently. Asymmetric output (`requirements.html` + `plan.md`) is acceptable; users who want HTML for both set both keys in `.taegosts-skills/config.local.yaml`.
 
 #### 0.1 Resume Existing Work When Appropriate
 
@@ -136,7 +136,7 @@ If the scope is unclear, ask one targeted question to disambiguate and then proc
 
 Product-tier triggers additional Phase 1.2 questions and additional sections in the requirements document. Feature-tier uses the current Deep behavior unchanged.
 
-**Visual probe tripwire.** If the feature is inherently visual or spatial — drawing/canvas tools, annotation behavior, visual editors, UI layout or navigation, interaction states, charts, diagrams, animation, maps, timelines, or spatial flows — read `references/visual-probes.md` now and remember that a visual-probe gate is pending. Strong signals include freehand vs constrained drawing behavior, canvas annotation tools, layout comparisons, and state/flow placement. Loading the reference here is readiness only; do not offer the visual path until the first concrete shape/behavior decision. If the user later chooses visual, run the helper at `scripts/visual-probe-server.js` by resolving it relative to this loaded `ce-brainstorm` skill directory; if the runtime does not expose a concrete skill directory, do not guess from the project CWD — use the text path.
+**Visual probe tripwire.** If the feature is inherently visual or spatial — drawing/canvas tools, annotation behavior, visual editors, UI layout or navigation, interaction states, charts, diagrams, animation, maps, timelines, or spatial flows — read `references/visual-probes.md` now and remember that a visual-probe gate is pending. Strong signals include freehand vs constrained drawing behavior, canvas annotation tools, layout comparisons, and state/flow placement. Loading the reference here is readiness only; do not offer the visual path until the first concrete shape/behavior decision. If the user later chooses visual, run the helper at `scripts/visual-probe-server.js` by resolving it relative to this loaded `ts-brainstorm` skill directory; if the runtime does not expose a concrete skill directory, do not guess from the project CWD — use the text path.
 
 ### Phase 1: Understand the Idea
 
@@ -150,11 +150,11 @@ Scan the repo before substantive brainstorming. Match depth to scope:
 
 *Constraint Check (inline)* — Use the project's active instructions and conventions already in your context for workflow, product, or scope constraints that affect the brainstorm — no need to open or name specific instruction files. Also read `STRATEGY.md` if it exists — the product's target problem, approach, persona, and active tracks are direct input to what this brainstorm should deliver and should shape scope, success criteria, and which approaches are aligned vs out-of-scope. Also read `CONCEPTS.md` at repo root if it exists — the project's authoritative vocabulary. Use these names in dialogue, approaches, and the requirements doc; map user-offered synonyms back. If any of these add nothing, move on. This pass stays in the main conversation — the dialogue needs this material in context to shape its questions.
 
-*Topic Scan (grounding scout)* — Create a scratch dir at `/tmp/compound-engineering/ce-brainstorm/<run-id>/` (short unique slug), then dispatch one extraction-tier sub-agent via the platform's subagent primitive (`Agent`/`Task` in Claude Code, `spawn_agent` in Codex) where available; otherwise run the work inline or serially. In harnesses that support background dispatch, proceed to Phase 1.2/1.3 **without waiting**: the scout runs during the user's think-time on the opening questions. Scout prompt:
+*Topic Scan (grounding scout)* — Create a scratch dir at `/tmp/taegosts-skills/ts-brainstorm/<run-id>/` (short unique slug), then dispatch one extraction-tier sub-agent via the platform's subagent primitive (`Agent`/`Task` in Claude Code, `spawn_agent` in Codex) where available; otherwise run the work inline or serially. In harnesses that support background dispatch, proceed to Phase 1.2/1.3 **without waiting**: the scout runs during the user's think-time on the opening questions. Scout prompt:
 
 > Gather grounding for a requirements brainstorm about **{topic}** in this repo. Search first with the native file-search and content-search tools, then read targeted sections — budget ~20 reads, preferring ranges over whole files. Find: whether something similar already exists, the most relevant existing artifacts (brainstorms, plans, specs, feature docs), adjacent examples of similar behavior, and the current state of anything the topic would touch (tables, routes, config, dependencies). Write a **grounding dossier** to `{scratch-dir}/grounding.md`: at most 150 lines of verbatim quotes and short code snippets, each with a `file:line` pointer. Extraction only — quote what the repo says; do not interpret or propose. If the topic has little footprint, write less rather than padding. Return only a gist: 3-5 lines summarizing what the dossier holds, plus its absolute path.
 
-Carry only the gist in the dialogue. When the conversation needs specifics the gist can't answer — the user challenges a claim, an approach needs grounding — read the dossier on demand: it is a condensed, verified quote-sheet, always cheaper than re-scanning raw files. Downstream consumers (the Phase 2.6 verifier, the ce-plan handoff) receive the dossier path, not its contents. If the scout has not returned by the time Phase 2 needs it, wait for it then.
+Carry only the gist in the dialogue. When the conversation needs specifics the gist can't answer — the user challenges a claim, an approach needs grounding — read the dossier on demand: it is a condensed, verified quote-sheet, always cheaper than re-scanning raw files. Downstream consumers (the Phase 2.6 verifier, the ts-plan handoff) receive the dossier path, not its contents. If the scout has not returned by the time Phase 2 needs it, wait for it then.
 
 If the scan and scout surface nothing relevant, say so and continue. Two rules govern technical depth during the scan:
 
@@ -251,7 +251,7 @@ For each approach, provide:
 - Key risks or unknowns
 - When it's best suited
 
-**Approach granularity: mechanism / product shape, not architecture.** Approach descriptions name mechanism-level distinctions ("pause as a rule property" vs "pause as an event filter" vs "pause as a separate entity") and product-relevant trade-offs (plan-tier coupling, complexity surface, migration difficulty). They do NOT name implementation specifics — column names, table names, file paths, service classes, JSON shapes, exact method names. Those are ce-plan's job. Bringing architecture forward at brainstorm time forces the user to make architectural decisions on ce-brainstorm's intentionally-shallow research, and the synthesis at Phase 2.5 then has to filter out the leak.
+**Approach granularity: mechanism / product shape, not architecture.** Approach descriptions name mechanism-level distinctions ("pause as a rule property" vs "pause as an event filter" vs "pause as a separate entity") and product-relevant trade-offs (plan-tier coupling, complexity surface, migration difficulty). They do NOT name implementation specifics — column names, table names, file paths, service classes, JSON shapes, exact method names. Those are ts-plan's job. Bringing architecture forward at brainstorm time forces the user to make architectural decisions on ts-brainstorm's intentionally-shallow research, and the synthesis at Phase 2.5 then has to filter out the leak.
 
 After presenting all approaches, state your recommendation and explain why. Prefer simpler solutions when added complexity creates real carrying cost, but do not reject low-cost, high-value polish just because it is not strictly necessary.
 
@@ -287,7 +287,7 @@ Skip when Path A fires, when the doc will make no checkable claims, or on the no
 
 ### Phase 3: Capture the Requirements
 
-Write or update a requirements document only when the conversation produced durable decisions worth preserving — see `references/brainstorm-sections.md` "Decide whether a doc is warranted at all" for the criteria and the bug-fix stress test. Skip document creation when the user only needs brief alignment and the decisions can flow downstream (ce-plan, commit message, docs/solutions/) without a brainstorm artifact in the middle.
+Write or update a requirements document only when the conversation produced durable decisions worth preserving — see `references/brainstorm-sections.md` "Decide whether a doc is warranted at all" for the criteria and the bug-fix stress test. Skip document creation when the user only needs brief alignment and the decisions can flow downstream (ts-plan, commit message, docs/solutions/) without a brainstorm artifact in the middle.
 
 When a doc is warranted, compose it using:
 
@@ -300,7 +300,7 @@ Write to `docs/brainstorms/YYYY-MM-DD-<topic>-requirements.<md|html>` — extens
 
 #### Vocabulary Capture — after the requirements doc (only if CONCEPTS.md already exists)
 
-**Skip this step entirely if `CONCEPTS.md` does not exist at repo root** — creation is owned by ce-compound and ce-compound-refresh.
+**Skip this step entirely if `CONCEPTS.md` does not exist at repo root** — creation is owned by ts-compound and ts-compound-refresh.
 
 Run this **after** the approaches, the scope synthesis, and the requirements doc — that is where the canonical term often gets chosen or corrected, so capturing during early dialogue (before this point) would miss the final resolved name. If it exists, scan the full dialogue and the requirements doc for **resolved** domain terms — terms where the conversation actively pinned down a precise local meaning, not terms merely mentioned in passing. **Resolved means the definition is settled, not still under discussion.** Provisional terms that may still revise stay in the conversation only.
 
@@ -312,4 +312,4 @@ Follow the format set by existing entries. Apply edits silently. (If Phase 3 ski
 
 ### Phase 4: Handoff
 
-Read `references/handoff.md` now — before presenting any options. The option set and its visibility conditions, the rendering-mode rule, the per-selection dispatch instructions (including what gets passed to `ce-plan`), and the closing summary formats all live there — none of them appear in this main body. An improvised menu silently breaks pipeline routing: options surface in states where they must be hidden, and downstream skills receive the wrong payload.
+Read `references/handoff.md` now — before presenting any options. The option set and its visibility conditions, the rendering-mode rule, the per-selection dispatch instructions (including what gets passed to `ts-plan`), and the closing summary formats all live there — none of them appear in this main body. An improvised menu silently breaks pipeline routing: options surface in states where they must be hidden, and downstream skills receive the wrong payload.

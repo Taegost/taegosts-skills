@@ -1,5 +1,5 @@
 ---
-name: verify-implementation
+name: ts-verify-implementation
 description: "Verify a feature branch implementation against its plan. Reviews for correctness, completeness, scope, and standards compliance."
 user_invocable: true
 ---
@@ -11,9 +11,9 @@ Reviews a feature branch against its plan by launching 4 parallel review subagen
 ## Usage
 
 ```bash
-/verify-implementation <plan-filename>
-/verify-implementation 2026-06-18-003-feat-migration-to-knap-dir-plan.md
-/verify-implementation
+/ts-verify-implementation <plan-filename>
+/ts-verify-implementation 2026-06-18-003-feat-migration-to-knap-dir-plan.md
+/ts-verify-implementation
 ```
 
 If no argument is provided, list available plans and prompt the user to specify one.

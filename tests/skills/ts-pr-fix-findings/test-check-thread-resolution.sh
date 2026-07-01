@@ -2,7 +2,7 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-SCRIPT="$REPO_ROOT/skills/pr-fix-findings/scripts/check-thread-resolution.sh"
+SCRIPT="$REPO_ROOT/skills/ts-pr-fix-findings/scripts/check-thread-resolution.sh"
 pass=0 fail=0
 
 echo "=== U17: check-thread-resolution.sh ==="

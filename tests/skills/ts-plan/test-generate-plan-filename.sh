@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Test: skills/ce-plan/scripts/generate-plan-filename.sh
+# Test: skills/ts-plan/scripts/generate-plan-filename.sh
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-SCRIPT="$REPO_ROOT/skills/ce-plan/scripts/generate-plan-filename.sh"
+SCRIPT="$REPO_ROOT/skills/ts-plan/scripts/generate-plan-filename.sh"
 
 pass=0
 fail=0

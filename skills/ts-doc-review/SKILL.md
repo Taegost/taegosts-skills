@@ -1,5 +1,5 @@
 ---
-name: ce-doc-review
+name: ts-doc-review
 description: Review requirements, plans, or specs with role-specific lenses. Use when the user wants to improve an existing planning document.
 argument-hint: "[mode:headless] [path/to/document.md]"
 ---
@@ -19,7 +19,7 @@ Check the skill arguments for `mode:headless`. Arguments may contain a document 
 
 If `mode:headless` is present, set **headless mode** for the rest of the workflow.
 
-**Headless mode** changes the interaction model, not the classification boundaries. ce-doc-review still applies the same judgment about which tier each finding belongs in. The only difference is how non-safe_auto findings are delivered:
+**Headless mode** changes the interaction model, not the classification boundaries. ts-doc-review still applies the same judgment about which tier each finding belongs in. The only difference is how non-safe_auto findings are delivered:
 
 - `safe_auto` fixes are applied silently (same as interactive)
 - `gated_auto`, `manual`, and FYI findings are returned as structured text for the caller to handle — no blocking-question prompts, no interactive routing
@@ -30,7 +30,7 @@ The caller receives findings with their original classifications intact and deci
 Callers invoke headless mode by including `mode:headless` in the skill arguments, e.g.:
 
 ```
-Skill("ce-doc-review", "mode:headless docs/plans/my-plan.md")
+Skill("ts-doc-review", "mode:headless docs/plans/my-plan.md")
 ```
 
 If `mode:headless` is not present, the skill runs in its default interactive mode with the routing question, walk-through, and bulk-preview behaviors documented in `references/walkthrough.md` and `references/bulk-preview.md`.
@@ -41,7 +41,7 @@ If `mode:headless` is not present, the skill runs in its default interactive mod
 
 **If no document is specified (interactive mode):** Ask which document to review, or find the most recent in `docs/brainstorms/` or `docs/plans/` using a file-search/glob tool (e.g., Glob in Claude Code).
 
-**If no document is specified (headless mode):** Return a structured headless failure: `{"status":"failed","reason":"headless mode requires a document path","reinvoke":"Skill(ce-doc-review, mode:headless <path>)"}`. Do not dispatch agents.
+**If no document is specified (headless mode):** Return a structured headless failure: `{"status":"failed","reason":"headless mode requires a document path","reinvoke":"Skill(ts-doc-review, mode:headless <path>)"}`. Do not dispatch agents.
 
 ### Classify Document Type
 
@@ -216,7 +216,7 @@ Each entry carries an `Evidence:` line because synthesis R29 (rejected-finding s
 
 Accumulate across all rounds in the current session. Skip, Defer, and Acknowledge actions all count as "rejected" for suppression purposes — each signals the user decided the finding wasn't worth actioning this round (Acknowledge is the no-fix-guard variant: the user saw a finding with no `suggested_fix`, chose not to defer or skip explicitly, and recorded acknowledgement instead; for round-to-round suppression that is semantically equivalent to Skip). Applied findings stay on the applied list so round-N+1 personas can verify fixes landed (see R30 in `references/synthesis-and-presentation.md`).
 
-Cross-session persistence is out of scope. A new invocation of ce-doc-review on the same document starts with a fresh round 1 and no carried primer, even if prior sessions deferred findings into the document's Open Questions section.
+Cross-session persistence is out of scope. A new invocation of ts-doc-review on the same document starts with a fresh round 1 and no carried primer, even if prior sessions deferred findings into the document's Open Questions section.
 
 **Error handling:** If a subagent fails or times out, proceed with findings from subagents that completed. Note the failed reviewer in the Coverage section. Do not block the entire review on a single reviewer failure.
 

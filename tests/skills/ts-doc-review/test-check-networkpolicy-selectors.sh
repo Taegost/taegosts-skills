@@ -2,7 +2,7 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-SCRIPT="$REPO_ROOT/skills/ce-doc-review/scripts/check-networkpolicy-selectors.sh"
+SCRIPT="$REPO_ROOT/skills/ts-doc-review/scripts/check-networkpolicy-selectors.sh"
 pass=0 fail=0
 cleanup() { rm -rf /tmp/test-np-* 2>/dev/null || true; }
 trap cleanup EXIT

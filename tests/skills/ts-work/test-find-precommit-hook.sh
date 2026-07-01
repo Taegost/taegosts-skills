@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Test: skills/ce-work/scripts/find-precommit-hook.sh
+# Test: skills/ts-work/scripts/find-precommit-hook.sh
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-SCRIPT="$REPO_ROOT/skills/ce-work/scripts/find-precommit-hook.sh"
+SCRIPT="$REPO_ROOT/skills/ts-work/scripts/find-precommit-hook.sh"
 
 pass=0
 fail=0

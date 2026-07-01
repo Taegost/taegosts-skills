@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import subprocess, os, tempfile, json, sys
 
-SCRIPT = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'skills', 'ce-compound', 'scripts', 'detect-overlap.py')
+SCRIPT = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'skills', 'ts-compound', 'scripts', 'detect-overlap.py')
 SCRIPT = os.path.normpath(SCRIPT)
 pass_count = 0
 fail_count = 0

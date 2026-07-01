@@ -1,5 +1,5 @@
 ---
-name: ce-debug
+name: ts-debug
 description: 'Diagnosis loop for bugs and failing behavior. Use for errors, stack traces, regressions, failed tests, issue-tracker bugs, stuck investigations after failed fixes, or asks to debug/fix a bug.'
 argument-hint: "[issue reference, error message, test path, or description of broken behavior]"
 ---
@@ -148,7 +148,7 @@ Options to offer:
 
 1. **Fix it now** — proceed to Phase 3
 2. **Diagnosis only — I'll take it from here** — skip the fix, proceed to Phase 4's summary, and end the skill
-3. **Rethink the design** (`/ce-brainstorm`) — only when the root cause reveals a design problem (see below)
+3. **Rethink the design** (`/ts-brainstorm`) — only when the root cause reveals a design problem (see below)
 
 Do not assume the user wants action right now. The test recommendations are part of the diagnosis regardless of which path is chosen.
 
@@ -166,7 +166,7 @@ If 2-3 hypotheses are exhausted without confirmation, diagnose why:
 
 | Pattern | Diagnosis | Next move |
 |---------|-----------|-----------|
-| Hypotheses point to different subsystems | Architecture/design problem, not a localized bug | Present findings, suggest `/ce-brainstorm` |
+| Hypotheses point to different subsystems | Architecture/design problem, not a localized bug | Present findings, suggest `/ts-brainstorm` |
 | Evidence contradicts itself | Wrong mental model of the code | Step back, re-read the code path without assumptions |
 | Works locally, fails in CI/prod | Environment problem | Focus on env differences, config, dependencies, timing |
 | Fix works but prediction was wrong | Symptom fix, not root cause | The real cause is still active — keep investigating |
@@ -181,7 +181,7 @@ Present the diagnosis to the user before proceeding.
 
 *Reminder: one change at a time. If you are changing multiple things, stop.*
 
-If the user chose "Diagnosis only" at the end of Phase 2, skip this phase and go straight to Phase 4 for the summary — the skill's job was the diagnosis. If they chose "Rethink the design", control has transferred to `/ce-brainstorm` and this skill ends.
+If the user chose "Diagnosis only" at the end of Phase 2, skip this phase and go straight to Phase 4 for the summary — the skill's job was the diagnosis. If they chose "Rethink the design", control has transferred to `/ts-brainstorm` and this skill ends.
 
 **Workspace and branch check:** Before editing files:
 
@@ -194,7 +194,7 @@ If the user chose "Diagnosis only" at the end of Phase 2, skip this phase and go
 3. Implement the minimal fix — address the root cause and nothing else. Do not bundle drive-by refactors, formatting, or unrelated cleanup into a bug-fix change; those belong in separate commits.
 4. Verify the test passes
 5. Run the broader test suite for regressions
-6. Self-review the diff before declaring the fix done: read every changed line and check for style violations, missed edge cases, regressions in adjacent behavior, and missing test coverage for the fix. For non-trivial fixes (multiple files, risky surface area), also run the harness's lightweight review tool (e.g., `/review` in Claude Code; the equivalent in other harnesses) — not the full `ce-code-review` multi-agent flow, which is PR-tier and over-sized for a single bug fix.
+6. Self-review the diff before declaring the fix done: read every changed line and check for style violations, missed edge cases, regressions in adjacent behavior, and missing test coverage for the fix. For non-trivial fixes (multiple files, risky surface area), also run the harness's lightweight review tool (e.g., `/review` in Claude Code; the equivalent in other harnesses) — not the full `ts-code-review` multi-agent flow, which is PR-tier and over-sized for a single bug fix.
 
 **On a failed fix:** return to Phase 2 and *explicitly invalidate the current hypothesis* before forming a new one. State out loud what evidence ruled out the prior hypothesis, then form a new one with its own grounding observation and prediction. Do not retry variants of the same theory ("maybe it was the other branch", "let me also catch this case") — that is the rationalization spiral, not iteration.
 
@@ -229,7 +229,7 @@ Analyze how this was introduced and what allowed it to survive. Note any systemi
 
 1. **Check for contextual overrides first.** Look at the user's original prompt, loaded memories, and the project's active instructions already in your context for preferences that conflict with auto commit-and-PR — for example, "always review before pushing", "open PRs as drafts", or "don't open PRs from skills". A signal must be an explicit instruction or a clearly applicable rule, not a vague tonal cue. If any apply, honor them — switch to the pre-existing-branch menu below, or skip the PR step entirely, whichever matches the user's stated preference.
 2. **Briefly preview what will happen** — what will be committed, on what branch, and that a PR will be opened — then proceed without waiting for confirmation. The preview exists so the user can interrupt; it is not a blocking question. Format and length are your call; keep it scannable.
-3. **Run `/ce-commit-push-pr`.** When the entry came from an issue tracker, include the appropriate auto-close syntax for that tracker in the location it requires — most trackers parse PR descriptions (e.g., `Fixes #N` for GitHub, `Closes ABC-123` for Linear), but some only parse commit messages (e.g., Jira Smart Commits) — so the diagnosis and fix flow back to the issue and it closes on merge. Surface the resulting PR URL.
+3. **Run `/ts-commit-push-pr`.** When the entry came from an issue tracker, include the appropriate auto-close syntax for that tracker in the location it requires — most trackers parse PR descriptions (e.g., `Fixes #N` for GitHub, `Closes ABC-123` for Linear), but some only parse commit messages (e.g., Jira Smart Commits) — so the diagnosis and fix flow back to the issue and it closes on merge. Surface the resulting PR URL.
 
 #### Pre-existing branch (skill did not create it): ask the user
 
@@ -237,8 +237,8 @@ Use the platform's blocking question tool (`AskUserQuestion` in Claude Code, `re
 
 Options:
 
-1. **Commit and open a PR (`/ce-commit-push-pr`)** — default for most cases
-2. **Commit the fix (`/ce-commit`)** — local commit only
+1. **Commit and open a PR (`/ts-commit-push-pr`)** — default for most cases
+2. **Commit the fix (`/ts-commit`)** — local commit only
 3. **Stop here** — user takes it from there
 
 #### After a PR is open (either path): consider offering learning capture
@@ -249,4 +249,4 @@ Most bugs are localized mechanical fixes (typo, missed null check, missing impor
 - **Offer neutrally** when the lesson can be stated in one sentence — e.g., "X.foo() returns T | undefined when Y, not just T", or "the diagnostic path was non-obvious and worth recording." If you cannot articulate the lesson, skip rather than offer.
 - **Lean into the offer** when the pattern appears in 3+ locations OR the root cause reveals a wrong assumption about a shared dependency, framework, or convention that other code is likely to repeat.
 
-When offering, use the blocking question tool described above. If the user accepts, run `/ce-compound`, then commit the resulting learning doc to the same branch and push so the open PR picks up the new commit.
+When offering, use the blocking question tool described above. If the user accepts, run `/ts-compound`, then commit the resulting learning doc to the same branch and push so the open PR picks up the new commit.

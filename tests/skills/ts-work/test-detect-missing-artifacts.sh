@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Test: skills/ce-work/scripts/detect-missing-artifacts.sh
+# Test: skills/ts-work/scripts/detect-missing-artifacts.sh
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-SCRIPT="$REPO_ROOT/skills/ce-work/scripts/detect-missing-artifacts.sh"
+SCRIPT="$REPO_ROOT/skills/ts-work/scripts/detect-missing-artifacts.sh"
 
 pass=0
 fail=0

@@ -177,7 +177,7 @@ If artifact-backed mode is not clearly warranted, stay in direct mode.
 Artifact-backed mode uses a per-run OS-temp scratch directory. Create it once before dispatching sub-agents and capture its **absolute path** — pass that absolute path to each sub-agent so they write to it directly. Do not use `.context/`; the artifacts are per-run throwaway that are cleaned up when deepening ends (see 5.3.6b), matching the repo Scratch Space convention for one-shot artifacts. Do not pass unresolved shell-variable strings to sub-agents; they need the resolved absolute path.
 
 ```bash
-SCRATCH_DIR="$(mktemp -d -t ce-plan-deepen-XXXXXX)"
+SCRATCH_DIR="$(mktemp -d -t ts-plan-deepen-XXXXXX)"
 echo "$SCRATCH_DIR"
 ```
 
@@ -237,7 +237,7 @@ Allowed changes:
 - Tighten prose in a strengthened section: cut hedges, split sentences carrying more than one idea, and remove superseded text in place (version control holds the history)
 - Clarify or strengthen decision rationale
 - Tighten requirements trace or origin fidelity
-- Reorder or split implementation units when sequencing is weak — but **never renumber existing U-IDs**. Reordering preserves U-IDs in their new order (e.g., U1, U3, U5 reordered is correct; renumbering to U1, U2, U3 is not). Splitting keeps the original U-ID on the original concept and assigns the next unused number to the new unit. Renumbering breaks ce-work blocker and verification references that were written against the original IDs
+- Reorder or split implementation units when sequencing is weak — but **never renumber existing U-IDs**. Reordering preserves U-IDs in their new order (e.g., U1, U3, U5 reordered is correct; renumbering to U1, U2, U3 is not). Splitting keeps the original U-ID on the original concept and assigns the next unused number to the new unit. Renumbering breaks ts-work blocker and verification references that were written against the original IDs
 - Add missing pattern references, file/test paths, or verification outcomes
 - Expand system-wide impact, risks, or rollout treatment where justified
 - Reclassify open questions between `Resolved During Planning` and `Deferred to Implementation` when evidence supports the change
@@ -256,4 +256,4 @@ Do **not**:
 If research reveals a product-level ambiguity that should change behavior or scope:
 - Do not silently decide it here
 - Record it under `Open Questions`
-- Recommend `ce-brainstorm` if the gap is truly product-defining
+- Recommend `ts-brainstorm` if the gap is truly product-defining

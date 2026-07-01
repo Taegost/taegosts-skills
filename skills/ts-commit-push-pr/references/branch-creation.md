@@ -37,7 +37,7 @@ git checkout -b <branch-name> "$BASE_REF"
 If checkout fails because uncommitted changes would be overwritten, stash and retry:
 
 ```bash
-git stash push -u -m "ce-commit-push-pr: pre-branch <branch-name>"
+git stash push -u -m "ts-commit-push-pr: pre-branch <branch-name>"
 git checkout -b <branch-name> "$BASE_REF"
 git stash pop
 ```

@@ -2,7 +2,7 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-SCRIPT="$REPO_ROOT/skills/ce-code-review/scripts/select-reviewers.sh"
+SCRIPT="$REPO_ROOT/skills/ts-code-review/scripts/select-reviewers.sh"
 pass=0 fail=0
 
 echo "=== U13: select-reviewers.sh ==="

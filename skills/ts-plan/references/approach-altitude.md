@@ -1,6 +1,6 @@
 # Approach Altitude
 
-Loaded from SKILL.md Phase 0.1a when a request is answered one level up — produce a grounded **approach-plan** (a plan for *how the deliverable will be made*), hold at a checkpoint, then execute now or save for later. Entered explicitly ("plan for a plan") or via an accepted proactive offer. Domain-general: the deliverable may be a document, a synthesis, a study artifact, or a software implementation plan. The boundary this preserves is **code vs. knowledge-work**, not plan vs. execute — `ce-plan` never writes or runs code (Phase 4 / SKILL.md line 15); code execution always belongs to `ce-work`.
+Loaded from SKILL.md Phase 0.1a when a request is answered one level up — produce a grounded **approach-plan** (a plan for *how the deliverable will be made*), hold at a checkpoint, then execute now or save for later. Entered explicitly ("plan for a plan") or via an accepted proactive offer. Domain-general: the deliverable may be a document, a synthesis, a study artifact, or a software implementation plan. The boundary this preserves is **code vs. knowledge-work**, not plan vs. execute — `ts-plan` never writes or runs code (Phase 4 / SKILL.md line 15); code execution always belongs to `ts-work`.
 
 ## Stage 1: Light recon (cheap grounding)
 
@@ -21,7 +21,7 @@ Deliver the approach-plan in chat. It is **file-optional** — the user decides 
 - **The forks worth confirming** — the few decisions where the user's steer materially changes the result (e.g., weighting one source over another, depth vs. breadth, audience).
 - **Open questions** — anything genuinely unresolved that the user should answer before execution.
 
-This is not a software plan template (no implementation units / test scenarios) unless the deliverable itself is a software implementation plan — in which case "execute now / code" routes into the normal `ce-plan` flow (below) rather than composing the deliverable here.
+This is not a software plan template (no implementation units / test scenarios) unless the deliverable itself is a software implementation plan — in which case "execute now / code" routes into the normal `ts-plan` flow (below) rather than composing the deliverable here.
 
 ## Stage 3: Checkpoint
 
@@ -34,17 +34,17 @@ Hold at the approach. Use the platform's blocking question tool (`AskUserQuestio
 
 ## Stage 4: Route
 
-**Save for later.** Persist the approach-plan to `docs/plans/` so it survives. If the deliverable is non-code, write the marker (`execution: knowledge-work`, see `references/plan-sections.md`) at persist time — so a later `ce-work` invocation on the saved plan routes to the carve-out, not the code path. Offer to deepen it. Keep the plan **agent-agnostic** (no `ce-work`-specific choreography in the body) so any agent can execute it later.
+**Save for later.** Persist the approach-plan to `docs/plans/` so it survives. If the deliverable is non-code, write the marker (`execution: knowledge-work`, see `references/plan-sections.md`) at persist time — so a later `ts-work` invocation on the saved plan routes to the carve-out, not the code path. Offer to deepen it. Keep the plan **agent-agnostic** (no `ts-work`-specific choreography in the body) so any agent can execute it later.
 
-**Execute now -- code deliverable.** The approach-plan's job is done; continue into the normal `ce-plan` flow (Phase 0.1b onward) to produce the implementation plan, then hand off to `ce-work` for the code. `ce-plan` never writes the code itself.
+**Execute now -- code deliverable.** The approach-plan's job is done; continue into the normal `ts-plan` flow (Phase 0.1b onward) to produce the implementation plan, then hand off to `ts-work` for the code. `ts-plan` never writes the code itself.
 
-**Execute now -- non-code deliverable.** This is the knowledge-work path with no `ce-work` equivalent, so it routes to `ce-work`'s carve-out:
+**Execute now -- non-code deliverable.** This is the knowledge-work path with no `ts-work` equivalent, so it routes to `ts-work`'s carve-out:
 
 1. Write the marker `execution: knowledge-work` into the plan frontmatter.
 2. **Persist** the marked plan to `docs/plans/` (the marker needs a file to live in so it can travel — R7's file-optional governs the user keeping a chat-only copy, but non-code *execution* forces a persist).
-3. Fire the `ce-work` skill, passing the plan path, via the platform's skill-invocation primitive (`Skill` in Claude Code). Do not merely tell the user to run it — fire it so execution happens in this session.
+3. Fire the `ts-work` skill, passing the plan path, via the platform's skill-invocation primitive (`Skill` in Claude Code). Do not merely tell the user to run it — fire it so execution happens in this session.
 
-`ce-plan` itself does not execute the deliverable in any path — it produces the approach-plan and hands off. The portable plan is also runnable by any other agent without `ce-work`.
+`ts-plan` itself does not execute the deliverable in any path — it produces the approach-plan and hands off. The portable plan is also runnable by any other agent without `ts-work`.
 
 ## Boundaries: not the other approach surfaces
 

@@ -8,7 +8,7 @@ the format-specific references (`markdown-rendering.md`, `html-rendering.md`).
 
 A great brainstorm produces a doc that enables three audiences to act:
 
-- **The planning agent** (`ce-plan` or a human) produces an implementation
+- **The planning agent** (`ts-plan` or a human) produces an implementation
   plan without inventing user behavior, scope boundaries, or success
   criteria — the brainstorm answered those.
 - **The reviewer** sees the framing choices, distinguishes pinned from open,
@@ -26,7 +26,7 @@ Skip document creation when **both** hold:
 - The user only needs brief alignment — no exploration produced novel scope,
   framing, or decisions worth preserving in IDed shape.
 - Any durable decisions made during the dialogue can flow naturally to
-  downstream artifacts (`ce-plan`, the commit message, `docs/solutions/`)
+  downstream artifacts (`ts-plan`, the commit message, `docs/solutions/`)
   without a brainstorm doc as an intermediary.
 
 The trigger for creating a doc is when the dialogue surfaced enough
@@ -37,7 +37,7 @@ durable, IDed form — not just as conversational artifacts.
 **Stress test:** a brainstorm about a tiny bug fix where the user asks "fix
 this with a null check or with upstream validation?" and the agent confirms
 "upstream validation, here's why" doesn't need a brainstorm doc. The
-decision flows to `ce-plan` (or directly to commit message, or to
+decision flows to `ts-plan` (or directly to commit message, or to
 `docs/solutions/` if it's a pattern worth carrying) without a brainstorm
 artifact in the middle.
 
@@ -172,7 +172,7 @@ worse than omitting it.
 - **Success Criteria** — include when there are quality / metric / handoff
   signals that Requirements don't already carry: quantitative metrics ("p95
   latency under 200ms"), qualitative criteria ("the agent's output reads as
-  one voice"), process / handoff quality ("ce-doc-review can act on this
+  one voice"), process / handoff quality ("ts-doc-review can act on this
   without follow-ups"). Skip when Requirements ARE the success criteria
   (every R is "done when the R is true").
 
@@ -230,14 +230,14 @@ the brainstorm.
   Used in the filename (`docs/brainstorms/YYYY-MM-DD-<topic>-requirements.<md|html>`).
 - **`topic`** — kebab-case slug identifying the brainstorm subject (e.g.,
   `surface-scope-earlier`, `demo-reel-local-save`). Used in the filename
-  alongside `date` and as the resume-detection key when `ce-brainstorm`'s
+  alongside `date` and as the resume-detection key when `ts-brainstorm`'s
   Phase 0.1 scans `docs/brainstorms/` for an existing artifact to continue.
 
 ### No status field
 
 Brainstorm artifacts have no `status` field and no `active → completed`
 lifecycle — a brainstorm is a one-time output that downstream consumers
-(`ce-plan`, `ce-doc-review`) reference via the plan's `origin:` field. No
+(`ts-plan`, `ts-doc-review`) reference via the plan's `origin:` field. No
 CE artifact carries a mutable status; whether work shipped is derived from
 git, not stored in the doc. Do not introduce one.
 
@@ -261,7 +261,7 @@ Same shape as plan rules.
   heading levels.
 - **Repo-relative paths.** Always. Never absolute paths.
 - **No process exhaust.** No "captured at Phase X" notes, no `## Next Steps`
-  pointing to ce-plan, no italic provenance lines. Engineering process
+  pointing to ts-plan, no italic provenance lines. Engineering process
   metadata belongs in commit messages and tool output, not the artifact.
 - **No implementation details by default.** Libraries, schemas, endpoints,
   file layouts, code structure stay out unless the brainstorm itself is

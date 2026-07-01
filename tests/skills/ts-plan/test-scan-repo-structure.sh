@@ -2,7 +2,7 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-SCRIPT="$REPO_ROOT/skills/ce-plan/scripts/scan-repo-structure.sh"
+SCRIPT="$REPO_ROOT/skills/ts-plan/scripts/scan-repo-structure.sh"
 pass=0 fail=0
 cleanup() { rm -rf /tmp/test-scan-* 2>/dev/null || true; }
 trap cleanup EXIT

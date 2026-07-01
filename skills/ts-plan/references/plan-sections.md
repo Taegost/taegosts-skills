@@ -8,7 +8,7 @@ format-specific references (`markdown-rendering.md`, `html-rendering.md`).
 
 A great plan enables three audiences to act:
 
-- **The implementing agent** (`ce-work` or a human) starts from an informed
+- **The implementing agent** (`ts-work` or a human) starts from an informed
   baseline — load-bearing decisions are named, research breadcrumbs orient
   their own investigation, unit boundaries are clear. The plan gives the
   implementer a starting point, not a substitute for their own investigation.
@@ -21,9 +21,9 @@ Sections earn their place by serving one of these audiences. Omit padding.
 
 ## Decide whether a plan doc is warranted at all
 
-Not every invocation of `ce-plan` should produce a plan document. For
+Not every invocation of `ts-plan` should produce a plan document. For
 genuinely atomic work, the doc is ceremony — the implementer (whether
-`ce-work` or a human) can act directly without IDed units, KTDs, or
+`ts-work` or a human) can act directly without IDed units, KTDs, or
 Requirements as a checklist.
 
 **Bias toward producing a plan.** The risk asymmetry favors writing one:
@@ -65,7 +65,7 @@ vs. genuine skip cases:
 - *"Bump dependency X to v2.3.1"* — mechanical, skip the plan (unless the
   bump introduces breaking changes that warrant unit-by-unit migration).
 
-When skipping the plan doc, the work proceeds directly to `ce-work` or to
+When skipping the plan doc, the work proceeds directly to `ts-work` or to
 implementation, and any decisions made along the way land in the commit
 message or `docs/solutions/` if they're worth carrying forward.
 
@@ -85,7 +85,7 @@ contracts downstream consumers depend on.
   implementation. Each entry is `<decision>: <rationale>`. Without these, the
   implementer can't tell which design choices are open and which are pinned.
 - **Implementation Units** (with stable U-IDs) — the discrete units of work,
-  sized so each is independently landable. `ce-work` consumes these to
+  sized so each is independently landable. `ts-work` consumes these to
   execute. For trivial single-step plans the work may collapse into Summary
   prose and U-IDs may be omitted; this is rare.
 
@@ -216,7 +216,7 @@ plan.
 - **`date`** — creation date in ISO 8601 (`YYYY-MM-DD`), ASCII digits only.
 
 Plans carry **no `status` field** — a plan is a decision artifact, not a
-tracked work item. `ce-work` does not mutate the plan at ship time;
+tracked work item. `ts-work` does not mutate the plan at ship time;
 whether a plan shipped is derived from git, not stored in the doc. Do not
 add a `status` field or an `active → completed` lifecycle.
 
@@ -228,16 +228,16 @@ semantics so downstream tooling can rely on them:
 - **`origin`** — repo-relative path to an upstream brainstorm requirements
   doc (e.g., `docs/brainstorms/2026-05-12-pagination-requirements.md`).
   Set when planning from an upstream brainstorm; carried for traceability
-  and re-resolved when `ce-plan` re-deepens.
+  and re-resolved when `ts-plan` re-deepens.
 - **`deepened`** — ISO 8601 date marking the first time the confidence
   check substantively strengthened the plan. Presence affects Phase 0.1
   resume fast-path logic (see `references/deepening-workflow.md`).
 - **`execution`** — execution domain for downstream routing: `code`
-  (the default when absent) or `knowledge-work`. `ce-work`'s input triage
+  (the default when absent) or `knowledge-work`. `ts-work`'s input triage
   reads this: a plan marked `execution: knowledge-work` routes to the
   non-code carve-out (read sources, synthesize, produce a deliverable —
   skipping the branch/test/commit/CI lifecycle); absent or `code` routes
-  to the normal code path. Written by `ce-plan`'s approach-altitude flow
+  to the normal code path. Written by `ts-plan`'s approach-altitude flow
   (`references/approach-altitude.md`) when a non-code deliverable is
   persisted for execution.
 

@@ -6,7 +6,7 @@
 
 **Three-bucket structure is the internal draft, not the user-facing artifact.** It does its scope-thinking job during stage 1 and dissolves when Phase 5.2 writes the plan: Stated content informs Requirements, Inferred content informs Key Technical Decisions / Implementation Units (interactive mode) or `## Assumptions` (non-interactive mode), Out-of-scope content informs Scope Boundaries. The plan has no parallel `## Synthesis` section — only the stage-2 summary embeds, as `## Summary`. See "Doc shape after confirmation" below for the routing.
 
-This content is loaded when a synthesis-summary phase fires in ce-plan. There are two variants — they share structure but differ in timing and content focus:
+This content is loaded when a synthesis-summary phase fires in ts-plan. There are two variants — they share structure but differ in timing and content focus:
 
 - **Solo variant** (Phase 0.7): fires after Phase 0.4 bootstrap and Phase 0.6 depth classification, before Phase 1 research begins. Catches scope misinterpretation before sub-agent dispatch is spent. Full breadth — problem frame, intended behavior, success criteria, in/out scope.
 - **Brainstorm-sourced variant** (Phase 5.1.5): fires after Phase 1 research, before Phase 5.2 plan-write. Focuses on plan-time decisions (which files/modules to touch, which patterns extended vs. introduced new, test scope, refactor scope). Brainstorm-validated WHAT is assumed and not re-stated.
@@ -223,7 +223,7 @@ What survived: three real forks where another reasonable agent might choose diff
 
 Fires only when:
 - Phase 0.2 found no upstream brainstorm doc
-- AND Phase 0.4 stayed in ce-plan (did not route to ce-debug, ce-work, or universal-planning)
+- AND Phase 0.4 stayed in ts-plan (did not route to ts-debug, ts-work, or universal-planning)
 - AND Phase 0.5 cleared (no unresolved blockers)
 - AND not on Phase 0.1 fast paths (resume normal, deepen-intent)
 
@@ -251,7 +251,7 @@ Based on your request and our brief discussion, here's the scope I'm proposing t
 **Call outs:** (omit this header when zero forks survived the keep test)
 - [decision-level fork in 1-2 lines: name the choice and optional one-clause trade-off in parens. NO multi-sentence rationale, NO "my default is X" pitch — those belong in Key Technical Decisions in the plan body, not the synthesis]
 
-Confirm and I'll proceed to research, drawing on this scope. (You can also redirect to /ce-brainstorm if this is bigger than you initially thought — I'll stop here and load it for you.)
+Confirm and I'll proceed to research, drawing on this scope. (You can also redirect to /ts-brainstorm if this is bigger than you initially thought — I'll stop here and load it for you.)
 ```
 
 **Auto-proceed template (fires only for Lightweight with zero call-outs):**
@@ -283,7 +283,7 @@ Items to surface in the internal draft:
 
 Most of these will not survive the keep test as separate call-outs. Surface only the forks where another reasonable agent might choose differently and the user can correct cheaply now.
 
-**Reads from doc body, not a synthesis section**: brainstorm docs do not have a `## Synthesis` section (the synthesis is a chat-time artifact in ce-brainstorm; only the prose summary embeds, as `## Summary`). Phase 5.1.5 derives plan-time decisions from the brainstorm doc's body sections — Summary, Problem Frame, Requirements, Key Decisions, Scope Boundaries — plus Phase 1 research. Older brainstorms that may have a legacy `## Synthesis` section work fine; that content is treated as supplementary, not authoritative, with the body sections taking precedence.
+**Reads from doc body, not a synthesis section**: brainstorm docs do not have a `## Synthesis` section (the synthesis is a chat-time artifact in ts-brainstorm; only the prose summary embeds, as `## Summary`). Phase 5.1.5 derives plan-time decisions from the brainstorm doc's body sections — Summary, Problem Frame, Requirements, Key Decisions, Scope Boundaries — plus Phase 1 research. Older brainstorms that may have a legacy `## Synthesis` section work fine; that content is treated as supplementary, not authoritative, with the body sections taking precedence.
 
 **Why pre-write, not pre-research**: brainstorm doc + R1 synthesis already validated WHAT, so research is well-targeted. Plan-time decisions emerge during research and structuring (Phases 1-4), so pre-write catches them at the latest cheap moment — before Phase 5.2 commits the plan to disk.
 
@@ -335,7 +335,7 @@ Fall back to numbered list in chat only when no blocking tool exists or the call
 
 ## Headless mode (shared)
 
-When the skill is invoked from an automated workflow such as LFG or any `disable-model-invocation` context, the skill runs in non-interactive mode (no synchronous user). The artifact is read by downstream skills (ce-doc-review, ce-work) and human reviewers (PR review).
+When the skill is invoked from an automated workflow such as LFG or any `disable-model-invocation` context, the skill runs in non-interactive mode (no synchronous user). The artifact is read by downstream skills (ts-doc-review, ts-work) and human reviewers (PR review).
 
 **Stage 2 is moot in headless mode.** Compose the internal draft (stage 1) as usual, but skip the chat-time compression — there is no synchronous user to confirm to, no call-outs to derive, no auto-proceed announcement. Route the internal draft directly into the plan body via the doc-shape table below.
 
@@ -354,7 +354,7 @@ When the skill is invoked from an automated workflow such as LFG or any `disable
 
 The `## Assumptions` section appears in non-interactive plans only. Interactive plans don't need it (Inferred bets either get user-corrected via call-outs and become Key Technical Decisions, are revised away, or were judged not-fork material by the keep test and dissolved into Implementation Units silently).
 
-This restores the audit visibility the original design intended (un-validated bets must not propagate as authoritative content), but surfaces them under their own label rather than hiding them. Downstream review (ce-doc-review, ce-work, human PR review) can scrutinize Assumptions specifically.
+This restores the audit visibility the original design intended (un-validated bets must not propagate as authoritative content), but surfaces them under their own label rather than hiding them. Downstream review (ts-doc-review, ts-work, human PR review) can scrutinize Assumptions specifically.
 
 ---
 
@@ -362,10 +362,10 @@ This restores the audit visibility the original design intended (un-validated be
 
 If the user response indicates they're in the wrong skill or want a different workflow:
 
-- **Solo variant**: common redirects include "this is bigger than I thought — let me brainstorm first" (suggest `/ce-brainstorm`), "this is just a fix, no plan needed" (suggest `/ce-work`), or "I need to investigate first" (suggest `/ce-debug`).
-- **Brainstorm-sourced variant**: less common, but possible — "actually this scope is wrong, take it back to brainstorm" (suggest `/ce-brainstorm` to revise the upstream doc).
+- **Solo variant**: common redirects include "this is bigger than I thought — let me brainstorm first" (suggest `/ts-brainstorm`), "this is just a fix, no plan needed" (suggest `/ts-work`), or "I need to investigate first" (suggest `/ts-debug`).
+- **Brainstorm-sourced variant**: less common, but possible — "actually this scope is wrong, take it back to brainstorm" (suggest `/ts-brainstorm` to revise the upstream doc).
 
-In either case: stop ce-plan, suggest the alternative skill, offer to load it in-session. Don't push back or argue — the user's redirect signal is the deliberate choice.
+In either case: stop ts-plan, suggest the alternative skill, offer to load it in-session. Don't push back or argue — the user's redirect signal is the deliberate choice.
 
 ---
 

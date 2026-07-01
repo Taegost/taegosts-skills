@@ -30,9 +30,9 @@ This file contains the shipping workflow (Phase 3-4). It is loaded when all Phas
 
    **Tier 1 -- harness-native review (default when available).** Run the harness built-in code review (e.g., `/review` in Claude Code). Address blocking and suggested findings inline before Final Validation. Skip the Residual Work Gate.
 
-   **Tier 2 -- `ce-code-review` (escalation only).** Two steps — **review is not fix.**
+   **Tier 2 -- `ts-code-review` (escalation only).** Two steps — **review is not fix.**
 
-   **2a. Review (read-only).** Invoke `ce-code-review` with `mode:agent` (and `plan:<path>` when known; add `base:<ref>` when the diff base is already resolved). Parse JSON or Actionable Findings. Do not pass `mode:autofix`.
+   **2a. Review (read-only).** Invoke `ts-code-review` with `mode:agent` (and `plan:<path>` when known; add `base:<ref>` when the diff base is already resolved). Parse JSON or Actionable Findings. Do not pass `mode:autofix`.
 
    **2b. Apply fixes (caller-owned).** Load `references/review-findings-followup.md`: filter on JSON, batch by file, dispatch fix subagents. Orchestrator merges, tests, commits. Then proceed to the Residual Work Gate.
 
@@ -49,16 +49,16 @@ This file contains the shipping workflow (Phase 3-4). It is loaded when all Phas
 
 4. **Residual Work Gate** (REQUIRED when Tier 2 ran)
 
-   After Tier 2 code review and review-findings followup, inspect the **Actionable Findings** summary (or read the run artifact at `/tmp/compound-engineering/ce-code-review/<run-id>/` if the summary was truncated). If one or more actionable `downstream-resolver` findings were not applied in followup, do not proceed to Final Validation until the user decides how to handle them.
+   After Tier 2 code review and review-findings followup, inspect the **Actionable Findings** summary (or read the run artifact at `/tmp/taegosts-skills/ts-code-review/<run-id>/` if the summary was truncated). If one or more actionable `downstream-resolver` findings were not applied in followup, do not proceed to Final Validation until the user decides how to handle them.
 
    Ask the user using the platform's blocking question tool (`AskUserQuestion` in Claude Code with `ToolSearch select:AskUserQuestion` pre-loaded if needed, `request_user_input` in Codex, `ask_question` in Antigravity CLI (`agy`), `ask_user` in Pi (requires the `pi-ask-user` extension)). Fall back to numbered options in chat only when the harness genuinely lacks a blocking tool. Never silently skip the gate.
 
    Stem: `Code review left N actionable finding(s) not yet fixed. How should the agent proceed?`
 
    Options (four or fewer, self-contained labels):
-   - `Apply/fix now` — load `references/review-findings-followup.md`, dispatch batched fix subagents for remaining eligible findings, run tests, commit if needed; optionally re-run `ce-code-review` only after the diff changed materially.
+   - `Apply/fix now` — load `references/review-findings-followup.md`, dispatch batched fix subagents for remaining eligible findings, run tests, commit if needed; optionally re-run `ts-code-review` only after the diff changed materially.
    - `File tickets via project tracker` — load `references/tracker-defer.md` in Interactive mode; the agent files tickets in the project's detected tracker (or `gh` fallback, or leaves them in the report if no sink exists) and proceeds to Final Validation.
-   - `Accept and proceed` — record the residual findings verbatim in a durable "Known Residuals" sink before shipping. If a PR will be created or updated in Phase 4, include them in the PR description's "Known Residuals" section (the agent owns this when calling `ce-commit-push-pr`). If the user later chooses the no-PR `ce-commit` path, create `docs/residual-review-findings/<branch-or-head-sha>.md`, include the accepted findings and source review-run context, stage it with the implementation commit, and mention the file path in the final summary. The user has acknowledged the risk, but the findings must not live only in the transient session.
+   - `Accept and proceed` — record the residual findings verbatim in a durable "Known Residuals" sink before shipping. If a PR will be created or updated in Phase 4, include them in the PR description's "Known Residuals" section (the agent owns this when calling `ts-commit-push-pr`). If the user later chooses the no-PR `ts-commit` path, create `docs/residual-review-findings/<branch-or-head-sha>.md`, include the accepted findings and source review-run context, stage it with the implementation commit, and mention the file path in the final summary. The user has acknowledged the risk, but the findings must not live only in the transient session.
    - `Stop — do not ship` — abort the shipping workflow. The user will handle findings manually before re-invoking.
 
    Skip this gate entirely when the review reported `Actionable findings: none.` (and followup applied everything mechanical) or when only Tier 1 was used. Do not proceed past this gate on an `Accept and proceed` decision until the agent has recorded whether the durable sink is `PR Known Residuals` or `docs/residual-review-findings/<branch-or-head-sha>.md`.
@@ -89,21 +89,21 @@ This file contains the shipping workflow (Phase 3-4). It is loaded when all Phas
 
    Do not try to launch a dedicated CE evidence-capture workflow. Modern harnesses provide their own browser, screenshot, terminal recording, and artifact capture tools; use those directly only when the user asks or when the artifact already exists.
 
-   Note whether the completed work has observable behavior (UI rendering, CLI output, API/library behavior with a runnable example, generated artifacts, or workflow output), and summarize any manual validation performed. If the user supplied evidence (URL, markdown embed, local artifact path), pass it to `ce-commit-push-pr` as PR-description context.
+   Note whether the completed work has observable behavior (UI rendering, CLI output, API/library behavior with a runnable example, generated artifacts, or workflow output), and summarize any manual validation performed. If the user supplied evidence (URL, markdown embed, local artifact path), pass it to `ts-commit-push-pr` as PR-description context.
 
 2. **Commit and Create Pull Request**
 
-   Load the `ce-commit-push-pr` skill to handle committing, pushing, and PR creation. The skill handles convention detection, branch safety, logical commit splitting, adaptive PR descriptions, and attribution badges.
+   Load the `ts-commit-push-pr` skill to handle committing, pushing, and PR creation. The skill handles convention detection, branch safety, logical commit splitting, adaptive PR descriptions, and attribution badges.
 
    When providing context for the PR description, include:
    - The plan's summary and key decisions
    - Testing notes (tests added/modified, manual testing performed)
-   - Evidence context from step 1, so `ce-commit-push-pr` can decide whether to ask about capturing evidence
+   - Evidence context from step 1, so `ts-commit-push-pr` can decide whether to ask about capturing evidence
    - Figma design link (if applicable)
    - The Post-Deploy Monitoring & Validation section (see Phase 3 Step 6)
    - Any "Known Residuals" accepted in the Phase 3 Residual Work Gate, rendered as a dedicated section in the PR body with severity, file:line, and title per finding
 
-   If the user prefers to commit without creating a PR, load the `ce-commit` skill instead.
+   If the user prefers to commit without creating a PR, load the `ts-commit` skill instead.
 
 3. **Notify User**
    - Summarize what was completed
@@ -121,7 +121,7 @@ Before creating PR, verify:
 - [ ] Linting passes (use linting-agent)
 - [ ] Code follows existing patterns
 - [ ] Figma designs match implementation (if applicable)
-- [ ] Validation/evidence context passed to `ce-commit-push-pr` when the change has observable behavior
+- [ ] Validation/evidence context passed to `ts-commit-push-pr` when the change has observable behavior
 - [ ] Commit messages follow conventional format
 - [ ] PR description includes Post-Deploy Monitoring & Validation section (or explicit no-impact rationale)
 - [ ] Simplify: `ce-simplify-code` when diff >=30 lines (or skipped with reason)
@@ -131,11 +131,11 @@ Before creating PR, verify:
 
 ## Code Review Tiers
 
-**Tier 1** when the harness has built-in review. **Tier 2** (`ce-code-review` + followup) only when escalation criteria match — missing Tier 1 is not a reason to escalate.
+**Tier 1** when the harness has built-in review. **Tier 2** (`ts-code-review` + followup) only when escalation criteria match — missing Tier 1 is not a reason to escalate.
 
 **Tier 1 -- harness-native review.** Built-in command or skill (e.g., `/review`). Fix findings inline.
 
-**Tier 2 -- `ce-code-review` (escalation).** (2a) Review-only via `mode:agent`. (2b) Batched fix subagents per `references/review-findings-followup.md`; residuals → Residual Work Gate.
+**Tier 2 -- `ts-code-review` (escalation).** (2a) Review-only via `mode:agent`. (2b) Batched fix subagents per `references/review-findings-followup.md`; residuals → Residual Work Gate.
 
 **Skip dedicated review** when no Tier 1 and Tier 2 criteria not met (document in summary).
 
