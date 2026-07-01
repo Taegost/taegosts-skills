@@ -78,7 +78,7 @@ Based on selection (the bare per-option routing is also stated inline in the SKI
 - **Publish to Proof — shareable link** -> Load the `ts-proof` skill to publish the plan. Pass:
   - source file: `docs/plans/<plan_filename>.md`
   - doc title: `Plan: <plan title from frontmatter>`
-  - identity: `ai:taegosts-skills` / `Compound Engineering`
+  - identity: `ai:taegosts-skills` / `Taegost's Skills`
 
   ts-proof creates a shared Proof doc from the plan file (Create and Share workflow), binds the display name, and returns the share URL. Surface the URL to the user — they can open it to read, comment, or share with others — then return to the post-generation options. This is a one-way publish: the local plan file stays canonical and nothing syncs back, so no re-review is needed and the menu re-renders with the same residual findings as before.
 

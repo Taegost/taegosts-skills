@@ -79,7 +79,7 @@ Load the `ts-proof` skill to publish the requirements doc. Pass:
 
 - **source file:** `docs/brainstorms/YYYY-MM-DD-<topic>-requirements.md`
 - **doc title:** `Requirements: <topic title>`
-- **identity:** `ai:taegosts-skills` / `Compound Engineering`
+- **identity:** `ai:taegosts-skills` / `Taegost's Skills`
 
 ts-proof creates a shared Proof doc from the requirements file (Create and Share workflow), binds the display name, and returns the share URL. Surface the URL to the user — they can open it to read, comment, or share with others — then return to the Phase 4 options and re-render the menu. This is a one-way publish: the local doc stays canonical and nothing syncs back, so option eligibility is unchanged (no need to re-evaluate `Resolve Before Planning`, the direct-to-work gate, or residual findings on account of Proof).
 

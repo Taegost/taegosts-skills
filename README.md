@@ -46,9 +46,9 @@ The central implementation loop. Runs ts-work and ts-verify-implementation in cy
 /ts-do-work-loop docs/plans/my-plan.md
 ```
 
-### Taegost's Skills Skills (Extracted)
+### Taegost's Skills (Extracted)
 
-These 9 skills were extracted from [EveryInc/taegosts-skills-plugin](https://github.com/EveryInc/taegosts-skills-plugin) for customization. See [docs/solutions/tooling-decisions/ce-skills-extraction.md](docs/solutions/tooling-decisions/ce-skills-extraction.md) for full context.
+These 9 skills were extracted from [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) for customization. See [docs/solutions/tooling-decisions/ce-skills-extraction.md](docs/solutions/tooling-decisions/ce-skills-extraction.md) for full context.
 
 | Skill | Description | Dependencies |
 |-------|-------------|-------------|
