@@ -1,6 +1,6 @@
 ---
 name: ts-compound
-description: Document a recently solved problem or durable project vocabulary in docs/solutions/ or CONCEPTS.md. Use when capturing a learning after work.
+description: "USE THIS after solving a non-trivial problem, fixing a tricky bug, or making an architectural decision. Captures the solution as a durable doc in docs/solutions/. NOT for plans (use ts-plan) or brainstorming (use ts-brainstorm)."
 argument-hint: "[optional: brief context] [mode:headless] "
 ---
 
@@ -101,7 +101,7 @@ If the user says yes, run the internal session-history step in Phase 1 (see step
 
 Phase 1 subagents write their full structured output to a per-run scratch artifact under `/tmp/taegosts-skills/ts-compound/<run-id>/` and return only a compact confirmation containing the artifact path. The orchestrator Reads those artifacts back in Phase 2 assembly. This is scratch space, identical in spirit to `ts-code-review`'s per-reviewer run artifacts; it does not make the scratch files additional deliverables. **Only the orchestrator writes product files** — the final solution doc and the maintenance side effects below. Subagents must not touch `docs/`, project instruction files, or any tracked path. Beyond the Phase 2 solution doc, the orchestrator's other writes are maintenance side effects — not additional deliverables, and creating one when absent is expected, not a violation of this rule:
 - **`CONCEPTS.md`** — create or update in Phase 2.4 (Vocabulary Capture) when a qualifying domain term surfaces.
-- **A project instruction file** (AGENTS.md or CLAUDE.md) — a small edit when the Discoverability Check finds a gap.
+- **A project instruction file** — a small edit when the discoverability check finds a gap.
 
 Both ensure future agents can discover and ground in the knowledge store; neither makes the documentation any less the single deliverable.
 
@@ -415,7 +415,7 @@ Always capture the new learning first. Refresh is a targeted maintenance follow-
 
 After the learning is written and the refresh decision is made, check whether the project's instruction files would lead an agent to discover and search `docs/solutions/` before starting work in a documented area. This runs every time — the knowledge store only compounds value when agents can find it.
 
-1. Identify which root-level instruction files exist (AGENTS.md, CLAUDE.md, or both). Read the file(s) and determine which holds the substantive content — one file may just be a shim that `@`-includes the other (e.g., `CLAUDE.md` containing only `@AGENTS.md`, or vice versa). The substantive file is the assessment and edit target; ignore shims. If neither file exists, skip this check entirely.
+1. Check for project configuration files at the repo root. Read any that exist and determine which holds the substantive content. If none exist, skip this check entirely.
 2. Assess whether an agent reading the instruction files would learn three things:
    - That a searchable knowledge store of documented solutions exists
    - Enough about its structure to search effectively (category organization, YAML frontmatter fields like `module`, `tags`, `problem_type`)
@@ -491,7 +491,7 @@ The orchestrator (main conversation) performs ALL of the following in one sequen
    - YAML frontmatter with track-appropriate fields, applying the YAML-safety quoting rule for array items (see `references/yaml-schema.md` > YAML Safety Rules)
    - Bug track: Problem, root cause, solution with key code snippets, one prevention tip
    - Knowledge track: Context, guidance with key examples, one applicability note
-4. **Vocabulary capture (update-only)**: if `CONCEPTS.md` exists at repo root, read `references/concepts-vocabulary.md`, then scan the new doc and the conversation for qualifying terms and add/refine entries silently (same criteria as Phase 2.4). Do **not** bootstrap or seed in lightweight mode — if `CONCEPTS.md` does not exist, defer creation to a Full run, which owns seeding. Record the outcome in the output (e.g., "Vocabulary: 1 entry refined" or "scanned, no qualifying terms"). If you refined `CONCEPTS.md` and a quick read of `AGENTS.md`/`CLAUDE.md` shows it isn't surfaced there, add the discoverability tip to the output below — lightweight **tips**, it does not edit instruction files (a Full run owns that edit).
+4. **Vocabulary capture (update-only)**: if a vocabulary file exists at repo root, read the vocabulary reference, then scan the new doc and the conversation for qualifying terms and add/refine entries silently. Do **not** bootstrap or seed in lightweight mode — if the vocabulary file does not exist, defer creation to a Full run. Record the outcome in the output. If the vocabulary file was refined and project instruction files do not surface it, add a discoverability tip to the output — lightweight tips only, a Full run owns instruction file edits.
 5. **Skip specialized agent reviews** (Phase 3) to conserve context
 
 **Lightweight output:**
@@ -502,12 +502,12 @@ File created:
 - docs/solutions/[category]/[filename].md
 
 [If discoverability check found instruction files don't surface the knowledge store:]
-Tip: Your AGENTS.md/CLAUDE.md doesn't surface docs/solutions/ to agents —
+Tip: Project instruction files do not surface the solutions knowledge store —
 a brief mention helps all agents discover these learnings.
 
 [If CONCEPTS.md was refined this run and isn't surfaced in the instruction files:]
-Tip: Your AGENTS.md/CLAUDE.md doesn't surface CONCEPTS.md —
-a one-line mention helps agents find the shared vocabulary.
+Tip: Project instruction files do not surface the shared vocabulary —
+a one-line mention helps agents find it.
 
 Note: This was created in lightweight mode. For richer documentation
 (cross-references, detailed prevention strategies, specialized reviews),

@@ -37,6 +37,7 @@ Then enable the plugin in `enabledPlugins`:
 | `/ts-pr-review` | Reviews a pull request and posts inline findings | `code-review` plugin (claude-plugins-official) |
 | `/ts-pr-fix-findings` | Fixes findings from a PR review and updates the PR | `/ts-debug` (included) |
 | `/ts-verify-implementation` | Verifies a feature branch against its plan | None (self-contained) |
+| `/ts-coding-workflow` | Mandatory workflow for all coding tasks — plan, review, doc-review, work | `/ts-plan`, `/ts-doc-review`, `/ts-do-work-loop` |
 | `/ts-do-work-loop` | Run ts-work and ts-verify-implementation in a loop until the plan is fully satisfied | `/ts-work`, `/ts-verify-implementation`, `/ts-compound` |
 
 
@@ -162,6 +163,8 @@ taegosts-skills/
 │   │   └── SKILL.md          # Plan execution
 │   ├── ts-do-work-loop/
 │   │   └── SKILL.md          # Work loop
+│   ├── ts-coding-workflow/
+│   │   └── SKILL.md          # Coding workflow
 │   ├── ts-plan/
 │   │   └── SKILL.md          # Planning and architecture
 │   ├── ts-doc-review/

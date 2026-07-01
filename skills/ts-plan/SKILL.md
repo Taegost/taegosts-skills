@@ -10,7 +10,7 @@ argument-hint: "[optional: feature description, requirements doc path, plan path
 
 `ts-brainstorm` defines **WHAT** to build. `ts-plan` defines **HOW** to build it. `ts-work` executes the plan. A prior brainstorm is useful context but never required — `ts-plan` works from any input: a requirements doc, a bug report, a feature idea, or a rough description.
 
-**When directly invoked, always plan.** Never classify a direct invocation as "not a planning task" and abandon the workflow. If the input is unclear, ask clarifying questions or use the planning bootstrap (Phase 0.4) to establish enough context — but always stay in the planning workflow.
+**When directly started as a planning task, always plan.** Never classify a direct invocation as "not a planning task" and abandon the workflow. If the input is unclear, ask clarifying questions or use the planning bootstrap (Phase 0.4) to establish enough context — but always stay in the planning workflow.
 
 This workflow produces a durable implementation plan. It does **not** implement code, run tests, or learn from execution-time results. If the answer depends on changing code and seeing what happens, that belongs in `ts-work`, not here.
 
@@ -310,7 +310,7 @@ Collect:
 - Technology stack and versions (used in section 1.2 to make sharper external research decisions)
 - Architectural patterns and conventions to follow
 - Implementation patterns, relevant files, modules, and tests
-- AGENTS.md guidance that materially affects the plan, with CLAUDE.md used only as compatibility fallback when present
+- Project instruction file guidance relevant to the plan
 - Institutional learnings from `docs/solutions/`
 - Product strategy context when `STRATEGY.md` is present — flag any plan decisions that pull away from the active tracks or the stated approach
 - Agent-native planning findings when the conditional triage dispatched: action/context parity decisions, tool/workspace/execution-lifecycle choices, scope boundaries, and verification scenarios

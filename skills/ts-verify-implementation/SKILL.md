@@ -62,7 +62,7 @@ Cross-reference every item in the plan (Requirements, Implementation Units, File
 Flag any changes NOT called for in the plan — files touched beyond what was needed, logic altered past what was asked, or additions the plan doesn't account for.
 
 **Subagent 4 — Standards:**
-Review the changes against CLAUDE.md and any linting or formatting config files in the repo root. Flag violations of repo conventions, naming, structure, or code style.
+Review the changes against project instruction files and any linting or formatting config files in the repo root. Flag violations of repo conventions, naming, structure, or code style.
 
 ### 5. Consolidate results
 

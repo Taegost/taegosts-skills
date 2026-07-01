@@ -66,7 +66,7 @@ Confirm the bug exists and understand its behavior. Run the test, trigger the er
 - **Manual setup required:** If reproduction needs specific conditions the agent cannot create alone (data states, user roles, external services, environment config), document the exact setup steps and guide the user through them. Clear step-by-step instructions save significant time even when the process is fully manual.
 - **Does not reproduce after 2-3 attempts:** Read `references/investigation-techniques.md` for intermittent-bug techniques.
 - **Cannot reproduce at all in this environment:** Document what was tried and what conditions appear to be missing.
-- **Writing the reproduction test:** If the project has testing-conventions guidance — a dedicated testing skill, an `AGENTS.md`/`CLAUDE.md` testing section, or a clear style across existing tests — apply it when authoring the failing test. Otherwise write a minimal isolated test that fails on the current bug and passes once the corrected behavior lands; name it descriptively so the failure message itself explains the bug.
+- **Writing the reproduction test:** If the project has testing conventions or a clear style across existing tests, apply them when authoring the failing test. Otherwise write a minimal isolated test that fails on the current bug and passes once the corrected behavior lands; name it descriptively so the failure message itself explains the bug.
 
 #### 1.2 Verify environment sanity
 
