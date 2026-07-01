@@ -160,6 +160,8 @@ taegosts-skills/
 │   │   └── SKILL.md
 │   ├── ts-work/
 │   │   └── SKILL.md          # Plan execution
+│   ├── ts-do-work-loop/
+│   │   └── SKILL.md          # Work loop
 │   ├── ts-plan/
 │   │   └── SKILL.md          # Planning and architecture
 │   ├── ts-doc-review/

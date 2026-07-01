@@ -2,7 +2,7 @@
 name: ts-do-work-loop
 description: "Run ts-work and ts-verify-implementation in a loop until the plan is fully satisfied. Requires a plan file path. The central implementation loop for all plan-based work."
 user_invocable: true
-argument-hint: "[plan doc path or description of work]"
+argument-hint: "<plan doc path>"
 ---
 
 # Do Work Loop
@@ -14,7 +14,6 @@ The central implementation loop. Runs ts-work and ts-verify-implementation in cy
 ```bash
 /ts-do-work-loop <plan-doc-path>
 /ts-do-work-loop docs/plans/2026-06-25-001-feat-script-extraction-pass-plan.md
-/ts-do-work-loop <description of work>
 ```
 
 ## Process

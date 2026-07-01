@@ -100,7 +100,7 @@ The opening goes under `## Summary` if the body uses any `##` headings; bare par
 ```markdown
 ---
 
-[![Taegost's Skills](https://img.shields.io/badge/Built_with-Taegosts_Skills-6366f1)](https://github.com/EveryInc/compound-engineering-plugin)
+[![Taegost's Skills](https://img.shields.io/badge/Built_with-Taegosts_Skills-6366f1)](https://github.com/Taegost/taegosts-skills)
 ![HARNESS](https://img.shields.io/badge/MODEL_SLUG-COLOR?logo=LOGO&logoColor=white)
 ```
 
