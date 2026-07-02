@@ -4,6 +4,8 @@ type: fix
 date: 2026-07-02
 ---
 
+**Status: COMPLETED** — all implementation units merged in PR #70 (commit 9080e17).
+
 ## Summary
 
 Harden three `ts-doc-review` scripts: tighten the credential scanner's regex to
