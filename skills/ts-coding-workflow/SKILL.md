@@ -43,10 +43,9 @@ This is the required process for ALL coding tasks across ALL projects. Do not sk
 
 ### Phase 2: Implementation
 
-6. **Run `ts-do-work-loop`** with the approved plan path. Do NOT use raw `/ts-work`.
-   - do-work-loop cycles between ce-work and verify-implementation
-   - It catches things a single ce-work pass misses
-
+6. **Run `/ts-do-work-loop`** with the approved plan path. Do NOT use raw `/ts-work`.
+   - do-work-loop cycles between `/ts-work` and `/ts-verify-implementation`
+   - It catches things a single `/ts-work` pass misses
 ### Phase 3: Completion
 
 7. If the work resulted in a pull request, use `/ts-pr-fix-findings` to address any review feedback (CodeRabbit, Mike, etc.)
