@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -u
+set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SCRIPT="$REPO_ROOT/scripts/verify-scripts.sh"
@@ -61,18 +61,20 @@ else
   echo "FAIL: unsupported ext"; fail=$((fail+1))
 fi
 
-# --all mode
-if "$SCRIPT" --all 2>&1 | grep -q "checking"; then
+# --all mode (rc may be 0 or 1 depending on scanned scripts — assert output + valid rc)
+output=$("$SCRIPT" --all 2>&1) && rc=0 || rc=$?
+if [[ $rc -le 1 ]] && echo "$output" | grep -q "checking"; then
   echo "PASS: --all mode"; pass=$((pass+1))
 else
-  echo "FAIL: --all"; fail=$((fail+1))
+  echo "FAIL: --all (rc=$rc)"; fail=$((fail+1))
 fi
 
-# dir arg
-if "$SCRIPT" "$REPO_ROOT/scripts" 2>&1 | grep -q "passed"; then
+# dir arg (same — valid rc range + output presence)
+output=$("$SCRIPT" "$REPO_ROOT/scripts" 2>&1) && rc=0 || rc=$?
+if [[ $rc -le 1 ]] && echo "$output" | grep -q "passed"; then
   echo "PASS: dir arg"; pass=$((pass+1))
 else
-  echo "FAIL: dir arg"; fail=$((fail+1))
+  echo "FAIL: dir arg (rc=$rc)"; fail=$((fail+1))
 fi
 
 # syntax-error file should not count as passed

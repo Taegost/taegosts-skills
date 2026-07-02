@@ -71,7 +71,8 @@ fi
 # When: run in a non-git dir
 # Then: exits 1
 tmpdir=$(mktemp -d)
-cd "$tmpdir"
+cd "$tmpdir" || exit 1
+trap 'rm -rf "$tmpdir"' EXIT
 output=$("$SCRIPT" 2>&1) && rc=0 || rc=$?
 if [[ $rc -eq 1 ]]; then
   ok "exits 1 outside git repo"
