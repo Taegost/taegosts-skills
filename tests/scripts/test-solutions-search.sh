@@ -7,6 +7,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SCRIPT="$REPO_ROOT/scripts/solutions-search.sh"
 # Create temp fixture instead of relying on external repo
 FIXTURE_DIR=$(mktemp -d)
+trap 'rm -rf "$FIXTURE_DIR"' EXIT
 mkdir -p "$FIXTURE_DIR/docs/solutions/conventions" "$FIXTURE_DIR/docs/solutions/runtime-errors"
 cat > "$FIXTURE_DIR/docs/solutions/conventions/valkey-pattern.md" << 'FIXTURE'
 ---

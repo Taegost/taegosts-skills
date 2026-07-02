@@ -28,7 +28,7 @@ fi
 
 # Given: a git repo with .git/hooks/pre-commit
 mkdir -p "$tmpdir/repo/.git/hooks"
-cd "$tmpdir/repo"
+cd "$tmpdir/repo" || exit 1
 git init -q
 cat > .git/hooks/pre-commit << 'HOOKEOF'
 #!/bin/bash
@@ -78,7 +78,7 @@ else
 fi
 
 # Given: not in a git repo
-cd "$tmpdir"
+cd "$tmpdir" || exit 1
 output=$(bash "$SCRIPT" 2>&1) && rc=0 || rc=$?
 if [[ $rc -eq 1 ]]; then
   ok "exits 1 when not in git repo"

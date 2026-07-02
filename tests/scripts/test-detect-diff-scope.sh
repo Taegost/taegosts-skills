@@ -5,9 +5,6 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SCRIPT="$REPO_ROOT/scripts/detect-diff-scope.sh"
 pass=0 fail=0
 
-cleanup() { rm -rf /tmp/test-diff-scope-* 2>/dev/null || true; }
-trap cleanup EXIT
-
 echo "=== U7: detect-diff-scope.sh ==="
 
 # Test: --help
@@ -17,7 +14,7 @@ else echo "FAIL: --help"; fail=$((fail + 1)); fi
 
 # Test: local mode in a temp repo (with feature branch)
 tmpdir=$(mktemp -d)
-cd "$tmpdir"
+cd "$tmpdir" || exit 1
 git init -b main >/dev/null 2>&1
 git config user.email "test@test.com"
 git config user.name "Test"
@@ -35,7 +32,8 @@ fi
 
 # Test: has_tests detection (with feature branch)
 tmpdir2=$(mktemp -d)
-cd "$tmpdir2"
+cd "$tmpdir2" || exit 1
+trap 'rm -rf "$tmpdir" "$tmpdir2"' EXIT
 git init -b main >/dev/null 2>&1
 git config user.email "test@test.com"
 git config user.name "Test"

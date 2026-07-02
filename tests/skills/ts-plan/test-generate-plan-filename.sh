@@ -27,7 +27,7 @@ else
 fi
 
 # Run from temp dir (no docs/plans/ dir exists)
-cd "$tmpdir"
+cd "$tmpdir" || exit 1
 today=$(date +%Y-%m-%d)
 
 # Given: no existing plans for today

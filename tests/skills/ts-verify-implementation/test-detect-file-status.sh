@@ -27,7 +27,7 @@ else
 fi
 
 # Set up a git repo
-cd "$tmpdir"
+cd "$tmpdir" || exit 1
 git init -q
 git config user.email "test@test.com"
 git config user.name "Test"

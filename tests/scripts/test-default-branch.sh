@@ -37,7 +37,7 @@ fi
 # When: run the script in that repo
 # Then: outputs "main"
 tmpdir=$(mktemp -d)
-cd "$tmpdir"
+cd "$tmpdir" || exit 1
 git init -b main >/dev/null 2>&1
 git config user.email "test@test.com"
 git config user.name "Test"
@@ -55,7 +55,8 @@ fi
 # When: run in a non-git directory
 # Then: should error
 tmpdir2=$(mktemp -d)
-cd "$tmpdir2"
+cd "$tmpdir2" || exit 1
+trap 'rm -rf "$tmpdir" "$tmpdir2"' EXIT
 output=$("$SCRIPT" 2>&1) && rc=0 || rc=$?
 if [[ $rc -eq 1 ]]; then
   ok "errors outside git repo"

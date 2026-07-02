@@ -12,6 +12,7 @@ ok() { pass=$((pass + 1)); echo "  PASS: $1"; }
 die() { fail=$((fail + 1)); echo "  FAIL: $1"; }
 
 tmpdir=$(mktemp -d)
+trap 'rm -rf "$tmpdir"' EXIT
 
 echo "=== test-check-credentials-in-configmaps.py ==="
 

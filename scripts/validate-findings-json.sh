@@ -32,4 +32,4 @@ if errors:
     for e in errors: print(e, file=sys.stderr)
     sys.exit(2)
 print('pass')
-" 2>&1
+" "$findings_file" 2>&1

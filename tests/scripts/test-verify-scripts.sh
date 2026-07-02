@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -u
+set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SCRIPT="$REPO_ROOT/scripts/verify-scripts.sh"
@@ -62,14 +62,16 @@ else
 fi
 
 # --all mode
-if "$SCRIPT" --all 2>&1 | grep -q "checking"; then
+output=$("$SCRIPT" --all 2>&1) && rc=0 || rc=$?
+if echo "$output" | grep -q "checking"; then
   echo "PASS: --all mode"; pass=$((pass+1))
 else
   echo "FAIL: --all"; fail=$((fail+1))
 fi
 
 # dir arg
-if "$SCRIPT" "$REPO_ROOT/scripts" 2>&1 | grep -q "passed"; then
+output=$("$SCRIPT" "$REPO_ROOT/scripts" 2>&1) && rc=0 || rc=$?
+if echo "$output" | grep -q "passed"; then
   echo "PASS: dir arg"; pass=$((pass+1))
 else
   echo "FAIL: dir arg"; fail=$((fail+1))

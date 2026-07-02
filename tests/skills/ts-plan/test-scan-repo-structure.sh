@@ -4,8 +4,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 SCRIPT="$REPO_ROOT/skills/ts-plan/scripts/scan-repo-structure.sh"
 pass=0 fail=0
-cleanup() { rm -rf /tmp/test-scan-* 2>/dev/null || true; }
-trap cleanup EXIT
+tmpdir=$(mktemp -d)
+trap 'rm -rf "$tmpdir"' EXIT
 
 echo "=== U20: scan-repo-structure.sh ==="
 
@@ -17,7 +17,6 @@ output=$("$SCRIPT" /nonexistent 2>&1 || true)
 if echo "$output" | grep -q "not found"; then echo "PASS: nonexistent dir"; pass=$((pass+1))
 else echo "FAIL: nonexistent dir"; fail=$((fail+1)); fi
 
-tmpdir=$(mktemp -d)
 echo '{"name":"test"}' > "$tmpdir/package.json"
 echo "console.log('hi')" > "$tmpdir/index.js"
 
