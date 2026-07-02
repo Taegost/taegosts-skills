@@ -29,16 +29,13 @@ CRED_PATTERNS = [
     (re.compile(r'(?i)["\']?(?:api[_-]?key)["\']?\s*[:=]\s*(.+)'), 'api_key', 'high'),
     (re.compile(r'(?i)["\']?(?:credential)s?["\']?\s*[:=]\s*(.+)'), 'credential', 'high'),
     (re.compile(r'(?i)["\']?(?:token)["\']?\s*[:=]\s*(.+)'), 'token', 'medium'),
-    (re.compile(r'(?i)(?<!api[_-])(?<!api)key\s*[:=]\s*(["\']?[A-Za-z0-9+/=_-]{8,}["\']?)'), 'key', 'medium'),
+    (re.compile(r'(?i)\bkey\b\s*[:=]\s*(["\']?[A-Za-z0-9+/=_-]{8,}["\']?)'), 'key', 'medium'),
 ]
 
 
 def redact_value(value):
-    """Redact a value -- return asterisks with first/last char visible if long enough."""
-    value = value.strip().strip('"').strip("'")
-    if len(value) <= 4:
-        return '*' * len(value)
-    return value[0] + '*' * (len(value) - 2) + value[-1]
+    """Redact a value -- return *** without exposing any source characters."""
+    return '***'
 
 
 def scan_line(line, lineno, filepath):
@@ -59,14 +56,22 @@ def scan_line(line, lineno, filepath):
 
 
 def scan_file(filepath):
-    """Scan a single file for cred patterns."""
+    """Scan a single file for cred patterns. Only scans ConfigMap manifests."""
     findings = []
     try:
         with open(filepath, 'r', errors='replace') as f:
-            for lineno, line in enumerate(f, start=1):
-                findings.extend(scan_line(line, lineno, filepath))
+            content = f.read()
     except (PermissionError, OSError):
-        pass
+        return findings
+
+    # Gate on kind: ConfigMap (YAML) or "kind": "ConfigMap" (JSON)
+    is_yaml = re.search(r'^\s*kind:\s*ConfigMap(\s|$)', content, re.MULTILINE)
+    is_json = re.search(r'"kind"\s*:\s*"ConfigMap"', content)
+    if not is_yaml and not is_json:
+        return findings
+
+    for lineno, line in enumerate(content.splitlines(), start=1):
+        findings.extend(scan_line(line, lineno, filepath))
     return findings
 
 
