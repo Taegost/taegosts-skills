@@ -23,6 +23,9 @@ first=true
 while IFS= read -r -d '' f; do
   content=$(cat "$f" 2>/dev/null) || continue
 
+  # Only scan NetworkPolicy manifests
+  echo "$content" | grep -qE '^\s*kind:\s*NetworkPolicy(\s|$)' || continue
+
   # JSON-escape the file path
   f_escaped=$(echo "$f" | sed 's/\\/\\\\/g; s/"/\\"/g')
 
