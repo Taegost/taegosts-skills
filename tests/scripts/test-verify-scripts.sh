@@ -61,20 +61,20 @@ else
   echo "FAIL: unsupported ext"; fail=$((fail+1))
 fi
 
-# --all mode
+# --all mode (rc may be 0 or 1 depending on scanned scripts — assert output + valid rc)
 output=$("$SCRIPT" --all 2>&1) && rc=0 || rc=$?
-if echo "$output" | grep -q "checking"; then
+if [[ $rc -le 1 ]] && echo "$output" | grep -q "checking"; then
   echo "PASS: --all mode"; pass=$((pass+1))
 else
-  echo "FAIL: --all"; fail=$((fail+1))
+  echo "FAIL: --all (rc=$rc)"; fail=$((fail+1))
 fi
 
-# dir arg
+# dir arg (same — valid rc range + output presence)
 output=$("$SCRIPT" "$REPO_ROOT/scripts" 2>&1) && rc=0 || rc=$?
-if echo "$output" | grep -q "passed"; then
+if [[ $rc -le 1 ]] && echo "$output" | grep -q "passed"; then
   echo "PASS: dir arg"; pass=$((pass+1))
 else
-  echo "FAIL: dir arg"; fail=$((fail+1))
+  echo "FAIL: dir arg (rc=$rc)"; fail=$((fail+1))
 fi
 
 # syntax-error file should not count as passed

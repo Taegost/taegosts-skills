@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
 # Run shellcheck on all test scripts
-# Usage: scripts/run-shellcheck.sh [--fix]
+# Usage: scripts/run-shellcheck.sh
 set -uo pipefail
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'
-Usage: run-shellcheck.sh [--fix]
+Usage: run-shellcheck.sh
 
 Run shellcheck on all test scripts to catch shell safety issues.
-
-Options:
-  --fix    Attempt to auto-fix issues (requires shellcheck --format=diff)
 
 Exit codes:
   0 - all scripts pass shellcheck
@@ -23,8 +20,8 @@ EOF
   exit 0
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd || exit 1)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd || exit 1)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)" || { echo "ERROR: cannot resolve script directory"; exit 1; }
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." 2>/dev/null && pwd)" || { echo "ERROR: cannot resolve repo root"; exit 1; }
 
 # Check if shellcheck is installed
 if ! command -v shellcheck &>/dev/null; then
@@ -49,7 +46,7 @@ echo "=== Running shellcheck on ${#test_scripts[@]} test scripts ==="
 
 issues=0
 for script in "${test_scripts[@]}"; do
-  rel_path="${script#$REPO_ROOT/}"
+  rel_path="${script#"$REPO_ROOT"/}"
   if ! shellcheck "$script" 2>/dev/null; then
     echo "FAIL: $rel_path"
     issues=$((issues + 1))

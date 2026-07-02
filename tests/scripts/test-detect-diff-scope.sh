@@ -14,6 +14,7 @@ else echo "FAIL: --help"; fail=$((fail + 1)); fi
 
 # Test: local mode in a temp repo (with feature branch)
 tmpdir=$(mktemp -d)
+trap 'rm -rf "$tmpdir"' EXIT
 cd "$tmpdir" || exit 1
 git init -b main >/dev/null 2>&1
 git config user.email "test@test.com"
@@ -33,7 +34,7 @@ fi
 # Test: has_tests detection (with feature branch)
 tmpdir2=$(mktemp -d)
 cd "$tmpdir2" || exit 1
-trap 'rm -rf "$tmpdir" "$tmpdir2"' EXIT
+trap 'rm -rf "$tmpdir" "$tmpdir2"' EXIT  # extend to cover tmpdir2
 git init -b main >/dev/null 2>&1
 git config user.email "test@test.com"
 git config user.name "Test"

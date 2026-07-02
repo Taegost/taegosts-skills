@@ -2,8 +2,8 @@
 # Test: Verify that cleanup traps remove temp directories on exit
 set -uo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd || exit 1)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd || exit 1)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)" || { echo "ERROR: cannot resolve script directory"; exit 1; }
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." 2>/dev/null && pwd)" || { echo "ERROR: cannot resolve repo root"; exit 1; }
 
 pass=0
 fail=0
