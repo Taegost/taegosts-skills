@@ -43,7 +43,7 @@ The `|| { ... }` is outside the command substitution, so it actually fails the o
 
 ### Finding 5 — Unused `rc` (Info)
 **File:** `tests/scripts/test-verify-scripts.sh`
-**Change:** Add `[[ $rc -eq 0 ]] &&` to the `--all` and dir-arg test assertions.
+**Change:** Add `[[ $rc -le 1 ]] &&` to the `--all` and dir-arg test assertions (valid rc range: 0 = all pass, 1 = some failures).
 
 ### Finding 6 — Trap timing gap (Info)
 **File:** `tests/scripts/test-default-branch.sh`
