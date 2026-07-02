@@ -110,8 +110,8 @@ data:
   cacheKey: value123456
   monkey: value123456
 ENDOFYAML
-output=$(python3 "$SCRIPT" "$falsedir" 2>&1) && rc=0 || rc=$?
-if echo "$output" | python3 -c "import json,sys; d=json.load(sys.stdin); assert not any(f['pattern_type']=='key' for f in d)" 2>/dev/null; then
+false_output=$(python3 "$SCRIPT" "$falsedir" 2>&1) && rc=0 || rc=$?
+if echo "$false_output" | python3 -c "import json,sys; d=json.load(sys.stdin); assert not any(f['pattern_type']=='key' for f in d)" 2>/dev/null; then
   ok "does not flag primary_key/cacheKey/monkey as key"
 else
   die "false positive on primary_key/cacheKey/monkey"

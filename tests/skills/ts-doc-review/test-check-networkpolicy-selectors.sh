@@ -5,7 +5,8 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 SCRIPT="$REPO_ROOT/skills/ts-doc-review/scripts/check-networkpolicy-selectors.sh"
 pass=0 fail=0
 tmpdir=$(mktemp -d)
-cleanup() { rm -rf "$tmpdir"; }
+all_tmpdirs=("$tmpdir")
+cleanup() { rm -rf "${all_tmpdirs[@]}"; }
 trap cleanup EXIT
 
 echo "=== U12: check-networkpolicy-selectors.sh ==="
@@ -38,6 +39,7 @@ else echo "FAIL: MetalLB hairpin"; fail=$((fail+1)); fi
 
 # Test: non-NetworkPolicy file with matching keywords should be excluded
 svcdir=$(mktemp -d)
+all_tmpdirs+=("$svcdir")
 cat > "$svcdir/service.yaml" << 'YAMLEOF'
 apiVersion: v1
 kind: Service
@@ -57,6 +59,7 @@ rm -rf "$svcdir"
 
 # Test: Deployment with ipBlock keyword should be excluded
 depdir=$(mktemp -d)
+all_tmpdirs+=("$depdir")
 cat > "$depdir/deploy.yaml" << 'YAMLEOF'
 apiVersion: apps/v1
 kind: Deployment
