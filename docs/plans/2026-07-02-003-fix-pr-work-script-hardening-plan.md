@@ -24,7 +24,7 @@ CodeRabbit review of PR #20 identified security and quality findings across seve
 **Correctness & Consistency**
 
 - R5. `find-precommit-hook.sh` returns the full resolved path for `scripts[0]` instead of its basename.
-- R6. `detect-file-status.sh` uses `set -euo pipefail` (adding `-e`) consistent with sibling scripts.
+- R6. `detect-file-status.sh` and `find-precommit-hook.sh` use `set -euo pipefail` (adding `-e`) consistent with sibling scripts.
 
 **Cross-Cutting Quality**
 
@@ -37,6 +37,11 @@ CodeRabbit review of PR #20 identified security and quality findings across seve
 
 - R11. All validated user inputs must be consumed via double-quoted variable expansion or passed as separate command arguments — never interpolated into eval, heredoc, or unquoted shell contexts. This should also be documented in the main repo documentation.
 - R12. GitHub API credentials are handled externally (via `gh` CLI) and are out of scope for this repository. The new JSON error output format must not echo API responses or token fragments.
+
+**Documentation & Test Coverage**
+
+- R13. Repository documentation is expanded with shell script standards (shebang flags, metacharacter validation, error output format, safe execution context) to ensure future scripts follow the same patterns.
+- R14. Test plans are extended to cover all new failure modes introduced by this hardening (missing option values, path traversal slugs, malformed repo/PR inputs, unknown arguments, JSON error validation).
 
 ## Key Technical Decisions
 
@@ -206,9 +211,9 @@ Both `detect-file-status.sh` and `find-precommit-hook.sh` already use `|| { ... 
 
 **Verification:** `scripts[0]` in the JSON output starts with `/` and points to an existing file.
 
-### U7. Add -e shebang flag to detect-file-status.sh
+### U7. Add -e shebang flag to detect-file-status.sh and find-precommit-hook.sh
 
-**Goal:** Consistent `set -euo pipefail` in `detect-file-status.sh`.
+**Goal:** Consistent `set -euo pipefail` in both scripts.
 
 **Requirements:** R6
 
@@ -216,11 +221,12 @@ Both `detect-file-status.sh` and `find-precommit-hook.sh` already use `|| { ... 
 
 **Files:**
 - `skills/ts-verify-implementation/scripts/detect-file-status.sh`
+- `skills/ts-work/scripts/find-precommit-hook.sh`
 
-**Approach:** Change `set -uo pipefail` to `set -euo pipefail`. Verify all command paths with explicit `||` handling still behave correctly under `-e`. The script already guards expected non-zero exits (e.g., `git ls-files --error-unmatch ... || ...`).
+**Approach:** Change `set -uo pipefail` to `set -euo pipefail` in both scripts. Verify all command paths with explicit `||` handling still behave correctly under `-e`. Both scripts already guard expected non-zero exits (e.g., `git ls-files --error-unmatch ... || ...`, `git rev-parse ... || ...`).
 
 **Test scenarios:**
-- Happy path: existing test suite passes unchanged (committed, gitignored, untracked, missing files).
+- Happy path: existing test suites pass unchanged for both scripts.
 - Edge case: script behavior is identical before and after the change (no new early exits).
 
 **Verification:** All existing tests pass; no behavior change.
@@ -248,17 +254,58 @@ Both `detect-file-status.sh` and `find-precommit-hook.sh` already use `|| { ... 
 
 **Verification:** Both test files have comprehensive coverage matching the standard of newer test suites; all tests pass.
 
+### U9. Document shell script standards in repository documentation
+
+**Goal:** Codify the shell script standards established by this hardening effort so future scripts follow the same patterns.
+
+**Requirements:** R13
+
+**Dependencies:** U1, U2, U3 (standards must be finalized before documenting)
+
+**Files:**
+- Repository documentation file (location to be determined — likely `docs/` or `CONTRIBUTING.md`)
+
+**Approach:** Document the following standards: (1) `set -euo pipefail` as the required shebang flag set, (2) the two-variant metacharacter regex approach and when to use each, (3) JSON error output format to stderr with static or sanitized strings, (4) strict unknown-argument rejection, (5) safe execution context (double-quoted expansion for all validated inputs), (6) GitHub credential handling (external, never echoed in error output). Reference existing scripts as examples.
+
+**Test scenarios:**
+- Test expectation: none — documentation-only unit.
+
+**Verification:** Documentation exists and covers all six standards with examples.
+
+### U10. Extend test plans to cover all new failure modes
+
+**Goal:** Ensure every new validation, guard, and error path introduced by this hardening effort has corresponding test coverage.
+
+**Requirements:** R14
+
+**Dependencies:** U1 through U8 (all implementation units must be defined first)
+
+**Files:**
+- `tests/skills/ts-pr-fix-findings/test-check-thread-resolution.sh`
+- `tests/skills/ts-pr-fix-findings/test-fetch-issue-comments.sh`
+- `tests/skills/ts-plan/test-generate-plan-filename.sh`
+- `tests/skills/ts-work/test-detect-missing-artifacts.sh`
+- `tests/skills/ts-work/test-find-precommit-hook.sh`
+- `tests/skills/ts-verify-implementation/test-detect-file-status.sh`
+
+**Approach:** Audit each implementation unit's test scenarios against the actual failure modes introduced. For any gap, add test cases. Specific coverage to verify: (1) metacharacter rejection for every character in the expanded blocklist, (2) file-path scripts accept `/`, non-path scripts reject it, (3) `..` traversal slugs rejected, (4) missing option values produce JSON errors, (5) malformed `--repo` and `--pr` inputs rejected, (6) unknown arguments rejected, (7) `scripts[0]` returns full paths, (8) `-e` flag doesn't cause new early exits, (9) JSON error output is valid JSON on all error paths.
+
+**Test scenarios:**
+- Each failure mode from U1-U8 has at least one dedicated test case.
+- All tests pass after implementation.
+
+**Verification:** Every new failure mode has test coverage; all test suites pass.
+
 ## Scope Boundaries
 
-**In scope:** The six issues listed in #69 plus cross-cutting regex, error format, and test standardization confirmed in the scoping synthesis.
+**In scope:** The six issues listed in #69 plus cross-cutting regex, error format, test standardization, repository documentation of standards, and test coverage for all new failure modes.
 
 **Deferred to Follow-Up Work:**
-- `find-precommit-hook.sh` also uses `set -uo pipefail` (missing `-e`). Issue #42 targets `detect-file-status.sh` specifically; the `find-precommit-hook.sh` shebang fix can be added to U7 if desired but is not in the original issue scope.
 - Metacharacter regex standardization in `find-precommit-hook.sh` (if it lacks validation) — verify during implementation and include if trivial.
 
 ## Verification
 
-- All scripts in scope use `set -euo pipefail` (`find-precommit-hook.sh` deferred to follow-up).
+- All scripts in scope use `set -euo pipefail`.
 - All scripts with metacharacter validation use the two-variant regex (non-path inputs include `/`; file-path inputs exclude `/`).
 - All error output across all scripts is valid JSON to stderr with static or sanitized error messages.
 - `--repo` is validated as `owner/repo`; `--pr` is validated as numeric.
@@ -268,4 +315,6 @@ Both `detect-file-status.sh` and `find-precommit-hook.sh` already use `|| { ... 
 - All validated inputs are consumed via double-quoted expansion (R11).
 - GitHub API credentials are not echoed in error output (R12).
 - Test suites for `check-thread-resolution.sh` and `fetch-issue-comments.sh` have 8+ test cases each.
+- Shell script standards are documented in repository documentation (R13).
+- Every new failure mode has corresponding test coverage (R14).
 - All existing and new tests pass.
