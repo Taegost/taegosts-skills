@@ -58,9 +58,11 @@ def normalize_ansi_quoting(text: str) -> str:
     def replace_ansi_c(match):
         content = match.group(1)
         # Expand common escape sequences
+        # IMPORTANT: Replace \\\\ (literal backslash) FIRST, before \n and \t
+        # Otherwise \\n would be incorrectly converted to newline instead of backslash+n
+        content = content.replace('\\\\', '\\')
         content = content.replace('\\n', '\n')
         content = content.replace('\\t', '\t')
-        content = content.replace('\\\\', '\\')
         content = content.replace("\\'", "'")
         content = content.replace('\\"', '"')
         return content

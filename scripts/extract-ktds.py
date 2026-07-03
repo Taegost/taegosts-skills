@@ -47,7 +47,8 @@ def find_ktd_section(content: str) -> str | None:
     start = max(start, heading_end)
 
     # Find the next heading of equal or lesser level
-    heading_level = len(match.group().lstrip('#').split()[0])  # Count #'s
+    # Count the number of # characters at the start of the matched heading
+    heading_level = len(match.group()) - len(match.group().lstrip('#'))
     next_heading_pattern = rf'^#{{{1},{heading_level}}}\s+\S'
     next_match = re.search(next_heading_pattern, content[start:], re.MULTILINE)
 

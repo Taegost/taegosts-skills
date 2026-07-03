@@ -34,8 +34,9 @@ Then enable the plugin in `enabledPlugins`:
 
 | Skill | Description | Dependencies |
 |-------|-------------|-------------|
+| `/load-plan` | Loads a plan document for skill execution. Auto-discovers plans from branch names, PR bodies, or explicit paths. | None (self-contained) |
 | `/ts-pr-review` | Reviews a pull request and posts inline findings | `code-review` plugin (claude-plugins-official) |
-| `/ts-pr-fix-findings` | Fixes findings from a PR review and updates the PR | `/ts-debug` (included) |
+| `/ts-pr-fix-findings` | Fixes findings from a PR review and updates the PR | `/ts-debug` (included), `/load-plan` |
 | `/ts-verify-implementation` | Verifies a feature branch against its plan | None (self-contained) |
 | `/ts-coding-workflow` | Mandatory workflow for all coding tasks — plan, review, doc-review, work | `/ts-plan`, `/ts-doc-review`, `/ts-do-work-loop` |
 | `/ts-do-work-loop` | Run ts-work and ts-verify-implementation in a loop until the plan is fully satisfied | `/ts-work`, `/ts-verify-implementation`, `/ts-compound` |

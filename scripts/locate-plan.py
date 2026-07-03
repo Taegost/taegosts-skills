@@ -26,29 +26,6 @@ import sys
 from pathlib import Path
 
 
-def get_default_branch() -> str | None:
-    """Get the default branch using scripts/default-branch.sh."""
-    script_dir = Path(__file__).parent
-    default_branch_script = script_dir / 'default-branch.sh'
-
-    if not default_branch_script.exists():
-        return None
-
-    try:
-        result = subprocess.run(
-            [str(default_branch_script)],
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-        if result.returncode == 0:
-            return result.stdout.strip()
-    except Exception:
-        pass
-
-    return None
-
-
 def get_current_branch() -> str | None:
     """Get the current git branch name."""
     try:
@@ -80,7 +57,7 @@ def extract_keywords_from_branch(branch_name: str) -> list[str]:
         return []
 
     # Remove common prefixes
-    name = re.sub(r'^(feature|fix|bugfix|hotfix|chore|docs|refactor|test)/', '', name)
+    name = re.sub(r'^(feature|fix|bugfix|hotfix|chore|docs|refactor|test)/', '', branch_name)
 
     # Remove ticket numbers (e.g., 123-)
     name = re.sub(r'^\d+-', '', name)
@@ -168,14 +145,17 @@ def main():
     # Extract keywords from branch name
     keywords = extract_keywords_from_branch(branch)
     if not keywords:
+        # No meaningful keywords is a "not found" condition, not an error
         print(json.dumps({
             'path': '',
-            'error': f'No meaningful keywords extracted from branch: {branch}'
+            'error': ''
         }))
-        sys.exit(1)
+        sys.exit(0)
 
-    # Find matching plan
-    plans_dir = Path('docs/plans')
+    # Find matching plan (anchor to repo root, not CWD)
+    script_dir = Path(__file__).parent
+    repo_root = script_dir.parent
+    plans_dir = repo_root / 'docs' / 'plans'
     plan_path = find_plan_by_keywords(keywords, plans_dir)
 
     if plan_path:

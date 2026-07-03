@@ -1,6 +1,7 @@
 ---
 name: load-plan
 description: "Load a plan document for skill execution. Auto-discovers plans from branch names, PR bodies, or explicit paths."
+user_invocable: true
 ---
 
 # Load Plan
@@ -14,12 +15,12 @@ Many skills need to read a plan document before executing work. This skill centr
 ## Usage
 
 ```
-/load-plan [path]
-/load-plan --non-interactive [path]
+/load-plan [plan:]
+/load-plan --non-interactive [plan:]
 ```
 
 **Arguments:**
-- `path` (optional): Explicit path to a plan file. If provided, this takes precedence over all discovery methods.
+- `plan:` (optional): Explicit path to a plan file. If provided, this takes precedence over all discovery methods.
 - `--non-interactive` (optional): Returns errors instead of prompting the user. Consumers in agent mode MUST use this flag.
 
 ## Discovery Sources
@@ -121,7 +122,7 @@ If `locate-plan.py` returns multiple matches:
 
 ### Explicit path
 ```
-/load-plan docs/plans/2026-07-02-004-fix-review-skills-plan-validation-plan.md
+/load-plan plan:docs/plans/2026-07-02-004-fix-review-skills-plan-validation-plan.md
 ```
 
 ### Auto-discovery (interactive)
