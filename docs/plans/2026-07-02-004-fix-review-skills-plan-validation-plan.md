@@ -2,6 +2,7 @@
 title: "fix: skills don't validate implementations against plan KTD specifications"
 type: fix
 date: 2026-07-02
+status: completed
 ---
 
 # Fix: Skills Don't Validate Against Plan KTD Specifications
