@@ -35,6 +35,19 @@ Store the resolved `owner/repo` for all subsequent `gh` commands using `-R {owne
 
 After resolving, persist the owner/repo to session memory so future invocations can use it as a fallback. Use `honcho_conclude` or equivalent.
 
+### 0a. Load the feature plan (if available)
+
+Before reviewing findings, attempt to load the feature plan for this PR's branch. This provides architectural context, KTD specifications, and scope boundaries for cross-referencing findings.
+
+1. Call `/load-plan --non-interactive` with the PR's branch name as context
+2. If a plan is found:
+   - Extract KTDs by calling `python3 scripts/extract-ktds.py <plan-path>`
+   - Extract Scope Boundaries from the plan's "Scope Boundaries" section
+   - Store both for cross-referencing in Step 3
+3. If no plan is found, proceed without plan context (this is not an error)
+
+**Why this matters:** Without the plan, findings are evaluated in isolation. With the plan, we can detect when a reviewer's request contradicts a KTD or asks for something explicitly out of scope.
+
 ### 1. Ensure ts-debug skill is available
 
 If the `/ts-debug` skill is not available, stop and alert the user. Do not continue
@@ -77,6 +90,15 @@ After the user confirms dispositions, create a Kanban board for tracking:
 
 - The plan should be documented in `docs/pull_requests/<pr#>_xxx` where `<pr#>` is the number of the pull request and `xxx` is the fix iteration number, incrementing up from 001.
 - If your plan to remediate a finding will have an outcome different from what the reviewer requested, that needs to be explicitly noted in the plan.
+
+**Cross-reference against the feature plan (if loaded in Step 0a):**
+
+For each finding, check against the plan's KTDs and Scope Boundaries:
+- **KTD conflict:** Does the reviewer's request contradict a KTD specification? If yes, note the divergence in the plan. Example: "Reviewer requests changing regex format, but KTD1 specifies the exact format."
+- **Scope boundary violation:** Is the reviewer asking for something explicitly out of scope per the plan? If yes, note it. Example: "Reviewer requests adding feature X, but Scope Boundaries list X as deferred."
+- **Unintended side effects:** Does the proposed fix inadvertently break a requirement or violate a KTD? If yes, flag it.
+
+Add a "Plan Divergence" column to the remediation plan noting any conflict between what the reviewer asked for and what the plan specified.
 
 ### 4. Validate the plan against the findings
 
