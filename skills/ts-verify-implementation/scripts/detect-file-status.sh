@@ -39,7 +39,8 @@ fi
 file_path="$1"
 
 # R10: validate input - reject shell metacharacters (file-path variant: excludes /)
-if [[ "$file_path" =~ [\;\|\&\$\`\!\>\<\(\)\{\}\~\*\?] ]]; then
+METACHAR_RE="[\;\|\&\$\`\!\>\<\(\)\{\}\~\*\?\"\' ]"
+if [[ "$file_path" =~ $METACHAR_RE ]]; then
   echo '{"ok":false,"error":"path contains shell metacharacters"}' >&2
   exit 1
 fi
@@ -55,7 +56,8 @@ escaped_path="${file_path//\\/\\\\}"
 escaped_path="${escaped_path//\"/\\\"}"
 
 # Check if tracked by git (committed or staged)
-if git ls-files --error-unmatch "$file_path" >/dev/null 2>&1; then
+# Use -- to prevent paths starting with - from being parsed as options
+if git ls-files --error-unmatch -- "$file_path" >/dev/null 2>&1; then
   echo "{\"path\":\"$escaped_path\",\"status\":\"committed\"}"
   exit 0
 fi
@@ -63,7 +65,7 @@ fi
 # Check if file exists on disk
 if [[ -f "$file_path" ]]; then
   # Check if it is gitignored
-  if git check-ignore -q "$file_path" 2>/dev/null; then
+  if git check-ignore -q -- "$file_path" 2>/dev/null; then
     echo "{\"path\":\"$escaped_path\",\"status\":\"on_disk_gitignored\"}"
   else
     # Exists on disk, not tracked, not gitignored = untracked

@@ -25,27 +25,28 @@ EOF
   exit 0
 fi
 
-# Guard: require at least 2 args (--repo and --pr)
-if [[ $# -lt 2 ]]; then
-  echo '{"ok":false,"error":"--repo and --pr are required"}' >&2
-  exit 1
-fi
-
 repo="" pr_number=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --repo) repo="$2"; shift 2 ;;
-    --pr) pr_number="$2"; shift 2 ;;
+    --repo)
+      [[ $# -ge 2 ]] || { echo '{"ok":false,"error":"--repo requires a value"}' >&2; exit 1; }
+      repo="$2"; shift 2 ;;
+    --pr)
+      [[ $# -ge 2 ]] || { echo '{"ok":false,"error":"--pr requires a value"}' >&2; exit 1; }
+      pr_number="$2"; shift 2 ;;
     *) echo '{"ok":false,"error":"unknown argument"}' >&2; exit 1 ;;
   esac
 done
 
 [[ -z "$repo" || -z "$pr_number" ]] && { echo '{"ok":false,"error":"--repo and --pr required"}' >&2; exit 1; }
 
-if [[ "$repo" =~ [\;\|\&\$\`\!\>\<\(\)\{\}\~\*\?/] ]]; then
+# Non-path metacharacter regex (blocks quotes, control chars, shell metacharacters)
+METACHAR_RE=$'[\x00-\x1f\x7f;<>(){}~\\`!$&\'"|*?]'
+# --repo: allow / (required for owner/repo), validate format separately
+if [[ "$repo" =~ $METACHAR_RE ]]; then
   echo '{"ok":false,"error":"--repo contains shell metacharacters"}' >&2; exit 1
 fi
-if [[ "$pr_number" =~ [\;\|\&\$\`\!\>\<\(\)\{\}\~\*\?/] ]]; then
+if [[ "$pr_number" =~ $METACHAR_RE || "$pr_number" =~ / ]]; then
   echo '{"ok":false,"error":"--pr contains shell metacharacters"}' >&2; exit 1
 fi
 

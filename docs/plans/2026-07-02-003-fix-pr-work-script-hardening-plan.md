@@ -16,7 +16,7 @@ CodeRabbit review of PR #20 identified security and quality findings across seve
 
 **Input Validation & Security**
 
-- R1. `fetch-issue-comments.sh` validates `--repo` matches `owner/repo` format (exactly one `/`, alphanumeric segments) and `--pr` is numeric.
+- R1. `fetch-issue-comments.sh` validates `--repo` matches `owner/repo` format (exactly one `/`, alphanumeric segments with `.`, `_`, `-` allowed) and `--pr` is numeric.
 - R2. `check-thread-resolution.sh` validates `--repo` and `--pr` with the same pattern as R1.
 - R3. `generate-plan-filename.sh` slug validation blocks `/` and `..` to prevent path traversal.
 - R4. `detect-missing-artifacts.sh` guards against missing option values before reading `$2` in the argument parser.
@@ -28,7 +28,7 @@ CodeRabbit review of PR #20 identified security and quality findings across seve
 
 **Cross-Cutting Quality**
 
-- R7. All scripts with metacharacter validation use a single standardized regex pattern. `find-precommit-hook.sh` has no metacharacter validation and is excluded.
+- R7. All scripts with metacharacter validation use one of two standardized regex patterns (non-path variant for repo/slug/number inputs, file-path variant for filesystem paths). `find-precommit-hook.sh` has no metacharacter validation and is excluded.
 - R8. All scripts emit structured JSON errors to stderr. `check-thread-resolution.sh` and `fetch-issue-comments.sh` need normalization from plain text; `find-precommit-hook.sh` has mixed plain-text/JSON errors that need normalization.
 - R9. `check-thread-resolution.sh` and `fetch-issue-comments.sh` reject unknown arguments with a JSON error instead of silently ignoring them.
 - R10. Test suites for `check-thread-resolution.sh` and `fetch-issue-comments.sh` are expanded to cover input validation, metacharacter rejection, and error paths.
@@ -47,16 +47,16 @@ CodeRabbit review of PR #20 identified security and quality findings across seve
 
 **KTD1. Standardized metacharacter regex: two variants for two input domains.**
 
-The five scripts with validation currently use four different character classes across two matching mechanisms. Define two regex variants:
+The five scripts with validation currently use four different character classes across two matching mechanisms. Define two regex variants using ANSI-C quoting for proper escape handling:
 
-- **Non-path inputs** (repo names, slugs): `[\;\|\&\$\`\"\'\/\ \<\>\(\)\{\}\~\ $'\n\t']` — blocks shell metacharacters, path traversal, redirect operators, subshell syntax, brace expansion, and whitespace control characters. Used by `check-thread-resolution.sh`, `fetch-issue-comments.sh`, and `generate-plan-filename.sh`. Note: `\n` and `\t` require ANSI-C quoting (`$'\n\t'`) since bash `[[ =~ ]]` does not interpret backslash escapes.
-- **File-path inputs** (`detect-missing-artifacts.sh`, `detect-file-status.sh`): `[\;\|\&\$\`\"\'\<\>\(\)\{\}\~\ $'\n\t']` — same as above but excludes `/` since paths legitimately contain it.
+- **Non-path inputs** (repo names, slugs, numbers): `$'[\x00-\x1f\x7f;<>(){}~\\`!$&\'"|*?/ \n\t]'` — blocks control characters, shell metacharacters, redirect operators, subshell syntax, brace expansion, glob metacharacters (`!`, `*`, `?`), quotes, whitespace control characters, and path separator. Used by `check-thread-resolution.sh`, `fetch-issue-comments.sh`, and `generate-plan-filename.sh`. Note: `\n` and `\t` require ANSI-C quoting since bash `[[ =~ ]]` does not interpret backslash escapes.
+- **File-path inputs** (`detect-missing-artifacts.sh`, `detect-file-status.sh`): `$'[\x00-\x1f\x7f;<>(){}~\\`!$&\'"|*? \n\t]'` — same as above but excludes `/` since paths legitimately contain it.
 
 The `..` sequence is additionally blocked in `generate-plan-filename.sh`'s slug validation since the regex alone doesn't catch it. `find-precommit-hook.sh` has no metacharacter validation and is excluded.
 
 **KTD2. JSON error output to stderr for all scripts.**
 
-Newer scripts (`generate-plan-filename.sh`, `detect-missing-artifacts.sh`, `detect-file-status.sh`, `find-precommit-hook.sh`) already use `{"error":"..."}` to stderr. Normalize the two `ts-pr-fix-findings` scripts to the same pattern. Stderr keeps errors separate from stdout data; JSON makes errors machine-parseable. Error messages must use static strings or sanitize interpolated values (escape quotes, strip control characters) before embedding in JSON output. API responses and token fragments must never appear in error messages.
+All scripts emit `{"ok":false,"error":"..."}` to stderr. Newer scripts already use this pattern; normalize the two `ts-pr-fix-findings` scripts to match. Stderr keeps errors separate from stdout data; JSON makes errors machine-parseable. Error messages must use static strings or sanitize interpolated values (escape quotes, strip control characters) before embedding in JSON output. API responses and token fragments must never appear in error messages.
 
 **KTD3. Strict unknown-argument rejection.**
 

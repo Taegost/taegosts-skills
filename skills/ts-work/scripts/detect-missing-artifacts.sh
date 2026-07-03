@@ -27,12 +27,6 @@ EOF
   exit 0
 fi
 
-# Guard: require at least 2 args (--plan-files and --reference-dir)
-if [[ $# -lt 2 ]]; then
-  echo '{"ok":false,"error":"--plan-files and --reference-dir are required"}' >&2
-  exit 1
-fi
-
 # Parse arguments
 plan_files=""
 reference_dir=""
@@ -40,10 +34,12 @@ reference_dir=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --plan-files)
+      [[ $# -ge 2 ]] || { echo '{"ok":false,"error":"--plan-files requires a value"}' >&2; exit 1; }
       plan_files="$2"
       shift 2
       ;;
     --reference-dir)
+      [[ $# -ge 2 ]] || { echo '{"ok":false,"error":"--reference-dir requires a value"}' >&2; exit 1; }
       reference_dir="$2"
       shift 2
       ;;
@@ -61,11 +57,13 @@ if [[ -z "$plan_files" || -z "$reference_dir" ]]; then
 fi
 
 # R10: validate inputs - reject shell metacharacters (file-path variant: excludes /)
-if [[ "$plan_files" =~ [\;\|\&\$\`\!\>\<\(\)\{\}\~\*\?] ]]; then
+# Uses ANSI-C quoting for \n and \t since bash [[ =~ ]] doesn't interpret \n
+METACHAR_RE=$'[\x00-\x1f\x7f;<>(){}~\\`!$&\'"|*?]'
+if [[ "$plan_files" =~ $METACHAR_RE ]]; then
   echo '{"ok":false,"error":"--plan-files path contains shell metacharacters"}' >&2
   exit 1
 fi
-if [[ "$reference_dir" =~ [\;\|\&\$\`\!\>\<\(\)\{\}\~\*\?] ]]; then
+if [[ "$reference_dir" =~ $METACHAR_RE ]]; then
   echo '{"ok":false,"error":"--reference-dir path contains shell metacharacters"}' >&2
   exit 1
 fi

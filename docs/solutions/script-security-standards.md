@@ -21,10 +21,13 @@ set -euo pipefail
 
 All user-supplied inputs must be validated against shell metacharacters before use.
 
+**Important:** Bash `[[ =~ ]]` does not interpret `\n` or `\t` as escape sequences — they match literal two-character sequences. Use ANSI-C quoting (`$'...'`) for the regex variable to properly match control characters.
+
 ### Non-path inputs (repo names, slugs, numbers)
 
 ```bash
-if [[ "$input" =~ [\;\|\&\$\`\!\>\<\(\)\{\}\~\*\?/] ]]; then
+METACHAR_RE=$'[\x00-\x1f\x7f;<>(){}~\\`!$&\'"|*?/ \n\t]'
+if [[ "$input" =~ $METACHAR_RE ]]; then
   echo '{"ok":false,"error":"--input contains shell metacharacters"}' >&2
   exit 1
 fi
@@ -35,7 +38,8 @@ fi
 File paths naturally contain `/`, so exclude it from the blocklist:
 
 ```bash
-if [[ "$path" =~ [\;\|\&\$\`\!\>\<\(\)\{\}\~\*\?] ]]; then
+METACHAR_RE=$'[\x00-\x1f\x7f;<>(){}~\\`!$&\'"|*? \n\t]'
+if [[ "$path" =~ $METACHAR_RE ]]; then
   echo '{"ok":false,"error":"--path contains shell metacharacters"}' >&2
   exit 1
 fi
@@ -44,12 +48,19 @@ fi
 ### Blocked characters
 
 The blocklist includes:
-- Control characters: `\x00-\x1f`, `\x7f`
+- Control characters: `\x00-\x1f` (including `\n`, `\t`), `\x7f`
 - Shell operators: `;`, `|`, `&`, `$`, `` ` ``
 - Redirect/subshell: `<`, `>`, `(`, `)`
 - Brace expansion: `{`, `}`
-- Other metacharacters: `~`, `*`, `?`, `!`, `\`
+- Other metacharacters: `~`, `*`, `?`, `!`
+- Quotes: `"`, `'`
+- Whitespace: space, newline, tab
 - Path separator: `/` (non-path inputs only)
+
+### Special cases
+
+- **`--repo` inputs:** Allow `/` (required for `owner/repo` format). Block `/` only in `--pr` or similar numeric inputs.
+- **Slug inputs:** Block `/` and `..` to prevent path traversal.
 
 ## 3. Path Traversal Blocking
 
