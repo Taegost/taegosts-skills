@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Test: skills/ts-work/scripts/detect-missing-artifacts.sh
-set -uo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
@@ -109,6 +109,30 @@ if [[ $rc -eq 1 ]]; then
   ok "exits 1 with no arguments"
 else
   die "expected exit 1 with no arguments (rc=$rc)"
+fi
+
+# Given: path traversal in plan-files
+output=$("$SCRIPT" --plan-files "/tmp/../file" --reference-dir "$tmpdir/reference" 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 1 ]]; then
+  ok "rejects path traversal in plan-files"
+else
+  die "expected exit 1 for path traversal in plan-files (rc=$rc)"
+fi
+
+# Given: path traversal in reference-dir
+output=$("$SCRIPT" --plan-files "$tmpdir/plan-files.txt" --reference-dir "/tmp/../dir" 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 1 ]]; then
+  ok "rejects path traversal in reference-dir"
+else
+  die "expected exit 1 for path traversal in reference-dir (rc=$rc)"
+fi
+
+# JSON error format
+output=$("$SCRIPT" 2>&1) && rc=0 || rc=$?
+if echo "$output" | grep -q '"ok":false'; then
+  ok "JSON error format"
+else
+  die "JSON error format"
 fi
 
 echo ""

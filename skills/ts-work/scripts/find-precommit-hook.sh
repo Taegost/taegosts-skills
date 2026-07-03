@@ -3,7 +3,7 @@
 # Output: JSON with {hook_path, scripts[]}
 # Exit codes: 0 found hook, 1 error, 2 no hook found
 
-set -uo pipefail
+set -euo pipefail
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'
@@ -30,7 +30,7 @@ fi
 
 # Validate we are in a git repo
 git_dir=$(git rev-parse --git-dir 2>/dev/null) || {
-  echo '{"error":"not inside a git repository"}' >&2
+  echo '{"ok":false,"error":"not inside a git repository"}' >&2
   exit 1
 }
 
@@ -49,13 +49,13 @@ for candidate in "${candidates[@]}"; do
 done
 
 if [[ -z "$hook_path" ]]; then
-  echo "No pre-commit hook found" >&2
+  echo '{"ok":false,"error":"No pre-commit hook found","hint":"expected .git/hooks/pre-commit or .githooks/pre-commit"}' >&2
   echo '{"hook_path":null,"scripts":[]}'
   exit 2
 fi
 
 # Collect scripts: the hook itself plus any sourced/referenced scripts
-scripts=("$(basename "$hook_path")")
+scripts=("$hook_path")
 script_dir="$(dirname "$hook_path")"
 
 if [[ -f "$hook_path" ]]; then

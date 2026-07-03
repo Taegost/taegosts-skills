@@ -4,7 +4,7 @@
 # Output: JSON with {path, status: "committed"|"on_disk_gitignored"|"on_disk_untracked"|"missing"}
 # Exit codes: 0 success, 1 error, 2 file missing
 
-set -uo pipefail
+set -euo pipefail
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'
@@ -32,21 +32,23 @@ EOF
 fi
 
 if [[ $# -ne 1 ]]; then
-  echo '{"error":"exactly one argument required: file path"}' >&2
+  echo '{"ok":false,"error":"exactly one argument required: file path"}' >&2
   exit 1
 fi
 
 file_path="$1"
 
-# R10: validate input - reject shell metacharacters
-if [[ "$file_path" =~ [\;\|\&\$\`] ]]; then
-  echo '{"error":"path contains shell metacharacters"}' >&2
+# R10: validate input - reject shell metacharacters (file-path variant: excludes /)
+# KTD1: ANSI-C quoting for proper escape handling of control chars, \n, \t
+METACHAR_RE=$'[\x01-\x1f\x7f;<>(){}~\\`!$&\'"|*? \n\t]'
+if [[ "$file_path" =~ $METACHAR_RE ]]; then
+  echo '{"ok":false,"error":"path contains shell metacharacters"}' >&2
   exit 1
 fi
 
 # Validate we are in a git repo
 git rev-parse --git-dir >/dev/null 2>&1 || {
-  echo '{"error":"not inside a git repository"}' >&2
+  echo '{"ok":false,"error":"not inside a git repository"}' >&2
   exit 1
 }
 
@@ -55,7 +57,8 @@ escaped_path="${file_path//\\/\\\\}"
 escaped_path="${escaped_path//\"/\\\"}"
 
 # Check if tracked by git (committed or staged)
-if git ls-files --error-unmatch "$file_path" >/dev/null 2>&1; then
+# Use -- to prevent paths starting with - from being parsed as options
+if git ls-files --error-unmatch -- "$file_path" >/dev/null 2>&1; then
   echo "{\"path\":\"$escaped_path\",\"status\":\"committed\"}"
   exit 0
 fi
@@ -63,7 +66,7 @@ fi
 # Check if file exists on disk
 if [[ -f "$file_path" ]]; then
   # Check if it is gitignored
-  if git check-ignore -q "$file_path" 2>/dev/null; then
+  if git check-ignore -q -- "$file_path" 2>/dev/null; then
     echo "{\"path\":\"$escaped_path\",\"status\":\"on_disk_gitignored\"}"
   else
     # Exists on disk, not tracked, not gitignored = untracked

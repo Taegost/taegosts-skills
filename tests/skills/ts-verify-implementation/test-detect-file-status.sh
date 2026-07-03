@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Test: skills/ts-verify-implementation/scripts/detect-file-status.sh
-set -uo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
@@ -117,6 +117,22 @@ if [[ $rc -eq 1 ]]; then
   ok "exits 1 with no arguments"
 else
   die "expected exit 1 with no arguments (rc=$rc)"
+fi
+
+# Given: multiple arguments (should fail)
+output=$("$SCRIPT" file1.txt file2.txt 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 1 ]]; then
+  ok "rejects multiple arguments"
+else
+  die "expected exit 1 for multiple arguments (rc=$rc)"
+fi
+
+# JSON error format
+output=$("$SCRIPT" 2>&1) && rc=0 || rc=$?
+if echo "$output" | grep -q '"ok":false'; then
+  ok "JSON error format"
+else
+  die "JSON error format"
 fi
 
 echo ""

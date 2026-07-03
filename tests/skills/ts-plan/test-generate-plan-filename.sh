@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Test: skills/ts-plan/scripts/generate-plan-filename.sh
-set -uo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
@@ -105,6 +105,30 @@ if [[ $rc -eq 1 ]]; then
   ok "rejects slug with spaces"
 else
   die "expected exit 1 for slug with spaces (rc=$rc)"
+fi
+
+# Given: slug with metacharacters
+output=$("$SCRIPT" --type feat --slug "test;id" 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 1 ]]; then
+  ok "rejects slug with metacharacters"
+else
+  die "expected exit 1 for slug with metacharacters (rc=$rc)"
+fi
+
+# Given: slug with path traversal
+output=$("$SCRIPT" --type feat --slug "../test" 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 1 ]]; then
+  ok "rejects slug with path traversal"
+else
+  die "expected exit 1 for slug with path traversal (rc=$rc)"
+fi
+
+# JSON error format
+output=$("$SCRIPT" --type feat --slug "has spaces" 2>&1) && rc=0 || rc=$?
+if echo "$output" | grep -q '"ok":false'; then
+  ok "JSON error format"
+else
+  die "JSON error format"
 fi
 
 echo ""
