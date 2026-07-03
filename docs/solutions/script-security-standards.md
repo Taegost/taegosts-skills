@@ -48,7 +48,7 @@ fi
 ### Blocked characters
 
 The blocklist includes:
-- Control characters: `\x00-\x1f` (including `\n`, `\t`), `\x7f`
+- Control characters: `\x01-\x1f` (including `\n`, `\t`), `\x7f` (`\x00` excluded — bash variables cannot hold null bytes)
 - Shell operators: `;`, `|`, `&`, `$`, `` ` ``
 - Redirect/subshell: `<`, `>`, `(`, `)`
 - Brace expansion: `{`, `}`
