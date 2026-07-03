@@ -39,7 +39,8 @@ fi
 file_path="$1"
 
 # R10: validate input - reject shell metacharacters (file-path variant: excludes /)
-METACHAR_RE="[\;\|\&\$\`\!\>\<\(\)\{\}\~\*\?\"\' ]"
+# KTD1: ANSI-C quoting for proper escape handling of control chars, \n, \t
+METACHAR_RE=$'[\x01-\x1f\x7f;<>(){}~\\`!$&\'"|*? \n\t]'
 if [[ "$file_path" =~ $METACHAR_RE ]]; then
   echo '{"ok":false,"error":"path contains shell metacharacters"}' >&2
   exit 1

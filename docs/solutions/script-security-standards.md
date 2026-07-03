@@ -26,7 +26,7 @@ All user-supplied inputs must be validated against shell metacharacters before u
 ### Non-path inputs (repo names, slugs, numbers)
 
 ```bash
-METACHAR_RE=$'[\x00-\x1f\x7f;<>(){}~\\`!$&\'"|*?/ \n\t]'
+METACHAR_RE=$'[\x01-\x1f\x7f;<>(){}~\\`!$&\'"|*?/ \n\t]'
 if [[ "$input" =~ $METACHAR_RE ]]; then
   echo '{"ok":false,"error":"--input contains shell metacharacters"}' >&2
   exit 1
@@ -38,7 +38,7 @@ fi
 File paths naturally contain `/`, so exclude it from the blocklist:
 
 ```bash
-METACHAR_RE=$'[\x00-\x1f\x7f;<>(){}~\\`!$&\'"|*? \n\t]'
+METACHAR_RE=$'[\x01-\x1f\x7f;<>(){}~\\`!$&\'"|*? \n\t]'
 if [[ "$path" =~ $METACHAR_RE ]]; then
   echo '{"ok":false,"error":"--path contains shell metacharacters"}' >&2
   exit 1

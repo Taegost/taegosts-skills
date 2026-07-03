@@ -70,7 +70,8 @@ case "$plan_type" in
 esac
 
 # R10: validate slug - reject shell metacharacters, quotes, control chars, and spaces
-METACHAR_RE="[\;\|\&\$\`\!\>\<\(\)\{\}\~\*\?/\"\' ]"
+# KTD1: ANSI-C quoting for proper escape handling of control chars, \n, \t
+METACHAR_RE=$'[\x01-\x1f\x7f;<>(){}~\\`!$&\'"|*?/ \n\t]'
 if [[ "$slug" =~ $METACHAR_RE ]]; then
   echo '{"ok":false,"error":"--slug contains invalid characters (spaces or shell metacharacters)"}' >&2
   exit 1

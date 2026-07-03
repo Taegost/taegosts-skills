@@ -40,13 +40,14 @@ done
 
 [[ -z "$repo" || -z "$pr_number" ]] && { echo '{"ok":false,"error":"--repo and --pr required"}' >&2; exit 1; }
 
-# Non-path metacharacter regex (blocks quotes, control chars, shell metacharacters)
-METACHAR_RE=$'[\x00-\x1f\x7f;<>(){}~\\`!$&\'"|*?]'
-# --repo: allow / (required for owner/repo), validate format separately
-if [[ "$repo" =~ $METACHAR_RE ]]; then
+# Non-path metacharacter regex (KTD1: blocks control chars, shell metacharacters, quotes, whitespace)
+METACHAR_RE=$'[\x01-\x1f\x7f;<>(){}~\\`!$&\'"|*?/ \n\t]'
+# --repo: exclude / (required for owner/repo), validate format separately
+REPO_METACHAR_RE=$'[\x01-\x1f\x7f;<>(){}~\\`!$&\'"|*? \n\t]'
+if [[ "$repo" =~ $REPO_METACHAR_RE ]]; then
   echo '{"ok":false,"error":"--repo contains shell metacharacters"}' >&2; exit 1
 fi
-if [[ "$pr_number" =~ $METACHAR_RE || "$pr_number" =~ / ]]; then
+if [[ "$pr_number" =~ $METACHAR_RE ]]; then
   echo '{"ok":false,"error":"--pr contains shell metacharacters"}' >&2; exit 1
 fi
 

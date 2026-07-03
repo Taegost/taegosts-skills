@@ -57,8 +57,8 @@ if [[ -z "$plan_files" || -z "$reference_dir" ]]; then
 fi
 
 # R10: validate inputs - reject shell metacharacters (file-path variant: excludes /)
-# Uses ANSI-C quoting for \n and \t since bash [[ =~ ]] doesn't interpret \n
-METACHAR_RE=$'[\x00-\x1f\x7f;<>(){}~\\`!$&\'"|*?]'
+# KTD1: ANSI-C quoting for proper escape handling of control chars, \n, \t
+METACHAR_RE=$'[\x01-\x1f\x7f;<>(){}~\\`!$&\'"|*? \n\t]'
 if [[ "$plan_files" =~ $METACHAR_RE ]]; then
   echo '{"ok":false,"error":"--plan-files path contains shell metacharacters"}' >&2
   exit 1

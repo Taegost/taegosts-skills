@@ -49,8 +49,8 @@ CodeRabbit review of PR #20 identified security and quality findings across seve
 
 The five scripts with validation currently use four different character classes across two matching mechanisms. Define two regex variants using ANSI-C quoting for proper escape handling:
 
-- **Non-path inputs** (repo names, slugs, numbers): `$'[\x00-\x1f\x7f;<>(){}~\\`!$&\'"|*?/ \n\t]'` — blocks control characters, shell metacharacters, redirect operators, subshell syntax, brace expansion, glob metacharacters (`!`, `*`, `?`), quotes, whitespace control characters, and path separator. Used by `check-thread-resolution.sh`, `fetch-issue-comments.sh`, and `generate-plan-filename.sh`. Note: `\n` and `\t` require ANSI-C quoting since bash `[[ =~ ]]` does not interpret backslash escapes.
-- **File-path inputs** (`detect-missing-artifacts.sh`, `detect-file-status.sh`): `$'[\x00-\x1f\x7f;<>(){}~\\`!$&\'"|*? \n\t]'` — same as above but excludes `/` since paths legitimately contain it.
+- **Non-path inputs** (repo names, slugs, numbers): `$'[\x01-\x1f\x7f;<>(){}~\\`!$&\'"|*?/ \n\t]'` — blocks control characters, shell metacharacters, redirect operators, subshell syntax, brace expansion, glob metacharacters (`!`, `*`, `?`), quotes, whitespace control characters, and path separator. Used by `check-thread-resolution.sh`, `fetch-issue-comments.sh`, and `generate-plan-filename.sh`. Note: `\n` and `\t` require ANSI-C quoting since bash `[[ =~ ]]` does not interpret backslash escapes. `\x00` (null byte) is excluded because bash variables cannot hold null bytes — the string would be silently truncated.
+- **File-path inputs** (`detect-missing-artifacts.sh`, `detect-file-status.sh`): `$'[\x01-\x1f\x7f;<>(){}~\\`!$&\'"|*? \n\t]'` — same as above but excludes `/` since paths legitimately contain it.
 
 The `..` sequence is additionally blocked in `generate-plan-filename.sh`'s slug validation since the regex alone doesn't catch it. `find-precommit-hook.sh` has no metacharacter validation and is excluded.
 
