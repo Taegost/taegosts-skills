@@ -1,3 +1,18 @@
+---
+title: "KTD normalization policy for literal comparison"
+date: 2026-07-02
+category: docs/solutions
+module: scripts/verify-ktd-literal.py
+problem_type: best_practice
+component: documentation
+severity: low
+tags:
+  - ktd
+  - normalization
+  - literal-comparison
+  - plan-validation
+---
+
 # KTD Normalization Policy
 
 This document defines the normalization rules for comparing `[literal]` KTD specifications against implementations. These rules are applied by `scripts/verify-ktd-literal.py` and by the Completeness/Correctness subagents in `ts-verify-implementation`.
@@ -10,9 +25,9 @@ Literal KTDs require exact string matching. However, minor formatting difference
 
 ### 1. Leading/Trailing Whitespace
 
-**Rule:** Strip leading and trailing whitespace from both the KTD spec and the implementation before comparison.
+**Rule:** Strip leading and trailing blank lines from both the KTD spec and the implementation before comparison. Then strip trailing whitespace from each line. Preserve relative indentation within multi-line snippets.
 
-**Rationale:** Indentation context varies between plan documents and implementation files. Leading whitespace is structural formatting, not content.
+**Rationale:** Indentation context varies between plan documents and implementation files. Leading whitespace on the first line and trailing whitespace on each line are formatting noise, not content. Relative indentation carries structural meaning.
 
 **Example:**
 ```

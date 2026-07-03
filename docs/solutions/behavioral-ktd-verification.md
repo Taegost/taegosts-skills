@@ -1,3 +1,18 @@
+---
+title: "Behavioral KTD verification criteria"
+date: 2026-07-02
+category: docs/solutions
+module: skills/ts-verify-implementation
+problem_type: best_practice
+component: documentation
+severity: low
+tags:
+  - ktd
+  - verification
+  - behavioral
+  - plan-validation
+---
+
 # Behavioral KTD Criteria
 
 This document defines what a `[behavioral]` KTD is, how to write one that can be verified, and how to verify that an implementation satisfies it. It applies to plan authors, to `ts-verify-implementation` (Completeness and Correctness subagents), and to `ts-work` (implementer constraints).

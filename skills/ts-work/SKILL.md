@@ -62,9 +62,9 @@ Determine how to proceed based on what was provided in `<input_document>`.
 
    - **Extract KTD specifications.** After reading the plan, extract the Key Technical Decisions section:
      ```bash
-     python3 scripts/extract-ktds.py docs/plans/$ARGUMENTS
+     python3 scripts/extract-ktds.py "docs/plans/$ARGUMENTS"
      ```
-     This returns a JSON array of KTDs with their type markers (`[literal]` or `[behavioral]`). For each KTD:
+     This returns a JSON object with `plan`, `ktds`, and `count` fields. The `ktds` field contains an array of KTDs with their type markers (`[literal]` or `[behavioral]`). For each KTD:
      - **Literal KTDs** (`[literal]`): Present as a "verification constraint" with the exact spec text. The implementer must confirm the implementation matches the spec exactly. These are carried forward as checklist items.
      - **Behavioral KTDs** (`[behavioral]`): Present as a constraint the implementation must satisfy. The intent is what matters, not exact string matching.
      - **No type marker**: Default to `[literal]` (safer default).

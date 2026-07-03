@@ -14,7 +14,7 @@ Many skills need to read a plan document before executing work. This skill centr
 
 ## Usage
 
-```
+```bash
 /load-plan [plan:]
 /load-plan --non-interactive [plan:]
 ```
@@ -121,21 +121,23 @@ If `locate-plan.py` returns multiple matches:
 ## Examples
 
 ### Explicit path
-```
+
+```bash
 /load-plan plan:docs/plans/2026-07-02-004-fix-review-skills-plan-validation-plan.md
 ```
 
 ### Auto-discovery (interactive)
-```
+
+```bash
 /load-plan
 ```
 
 ### Agent mode (non-interactive)
-```
+
+```bash
 /load-plan --non-interactive
 ```
 
 ## Dependencies
 
-- `scripts/locate-plan.py` — Branch name keyword extraction
-- `scripts/default-branch.sh` — Base branch detection (used by locate-plan.py)
+- `scripts/locate-plan.py` — Branch name keyword extraction and plan discovery

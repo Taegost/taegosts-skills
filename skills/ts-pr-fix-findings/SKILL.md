@@ -39,7 +39,7 @@ After resolving, persist the owner/repo to session memory so future invocations 
 
 Before reviewing findings, attempt to load the feature plan for this PR's branch. This provides architectural context, KTD specifications, and scope boundaries for cross-referencing findings.
 
-1. Call `/load-plan --non-interactive` with the PR's branch name as context
+1. Call `/load-plan --non-interactive` (the skill uses the current branch name for discovery)
 2. If a plan is found:
    - Extract KTDs by calling `python3 scripts/extract-ktds.py <plan-path>`
    - Extract Scope Boundaries from the plan's "Scope Boundaries" section

@@ -57,15 +57,37 @@ def normalize_ansi_quoting(text: str) -> str:
     """
     def replace_ansi_c(match):
         content = match.group(1)
-        # Expand common escape sequences
-        # IMPORTANT: Replace \\\\ (literal backslash) FIRST, before \n and \t
-        # Otherwise \\n would be incorrectly converted to newline instead of backslash+n
-        content = content.replace('\\\\', '\\')
-        content = content.replace('\\n', '\n')
-        content = content.replace('\\t', '\t')
-        content = content.replace("\\'", "'")
-        content = content.replace('\\"', '"')
-        return content
+        # Use a single-pass replacement to avoid double-processing escape sequences.
+        # Process character-by-character to handle \\n correctly:
+        # - $'\n' → newline
+        # - $'\\n' → backslash + n (not newline)
+        result = []
+        i = 0
+        while i < len(content):
+            if content[i] == '\\' and i + 1 < len(content):
+                next_char = content[i + 1]
+                if next_char == 'n':
+                    result.append('\n')
+                    i += 2
+                elif next_char == 't':
+                    result.append('\t')
+                    i += 2
+                elif next_char == '\\':
+                    result.append('\\')
+                    i += 2
+                elif next_char == "'":
+                    result.append("'")
+                    i += 2
+                elif next_char == '"':
+                    result.append('"')
+                    i += 2
+                else:
+                    result.append(content[i])
+                    i += 1
+            else:
+                result.append(content[i])
+                i += 1
+        return ''.join(result)
 
     # Match $'...' patterns
     pattern = r"\$'([^']*(?:\\.[^']*)*)'"
@@ -103,18 +125,26 @@ def find_normalized_match(normalized_spec: str, normalized_content: str) -> int 
         return None
 
     # For single-line specs, search for substring in any content line
+    # Skip empty spec lines to avoid false positives ('' in anything is True)
     if len(spec_lines) == 1:
         spec_line = spec_lines[0]
+        if not spec_line.strip():
+            return None
         for i, content_line in enumerate(content_lines, 1):
             if spec_line in content_line:
                 return i
         return None
 
     # For multi-line specs, search for consecutive lines
-    for i in range(len(content_lines) - len(spec_lines) + 1):
+    # Filter out empty/blank spec lines to avoid false positives
+    non_empty_spec_lines = [line for line in spec_lines if line.strip()]
+    if not non_empty_spec_lines:
+        return None
+
+    for i in range(len(content_lines) - len(non_empty_spec_lines) + 1):
         # Check if the spec lines match starting at position i
         match = True
-        for j, spec_line in enumerate(spec_lines):
+        for j, spec_line in enumerate(non_empty_spec_lines):
             if spec_line not in content_lines[i + j]:
                 match = False
                 break
@@ -180,6 +210,14 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # Enforce mutual exclusivity
+    if args.spec and args.spec_file:
+        print(json.dumps({
+            'error': 'Cannot specify both --spec and --spec-file',
+            'match': False
+        }))
+        sys.exit(2)
 
     # Get the spec text
     if args.spec:

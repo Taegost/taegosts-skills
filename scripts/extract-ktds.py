@@ -12,8 +12,8 @@ Usage:
     python3 scripts/extract-ktds.py <plan-file>
 
 Exit codes:
-    0 - Success (KTDs found or section empty)
-    1 - Error (file not found, unreadable, no KTD section)
+    0 - Success (KTDs found or section empty/not found)
+    1 - Error (file not found, unreadable)
 
 KTD heading format:
     **KTDN [type]. Title.**   (new format, with type marker)
@@ -43,7 +43,13 @@ def find_ktd_section(content: str) -> str | None:
     # Find the start of the section content (after the heading line)
     start = match.end()
     # Skip the heading line itself
-    heading_end = content.index('\n', match.start()) + 1
+    # Use find() instead of index() to avoid ValueError if heading is last line
+    newline_pos = content.find('\n', match.start())
+    if newline_pos == -1:
+        # Heading is the last line with no trailing newline
+        heading_end = len(content)
+    else:
+        heading_end = newline_pos + 1
     start = max(start, heading_end)
 
     # Find the next heading of equal or lesser level
@@ -105,12 +111,15 @@ def extract_ktds(section_content: str) -> list[dict]:
             spec_start = heading_match.end()
             spec_text = para[spec_start:].strip()
 
+            # Extract file references from the heading paragraph
+            file_refs = re.findall(r'`([^`]+\.(?:py|sh|md|js|ts|yaml|yml|json|txt))`', para)
+
             current_ktd = {
                 'id': ktd_id,
                 'type': ktd_type,
                 'title': ktd_title,
                 'spec': spec_text,
-                'files': []
+                'files': list(file_refs)
             }
         elif current_ktd:
             # This paragraph is part of the current KTD's spec

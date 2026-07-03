@@ -66,7 +66,6 @@ Document: `docs/plans/2026-07-02-004-fix-review-skills-plan-validation-plan.md`
 
 ### Residual Concerns
 
-- U5 and U6 both modify `test-detect-missing-artifacts.sh` without a declared dependency (coherence)
 - U9 title says "Add test" but approach says "audit and fill" (coherence)
 - Plans may be incomplete when read mid-implementation (adversarial)
 

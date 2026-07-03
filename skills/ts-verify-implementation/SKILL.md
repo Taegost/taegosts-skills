@@ -37,10 +37,10 @@ Read `docs/plans/$ARGUMENTS`. If no argument was provided, run `ls docs/plans/` 
 
 After reading the plan, extract the Key Technical Decisions section:
 ```bash
-python3 scripts/extract-ktds.py docs/plans/$ARGUMENTS
+python3 scripts/extract-ktds.py "docs/plans/$ARGUMENTS"
 ```
 
-This returns a JSON array of KTDs with their type markers (`[literal]` or `[behavioral]`). Store these for cross-referencing in Step 4.
+This returns a JSON object with `plan`, `ktds`, and `count` fields. The `ktds` field contains an array of KTDs with their type markers (`[literal]` or `[behavioral]`). Store the `ktds` array for cross-referencing in Step 4.
 
 **KTD classification:**
 - `[literal]` KTDs: Regex patterns, code snippets, exact strings. Verified using deterministic script comparison.
@@ -68,9 +68,10 @@ Each subagent receives the plan content, the git diff, and the extracted KTD lis
 
 For each KTD extracted in Step 2:
 
-1. **Literal KTDs** (`[literal]` type): Run deterministic script comparison:
+1. **Literal KTDs** (`[literal]` type): Run deterministic script comparison. Write the KTD spec to a temporary file to avoid shell interpretation of special characters:
    ```bash
-   python3 scripts/verify-ktd-literal.py --spec "<KTD spec text>" --file <target-file>
+   echo '<KTD spec text>' > /tmp/ktd-spec.txt
+   python3 scripts/verify-ktd-literal.py --spec-file /tmp/ktd-spec.txt --file <target-file>
    ```
    The script returns JSON with `match: true/false` and a diff if mismatched. Include this output in the subagent's context.
 
@@ -79,7 +80,8 @@ For each KTD extracted in Step 2:
 3. **Both types**: The subagent's verdict incorporates the KTD verification results. For literal KTDs, the script result is authoritative. For behavioral KTDs, the subagent applies the behavioral criteria.
 
 **Structured KTD input format:**
-```
+
+```text
 KTD-N [type]: <spec text> | <files it applies to>
 ```
 
@@ -92,7 +94,7 @@ For each changed file, verify the implementation matches the plan. Flag logic er
 Cross-reference every item in the plan (Requirements, Implementation Units, Files, Test scenarios, Verification criteria, KTDs) against what was implemented. Flag anything missing, partially done, or skipped. For literal KTDs, verify the script output shows `match: true` for all referenced files. For behavioral KTDs, verify the implementation capability exists per `docs/solutions/behavioral-ktd-verification.md`.
 
 **Subagent 3 — Scope:**
-Flag any changes NOT called for in the plan — files touched beyond what was needed, logic altered past what was asked, or additions the plan doesn't account for.
+Flag any changes NOT called for in the plan — files touched beyond what was needed, logic altered past what was asked, or additions the plan doesn't account for. For behavioral KTDs, check for scope creep using the significance test from `docs/solutions/behavioral-ktd-verification.md`: would a reasonable implementer reading only the plan produce this addition?
 
 **Subagent 4 — Standards:**
 Review the changes against project instruction files and any linting or formatting config files in the repo root. Flag violations of repo conventions, naming, structure, or code style.

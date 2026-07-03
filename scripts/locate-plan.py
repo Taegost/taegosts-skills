@@ -37,8 +37,11 @@ def get_current_branch() -> str | None:
         )
         if result.returncode == 0:
             return result.stdout.strip()
-    except Exception:
-        pass
+    except (subprocess.CalledProcessError, FileNotFoundError, PermissionError) as e:
+        # Log specific errors for debugging, but don't fail
+        print(f"Warning: git symbolic-ref failed: {e}", file=sys.stderr)
+    except subprocess.TimeoutExpired:
+        print("Warning: git symbolic-ref timed out", file=sys.stderr)
 
     return None
 
@@ -78,18 +81,19 @@ def extract_keywords_from_branch(branch_name: str) -> list[str]:
     return keywords
 
 
-def find_plan_by_keywords(keywords: list[str], plans_dir: Path) -> str | None:
-    """Find the best matching plan file based on keywords.
+def find_plan_by_keywords(keywords: list[str], plans_dir: Path) -> list[str]:
+    """Find matching plan files based on keywords.
 
-    Returns the path to the best match, or None if no match.
+    Returns a list of matching paths, sorted by relevance.
+    Multiple matches indicate ambiguity that callers should resolve.
     """
     if not keywords or not plans_dir.exists():
-        return None
+        return []
 
     # Get all plan files
     plan_files = list(plans_dir.glob('*.md')) + list(plans_dir.glob('*.html'))
     if not plan_files:
-        return None
+        return []
 
     # Score each plan file based on keyword matches
     scores = []
@@ -104,13 +108,13 @@ def find_plan_by_keywords(keywords: list[str], plans_dir: Path) -> str | None:
             scores.append((matches, plan_file))
 
     if not scores:
-        return None
+        return []
 
     # Sort by match count (descending), then by filename (descending for recency)
     scores.sort(key=lambda x: (x[0], x[1].name), reverse=True)
 
-    # Return the best match
-    return str(scores[0][1])
+    # Return all matches (callers handle ambiguity)
+    return [str(path) for _, path in scores]
 
 
 def main():
@@ -120,12 +124,20 @@ def main():
     # If explicit path provided, validate and return it
     if explicit_path:
         path = Path(explicit_path)
-        if path.exists():
+        if path.is_file():
+            # Resolve to absolute path for consistency with auto-discovered paths
             print(json.dumps({
-                'path': str(path),
+                'path': str(path.resolve()),
                 'error': ''
             }))
             sys.exit(0)
+        elif path.exists():
+            # Path exists but is not a file (e.g., directory)
+            print(json.dumps({
+                'path': '',
+                'error': f'Path is not a file: {explicit_path}'
+            }))
+            sys.exit(1)
         else:
             print(json.dumps({
                 'path': '',
@@ -156,15 +168,25 @@ def main():
     script_dir = Path(__file__).parent
     repo_root = script_dir.parent
     plans_dir = repo_root / 'docs' / 'plans'
-    plan_path = find_plan_by_keywords(keywords, plans_dir)
+    plan_paths = find_plan_by_keywords(keywords, plans_dir)
 
-    if plan_path:
+    if len(plan_paths) == 1:
+        # Single match - return it
         print(json.dumps({
-            'path': plan_path,
+            'path': plan_paths[0],
             'error': ''
         }))
         sys.exit(0)
+    elif len(plan_paths) > 1:
+        # Multiple matches - return ambiguity error
+        print(json.dumps({
+            'path': '',
+            'error': 'Multiple plans match',
+            'candidates': plan_paths
+        }))
+        sys.exit(0)
     else:
+        # No matches
         print(json.dumps({
             'path': '',
             'error': ''
