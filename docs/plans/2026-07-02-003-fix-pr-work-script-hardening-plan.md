@@ -29,18 +29,18 @@ CodeRabbit review of PR #20 identified security and quality findings across seve
 **Cross-Cutting Quality**
 
 - R7. All scripts with metacharacter validation use a single standardized regex pattern. `find-precommit-hook.sh` has no metacharacter validation and is excluded.
-- R8. `check-thread-resolution.sh` and `fetch-issue-comments.sh` emit structured JSON errors to stderr, matching the pattern used by newer scripts.
+- R8. All scripts emit structured JSON errors to stderr. `check-thread-resolution.sh` and `fetch-issue-comments.sh` need normalization from plain text; `find-precommit-hook.sh` has mixed plain-text/JSON errors that need normalization.
 - R9. `check-thread-resolution.sh` and `fetch-issue-comments.sh` reject unknown arguments with a JSON error instead of silently ignoring them.
 - R10. Test suites for `check-thread-resolution.sh` and `fetch-issue-comments.sh` are expanded to cover input validation, metacharacter rejection, and error paths.
 
 **Safe Execution & Credential Handling**
 
 - R11. All validated user inputs must be consumed via double-quoted variable expansion or passed as separate command arguments — never interpolated into eval, heredoc, or unquoted shell contexts.
-- R12. GitHub API credentials are handled externally (via `gh` CLI) and are out of scope for this repository. The new JSON error output format must not echo API responses or token fragments.
+- R12. Error output must not echo API responses, token fragments, or unsanitized interpolated values.
 
 **Documentation & Test Coverage**
 
-- R13. Repository documentation is expanded with shell script standards (shebang flags, metacharacter validation, error output format, safe execution context per R11, credential handling per R12) to ensure future scripts follow the same patterns.
+- R13. Repository documentation is expanded with shell script standards (shebang flags, metacharacter validation, error output format, safe execution context per R11, error sanitization per R12) to ensure future scripts follow the same patterns.
 - R14. Test plans are extended to cover all new failure modes introduced by this hardening (missing option values, path traversal slugs, malformed repo/PR inputs, unknown arguments, JSON error validation).
 
 ## Key Technical Decisions
@@ -129,7 +129,7 @@ Both `detect-file-status.sh` and `find-precommit-hook.sh` already use `|| { ... 
 
 **Requirements:** R8, R9
 
-**Dependencies:** U2 (validation changes are in the same files)
+**Dependencies:** U1 (JSON error pattern reference), U2 (validation changes in same files)
 
 **Files:**
 - `skills/ts-pr-fix-findings/scripts/check-thread-resolution.sh`
@@ -230,6 +230,10 @@ Both `detect-file-status.sh` and `find-precommit-hook.sh` already use `|| { ... 
 **Test scenarios:**
 - Happy path: existing test suites pass unchanged for both scripts.
 - Edge case: script behavior is identical before and after the change (no new early exits).
+- Edge case: `detect-file-status.sh` run inside a non-git directory — `git rev-parse` guard fires correctly under `-e`.
+- Edge case: `detect-file-status.sh` with a file not tracked by git — `git ls-files --error-unmatch` guard fires correctly under `-e`.
+- Edge case: `find-precommit-hook.sh` run inside a non-git directory — `git rev-parse` guard fires correctly under `-e`.
+- Edge case: `find-precommit-hook.sh` with no hook file present — no-hook-found path fires correctly under `-e`.
 
 **Verification:** All existing tests pass; no behavior change.
 
@@ -262,7 +266,7 @@ Both `detect-file-status.sh` and `find-precommit-hook.sh` already use `|| { ... 
 
 **Requirements:** R13
 
-**Dependencies:** U1, U2, U3 (standards must be finalized before documenting)
+**Dependencies:** None (standards are defined in KTD1-KTD4 and R7-R13)
 
 **Files:**
 - Repository documentation file (location to be determined — likely `docs/` or `CONTRIBUTING.md`)
@@ -280,7 +284,7 @@ Both `detect-file-status.sh` and `find-precommit-hook.sh` already use `|| { ... 
 
 **Requirements:** R14
 
-**Dependencies:** U1 through U8 (all implementation units must be defined first)
+**Dependencies:** U1 through U8, U11
 
 **Files:**
 - `tests/skills/ts-pr-fix-findings/test-check-thread-resolution.sh`
@@ -298,16 +302,40 @@ Both `detect-file-status.sh` and `find-precommit-hook.sh` already use `|| { ... 
 
 **Verification:** Every new failure mode has test coverage; all test suites pass.
 
+### U11. Normalize error output in find-precommit-hook.sh
+
+**Goal:** Convert remaining plain-text error output in `find-precommit-hook.sh` to structured JSON.
+
+**Requirements:** R8
+
+**Dependencies:** None
+
+**Files:**
+- `skills/ts-work/scripts/find-precommit-hook.sh`
+- `tests/skills/ts-work/test-find-precommit-hook.sh`
+
+**Approach:** Identify all plain-text error output paths in the script (e.g., "No pre-commit hook found" on line 52) and convert them to JSON format matching the pattern used by other scripts. The script already uses JSON for some errors (line 33) and for stdout — only the remaining plain-text stderr paths need normalization.
+
+**Test scenarios:**
+- Happy path: existing test suites pass unchanged.
+- Error path: all error output is valid JSON (validate with `python3 -m json.tool`).
+- Error path: no-hook-found path produces JSON error to stderr.
+
+**Verification:** All error output from `find-precommit-hook.sh` is valid JSON to stderr.
+
 ## Scope Boundaries
 
-**In scope:** The six issues listed in #69 plus cross-cutting regex, error format, test standardization, repository documentation of standards, and test coverage for all new failure modes.
+**In scope:** The six issues listed in #69 plus cross-cutting regex, error format, test standardization, repository documentation of standards, and test coverage for all new failure modes. All scripts must meet the standards defined in this plan, whether explicitly named in the original issues or not.
+
+**Out of scope:**
+- GitHub API credential handling — managed externally via `gh` CLI.
 
 **Deferred to Follow-Up Work:**
 - Metacharacter regex standardization in `find-precommit-hook.sh` is excluded per R7 — it has no validation and none is planned.
 
 ## Verification
 
-- All scripts in scope use `set -euo pipefail`.
+- All scripts use `set -euo pipefail`.
 - All scripts with metacharacter validation use the two-variant regex (non-path inputs include `/`; file-path inputs exclude `/`).
 - All error output across all scripts is valid JSON to stderr with static or sanitized error messages.
 - `--repo` is validated as `owner/repo`; `--pr` is validated as numeric.
@@ -315,7 +343,7 @@ Both `detect-file-status.sh` and `find-precommit-hook.sh` already use `|| { ... 
 - `detect-missing-artifacts.sh` handles missing option values gracefully.
 - `find-precommit-hook.sh` returns full paths in `scripts[0]`.
 - All validated inputs are consumed via double-quoted expansion (R11).
-- GitHub API credentials are not echoed in error output (R12).
+- Error output does not echo API responses, token fragments, or unsanitized values (R12).
 - Test suites for `check-thread-resolution.sh` and `fetch-issue-comments.sh` have 8+ test cases each.
 - Shell script standards are documented in repository documentation (R13).
 - Every new failure mode has corresponding test coverage (R14).
