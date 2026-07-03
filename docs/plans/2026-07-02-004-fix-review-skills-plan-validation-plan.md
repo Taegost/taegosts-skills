@@ -8,7 +8,7 @@ date: 2026-07-02
 
 ## Summary
 
-Skills `ts-work`, `ts-verify-implementation`, and `ts-pr-fix-findings` fail to validate implementations against the feature plan's KTD specifications at the literal level. This plan fixes all 10 mismatches from issue #79 and adds plan-reading capability to all applicable skills.
+Skills `ts-work`, `ts-verify-implementation`, and `ts-pr-fix-findings` fail to validate implementations against the feature plan's KTD specifications at the literal level. This plan addresses the root causes of plan-validation drift (P1: U1-U4, U6) and adds verification infrastructure (P2: U5) to confirm and remediate all 10 mismatches from issue #79.
 
 ## Problem Frame
 
@@ -29,15 +29,15 @@ The 10 mismatches from issue #79 are a mix of two failure modes: (1) **format dr
 | # | Description | Requirement | Unit |
 |---|-------------|-------------|------|
 | 1 | Regex format inconsistency (skills use different formats than KTD1 spec) | R2, R3, R4 | U2, U3, U4 |
-| 2 | Tests only verify `;` for metacharacter rejection, not full blocklist | Prior-R7 | U5 (verification) |
-| 3 | Path traversal tests missing (`foo/../bar` rejection, `foo..bar` acceptance) | Prior-R8 | U5 (verification) |
-| 4 | Missing-value guards untested (`--repo`/`--pr` with no value) | Prior-R9 | U5 (verification) |
-| 5 | Prior hardening plan U6 bug fix lacks regression test | Prior-R10 | U5 (verification) |
-| 6 | `detect-missing-artifacts.sh` `..` check over-rejects valid filenames | Prior-R11 | U5 (verification) |
-| 7 | `find-precommit-hook.sh` not validated by test | Prior-R12 | U5 (verification) |
-| 8 | `.git/` directory exclusion not tested | Prior-R13 | U5 (verification) |
-| 9 | Prior hardening plan U9 documentation incomplete | Prior-R14 | U5 (verification) |
-| 10 | Prior hardening plan U10 test audit incomplete | Prior-R15 | U5 (verification) |
+| 2 | Tests only verify `;` for metacharacter rejection, not full blocklist | Prior-R7 | U5 (verify + remediate) |
+| 3 | Path traversal tests missing (`foo/../bar` rejection, `foo..bar` acceptance) | Prior-R8 | U5 (verify + remediate) |
+| 4 | Missing-value guards untested (`--repo`/`--pr` with no value) | Prior-R9 | U5 (verify + remediate) |
+| 5 | Prior hardening plan U6 bug fix lacks regression test | Prior-R10 | U5 (verify + remediate) |
+| 6 | `detect-missing-artifacts.sh` `..` check over-rejects valid filenames | Prior-R11 | U5 (verify + remediate) |
+| 7 | `find-precommit-hook.sh` not validated by test | Prior-R12 | U5 (verify + remediate) |
+| 8 | `.git/` directory exclusion not tested | Prior-R13 | U5 (verify + remediate) |
+| 9 | Prior hardening plan U9 documentation incomplete | Prior-R14 | U5 (verify + remediate) |
+| 10 | Prior hardening plan U10 test audit incomplete | Prior-R15 | U5 (verify + remediate) |
 
 *Note: "Prior-R" and "Prior-U" identifiers reference the prior hardening plan (`2026-07-02-003`), not this plan's R/U namespace.*
 
@@ -57,7 +57,7 @@ The 10 mismatches from issue #79 are a mix of two failure modes: (1) **format dr
 
 ### Plan Discovery
 
-- R5. Plan discovery is split into two pieces: (a) `scripts/locate-plan.py` — a non-interactive Python script that locates a plan and returns its path, or empty if not found. Uses: (1) explicit path if provided, (2) keyword extraction from the branch name to match plans in `docs/plans/`. On ambiguity, returns the best match. The script does not prompt the user — callers handle "not found" by prompting. (b) `load-plan` skill — loads the plan content. If given a plan path, loads it directly. If not, calls `locate-plan.py` to find it; if the script returns empty, prompts the user. Both pieces are pure utilities — they locate and load, not execute, verify, modify, or extract.
+- R5. Plan discovery is split into two pieces: (a) `scripts/locate-plan.py` — a non-interactive Python script that locates a plan and returns its path, or empty if not found. Uses: (1) explicit path if provided, (2) keyword extraction from the branch name to match plans in `docs/plans/`. On ambiguity, returns the best match. The script does not prompt the user — callers handle "not found" by prompting. (b) `load-plan` skill — loads the plan content. Discovery sources in priority order: (1) explicit path if provided, (2) PR body scanning for `docs/plans/*.md` paths (when PR metadata is available), (3) `locate-plan.py` branch-name extraction. If all sources return empty, prompts the user. Both pieces are pure utilities — they locate and load, not execute, verify, modify, or extract.
 - R6. All skills that need plan context call `/load-plan`: `ts-work`, `ts-verify-implementation`, `ts-pr-fix-findings`, `ts-code-review`. Skills with existing plan discovery migrate to the shared skill. `ts-pr-review` gets plan discovery transitively through `ts-code-review` and does not need its own migration. `ts-do-work-loop` and `ts-coding-workflow` are pure pass-throughs that delegate to skills with load-plan integration — they do not need their own migration.
 
 ### Test Coverage (Issue #79 Mismatches)
@@ -77,7 +77,7 @@ The 10 mismatches from issue #79 are a mix of two failure modes: (1) **format dr
 
 ## Key Technical Decisions
 
-**KTD1 [literal]. Plan discovery via `locate-plan.py` and `load-plan` skill.** Plan discovery is split into two pieces. `scripts/locate-plan.py` is a non-interactive Python script that locates a plan: (1) if given an explicit path, returns it; (2) if blank, uses keyword extraction from the branch name to match plans in `docs/plans/`. On ambiguity, returns the best match. Returns the plan path or empty — the script does not prompt the user. The `load-plan` skill loads plan content: if given a plan path, loads it directly; if not, calls `locate-plan.py` to find it, and if the script returns empty, prompts the user. On ambiguity (multiple matches from the script), ask the user — never silently pick "most recent." On error (detached HEAD, shallow clone, no remote, unreadable file), ask the user what to do. The `plan:` argument is the recommended path for non-interactive callers. Explicit input always takes precedence over auto-discovery. Both pieces are pure utilities — they locate and load only. They do not execute, verify, modify, or extract content from the plan. Other scripts that parse plan content (e.g., `extract-ktds.py`) take a path directly — the calling skill orchestrates the locate-then-parse workflow.
+**KTD1 [literal]. Plan discovery via `locate-plan.py` and `load-plan` skill.** Plan discovery is split into two pieces. `scripts/locate-plan.py` is a non-interactive Python script that locates a plan: (1) if given an explicit path, returns it; (2) if blank, uses keyword extraction from the branch name to match plans in `docs/plans/`. On ambiguity, returns the best match. Returns the plan path or empty — the script does not prompt the user. The `load-plan` skill loads plan content using three discovery sources in priority order: (1) explicit path if provided, (2) PR body scanning for `docs/plans/*.md` paths when PR metadata is available, (3) `locate-plan.py` branch-name extraction. If all sources return empty, prompts the user (interactive mode) or returns an error (non-interactive mode). On ambiguity (multiple matches from the script), ask the user — never silently pick "most recent." On error (detached HEAD, shallow clone, no remote, unreadable file), ask the user what to do in interactive mode; return the error to the consumer in non-interactive mode. The `plan:` argument is the recommended path for non-interactive callers. A `--non-interactive` flag (or equivalent) causes load-plan to return errors instead of prompting — consumers running in agent mode must use this flag and stop with an error if no plan can be found. Explicit input always takes precedence over auto-discovery. Both pieces are pure utilities — they locate and load only. They do not execute, verify, modify, or extract content from the plan. Other scripts that parse plan content (e.g., `extract-ktds.py`) take a path directly — the calling skill orchestrates the locate-then-parse workflow.
 
 **KTD2 [literal]. KTD classification and verification.** Plan authors label each KTD with a type marker: `[literal]` for regex patterns, code snippets, and exact strings; `[behavioral]` for patterns, approaches, and constraints. If unclassified, default to `[literal]` (safer default). Literal KTDs: the Completeness and Correctness subagents compare character-by-character, applying a normalization policy (see `docs/solutions/ktd-normalization-policy.md`). Behavioral KTDs: the subagents verify the implementation follows the intent of the decision using criteria defined in `docs/solutions/behavioral-ktd-verification.md`. Both subagents receive the KTD section as separate structured input, not buried in the full plan text. KTD extraction is done by the consumer skill (not load-plan) by calling `scripts/extract-ktds.py` to parse the plan's "Key Technical Decisions" section into structured JSON.
 
@@ -103,7 +103,7 @@ Create a new `load-plan` skill based on ts-code-review's existing plan discovery
 **Phase 2 files (after Phase 1 validation):**
 - `skills/ts-work/SKILL.md` (migrate — remove Phase 1 step 1 inline glob discovery triggered by blank invocation via Phase 0)
 - `skills/ts-verify-implementation/SKILL.md` (migrate — remove inline `ls docs/plans/` fallback)
-- `skills/ts-code-review/SKILL.md` (migrate — remove Stage 2b inline discovery)
+- `skills/ts-code-review/SKILL.md` (migrate — replace Stage 2b inline discovery with `/load-plan` call; PR body scanning moves to load-plan's discovery sources)
 - `skills/ts-pr-review/SKILL.md` (inherits via ts-code-review, no change needed)
 
 **Approach — `locate-plan.py` script:**
@@ -112,14 +112,15 @@ Create a new `load-plan` skill based on ts-code-review's existing plan discovery
 - If blank, uses keyword extraction from the branch name to match plans in `docs/plans/`
 - On ambiguity, returns the best match (does not prompt the user)
 - On no match, returns empty (caller handles prompting)
-- Base branch detection: use ts-verify-implementation's existing pattern (`git remote show origin | grep HEAD branch` with fallback to `main/master/develop/trunk`)
+- Base branch detection: shell out to `scripts/default-branch.sh` (4-tier cascade: symbolic-ref → origin/main → origin/master → gh repo view) rather than reimplementing the pattern
 
 **Approach — `load-plan` skill:**
 - Loads plan content. Accepts optional argument: plan path, plan filename, or blank
-- If given a path, loads the plan directly
-- If blank, calls `locate-plan.py` to find it. If the script returns empty, prompts the user
+- Discovery sources in priority order: (1) explicit path if provided, (2) PR body scanning for `docs/plans/*.md` paths (when PR metadata is available), (3) `locate-plan.py` branch-name extraction
+- If all sources return empty, prompts the user (interactive mode) or returns an error (non-interactive mode)
 - On ambiguity (multiple matches from script), asks the user — never silently picks "most recent"
-- On error (detached HEAD, shallow clone, no remote, unreadable file), asks the user what to do
+- On error (detached HEAD, shallow clone, no remote, unreadable file), asks the user what to do in interactive mode; returns the error in non-interactive mode
+- `--non-interactive` flag: returns errors instead of prompting. Consumers in agent mode must use this flag and stop with an error if no plan is found
 - `plan:` argument is recommended for non-interactive callers
 - Returns: plan path + plan content (or error)
 - Pure utility — only locates and loads the plan. Does not execute, verify, modify, or extract content.
@@ -144,7 +145,14 @@ Create a new `load-plan` skill based on ts-code-review's existing plan discovery
 
 **Verification:** ts-pr-fix-findings calls `/load-plan` and receives correct plan discovery behavior.
 
-**Phase 1 exit criteria:** Phase 1 is validated when ts-pr-fix-findings successfully calls `/load-plan` on at least one real PR and the operator confirms the plan discovery behavior is correct. Phase 2 begins after this confirmation.
+**Phase 1 exit criteria:** Phase 1 passes when ALL of the following hold:
+1. `locate-plan.py` returns correct results on 3+ test plans with different branch name patterns
+2. `load-plan` skill correctly loads a plan given an explicit path
+3. `load-plan` correctly triggers `locate-plan.py` when no path is given
+4. `ts-pr-fix-findings` successfully uses `/load-plan` on at least one real PR
+5. The operator confirms the plan discovery behavior is correct
+
+Phase 2 begins after all criteria are met.
 
 ---
 
@@ -156,15 +164,17 @@ Modify the Completeness and Correctness subagents to verify implementations agai
 
 **Requirements:** R2, R3
 **Depends on:** U6 (provides normalization policy and behavioral verification criteria)
+**Gate:** The normalization policy (`docs/solutions/ktd-normalization-policy.md`) must be reviewed and approved by the operator before U2 implementation begins. Without approved normalization rules, the literal comparison instructions have no ground truth.
 
 **Files:**
 - `skills/ts-verify-implementation/SKILL.md`
 
 **Approach:**
 - Step 2 (Read the plan): Extract the KTD section by calling `scripts/extract-ktds.py`. Pass each KTD as a structured item to the subagents with its type marker (`[literal]` or `[behavioral]`).
-- Subagent 2 (Completeness): Add instructions — "For each KTD in the plan, find the corresponding implementation code. For `[literal]` KTDs, verify the *exact spec* is implemented — compare the literal character sequence after applying the normalization policy from `docs/solutions/ktd-normalization-policy.md`. For `[behavioral]` KTDs, verify the implementation follows the intent using criteria from `docs/solutions/behavioral-ktd-verification.md`."
-- Subagent 1 (Correctness): Add instructions — "For each `[literal]` KTD, extract the implementation string from the diff and compare it against the KTD specification using the normalization policy. Flag any difference — missing characters, extra characters, different quoting style, different escape sequences. For `[behavioral]` KTDs, verify the implementation satisfies the stated intent."
+- **Literal KTDs — deterministic script comparison:** Create `scripts/verify-ktd-literal.py` that takes a KTD spec and a target file, applies the normalization policy, and checks whether the literal string appears in the file. Returns match/mismatch with diff. This replaces LLM-based character-by-character comparison for `[literal]` KTDs — deterministic scripts are reliable for exact string matching where LLMs are not.
+- **Behavioral KTDs — LLM subagent verification:** Subagent 2 (Completeness) and Subagent 1 (Correctness) verify `[behavioral]` KTDs using criteria from `docs/solutions/behavioral-ktd-verification.md`. For behavioral KTDs, LLM judgment is appropriate because the verification requires understanding intent, not exact matching.
 - Both subagents receive a structured KTD list: `KTD-N [type]: <spec text> | <files it applies to>`.
+- The script's output (literal match/mismatch) is included in the subagent's context so the Completeness and Correctness subagents can incorporate it into their verdicts.
 
 **Patterns to follow:** Current subagent output format (verdict + bulleted findings with file/line references).
 
@@ -189,6 +199,8 @@ Modify ts-work to extract KTDs from the plan and present them as named constrain
 **Goal:** Implementers apply KTD specs literally because the exact spec string is salient in their context.
 
 **Requirements:** R1
+**Depends on:** U6 (provides `extract-ktds.py`)
+**Gate:** The normalization policy (`docs/solutions/ktd-normalization-policy.md`) must be reviewed and approved by the operator before U3 implementation begins, so the KTD inlining instructions reference the correct normalization rules.
 
 **Files:**
 - `skills/ts-work/SKILL.md`
@@ -219,7 +231,7 @@ Modify ts-pr-fix-findings to read the feature plan before remediating and cross-
 **Goal:** ts-pr-fix-findings detects when a reviewer's request contradicts the original design intent.
 
 **Requirements:** R4
-**Depends on:** U1 (creates `/load-plan` skill)
+**Depends on:** U1 (creates `/load-plan` skill), U6 (provides `extract-ktds.py`)
 
 **Files:**
 - `skills/ts-pr-fix-findings/SKILL.md`
@@ -261,6 +273,7 @@ Using the updated ts-verify-implementation logic from U2, verify that the prior 
 - `skills/ts-work/scripts/detect-missing-artifacts.sh` (if `..` over-rejection bug is found)
 
 **Approach:**
+- Pre-classify the prior hardening plan's KTDs: the prior plan has no `[literal]`/`[behavioral]` type markers. Before verification, classify each KTD using the classification test from `docs/solutions/behavioral-ktd-verification.md` (could two structurally different implementations both satisfy it? → behavioral; exact string/pattern required → literal). Document the classification results.
 - Run the enhanced ts-verify-implementation against the prior hardening plan's completion checklist.
 - For each KTD and requirement, verify the implementation matches the spec.
 - For any gaps found: add missing tests, complete missing documentation, fix any bugs.
@@ -272,8 +285,8 @@ Using the updated ts-verify-implementation logic from U2, verify that the prior 
   - `detect-missing-artifacts.sh` `..` check doesn't over-reject valid filenames
   - `find-precommit-hook.sh` covered by tests
   - `.git/` directory exclusion tested
-  - Prior U9 documentation complete
-  - Prior U10 test audit complete
+  - Prior U9 documentation complete (see prior hardening plan `2026-07-02-003` § U9)
+  - Prior U10 test audit complete (see prior hardening plan `2026-07-02-003` § U10)
 
 **Test scenarios:**
 - Happy path: all prior plan items verified as implemented → PASS
@@ -295,13 +308,15 @@ Create a Python script for extracting KTDs from plan documents and document the 
 
 **Files:**
 - `scripts/extract-ktds.py` (new)
+- `scripts/verify-ktd-literal.py` (new — deterministic literal KTD comparison script)
 - `docs/solutions/ktd-normalization-policy.md` (new)
-- `docs/solutions/behavioral-ktd-verification.md` (new)
+- `docs/solutions/behavioral-ktd-verification.md` (exists — extend if needed)
 
 **Approach:**
-- `extract-ktds.py`: Parse markdown files, find the "Key Technical Decisions" section, extract each KTD with its type marker (`[literal]` or `[behavioral]`), spec text, and associated files. Output as structured JSON.
-- `ktd-normalization-policy.md`: Document the normalization policy for literal KTD comparison — what whitespace is normalized, what quoting differences are acceptable, what constitutes a literal match for multi-line snippets.
-- `behavioral-ktd-verification.md`: Document the criteria for verifying behavioral KTDs — what evidence to look for, what constitutes a match vs mismatch, how ambiguous cases are resolved. **Open item: behavioral verification criteria must be defined and approved before U6 implementation begins.** This is the first task after completing this plan's walkthrough.
+- `extract-ktds.py`: Parse markdown files, find the "Key Technical Decisions" section, extract each KTD with its type marker (`[literal]` or `[behavioral]`), spec text, and associated files. Output as structured JSON. **KTD heading format:** each KTD is a bold paragraph starting with `**KTDN [type]. Title.**` (e.g., `**KTD1 [literal]. Plan discovery via locate-plan.py.**`). The `[type]` marker is optional — if absent, default to `[literal]`. The parser must handle both formats: with type marker (`**KTD1 [literal]. Title.**`) and without (`**KTD1. Title.**`). KTD body text follows the heading paragraph until the next KTD heading or end of section. All plans not yet completed must adopt the new format with type markers before implementation; updating existing completed plans is out of scope for this plan.
+- `ktd-normalization-policy.md` (create first — gates U2 and U3): Document the normalization policy for literal KTD comparison. Concrete rules must include: leading/trailing whitespace normalized, indentation preserved, ANSI-C quoting (`$'...'`) normalized to double-quote equivalent for comparison, multi-line snippets compared after stripping trailing whitespace per line, inline code spans compared verbatim. The policy must be specific enough that subagents can apply it mechanically without subjective judgment.
+- `behavioral-ktd-verification.md`: Document the criteria for verifying behavioral KTDs — what evidence to look for, what constitutes a match vs mismatch, how ambiguous cases are resolved.
+- `verify-ktd-literal.py`: Deterministic script that takes a `[literal]` KTD spec and a target file path, applies the normalization policy, and checks whether the literal string appears in the file. Returns JSON with `match: true/false`, the matched/mismatched text, and a diff if mismatched. This replaces LLM-based character-by-character comparison for literal KTDs.
 
 **Test scenarios:**
 - Happy path: plan with `[literal]` and `[behavioral]` KTDs extracted correctly
@@ -331,4 +346,3 @@ Create a Python script for extracting KTDs from plan documents and document the 
 - **Risk:** Plan discovery by branch name may match wrong plans if branch names are generic. Mitigation: always ask the user on ambiguity, never silently pick "most recent."
 - **Risk:** load-plan becomes a single point of failure. Mitigation: two-phase migration — validate with one consumer before broader rollout.
 - **Dependency:** Issue #79 is the primary driver. PR #80 tracks the implementation.
-- **Dependency (open item):** Behavioral KTD verification criteria (U6) must be defined and approved before U6 implementation begins. This is the first task after completing this plan's walkthrough.
