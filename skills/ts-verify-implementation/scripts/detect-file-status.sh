@@ -4,7 +4,7 @@
 # Output: JSON with {path, status: "committed"|"on_disk_gitignored"|"on_disk_untracked"|"missing"}
 # Exit codes: 0 success, 1 error, 2 file missing
 
-set -uo pipefail
+set -euo pipefail
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'
@@ -32,21 +32,21 @@ EOF
 fi
 
 if [[ $# -ne 1 ]]; then
-  echo '{"error":"exactly one argument required: file path"}' >&2
+  echo '{"ok":false,"error":"exactly one argument required: file path"}' >&2
   exit 1
 fi
 
 file_path="$1"
 
-# R10: validate input - reject shell metacharacters
-if [[ "$file_path" =~ [\;\|\&\$\`] ]]; then
-  echo '{"error":"path contains shell metacharacters"}' >&2
+# R10: validate input - reject shell metacharacters (file-path variant: excludes /)
+if [[ "$file_path" =~ [\;\|\&\$\`\!\>\<\(\)\{\}\~\*\?] ]]; then
+  echo '{"ok":false,"error":"path contains shell metacharacters"}' >&2
   exit 1
 fi
 
 # Validate we are in a git repo
 git rev-parse --git-dir >/dev/null 2>&1 || {
-  echo '{"error":"not inside a git repository"}' >&2
+  echo '{"ok":false,"error":"not inside a git repository"}' >&2
   exit 1
 }
 

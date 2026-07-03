@@ -27,6 +27,12 @@ EOF
   exit 0
 fi
 
+# Guard: require at least 2 args (--plan-files and --reference-dir)
+if [[ $# -lt 2 ]]; then
+  echo '{"ok":false,"error":"--plan-files and --reference-dir are required"}' >&2
+  exit 1
+fi
+
 # Parse arguments
 plan_files=""
 reference_dir=""
@@ -42,7 +48,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      echo '{"error":"unknown argument"}' >&2
+      echo '{"ok":false,"error":"unknown argument"}' >&2
       exit 1
       ;;
   esac
@@ -50,28 +56,38 @@ done
 
 # Validate required args
 if [[ -z "$plan_files" || -z "$reference_dir" ]]; then
-  echo '{"error":"--plan-files and --reference-dir are required"}' >&2
+  echo '{"ok":false,"error":"--plan-files and --reference-dir are required"}' >&2
   exit 1
 fi
 
-# R10: validate inputs - reject shell metacharacters
-if [[ "$plan_files" =~ [\;\|\&\$\`] ]]; then
-  echo '{"error":"--plan-files path contains shell metacharacters"}' >&2
+# R10: validate inputs - reject shell metacharacters (file-path variant: excludes /)
+if [[ "$plan_files" =~ [\;\|\&\$\`\!\>\<\(\)\{\}\~\*\?] ]]; then
+  echo '{"ok":false,"error":"--plan-files path contains shell metacharacters"}' >&2
   exit 1
 fi
-if [[ "$reference_dir" =~ [\;\|\&\$\`] ]]; then
-  echo '{"error":"--reference-dir path contains shell metacharacters"}' >&2
+if [[ "$reference_dir" =~ [\;\|\&\$\`\!\>\<\(\)\{\}\~\*\?] ]]; then
+  echo '{"ok":false,"error":"--reference-dir path contains shell metacharacters"}' >&2
+  exit 1
+fi
+
+# Block path traversal
+if [[ "$plan_files" == *".."* ]]; then
+  echo '{"ok":false,"error":"--plan-files must not contain path traversal (..)"}' >&2
+  exit 1
+fi
+if [[ "$reference_dir" == *".."* ]]; then
+  echo '{"ok":false,"error":"--reference-dir must not contain path traversal (..)"}' >&2
   exit 1
 fi
 
 # Validate file/dir existence
 if [[ ! -f "$plan_files" ]]; then
-  echo '{"error":"--plan-files file not found"}' >&2
+  echo '{"ok":false,"error":"--plan-files file not found"}' >&2
   exit 1
 fi
 
 if [[ ! -d "$reference_dir" ]]; then
-  echo '{"error":"--reference-dir not found"}' >&2
+  echo '{"ok":false,"error":"--reference-dir not found"}' >&2
   exit 1
 fi
 

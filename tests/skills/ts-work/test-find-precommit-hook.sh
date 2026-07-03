@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Test: skills/ts-work/scripts/find-precommit-hook.sh
-set -uo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
@@ -84,6 +84,29 @@ if [[ $rc -eq 1 ]]; then
   ok "exits 1 when not in git repo"
 else
   die "expected exit 1 outside git repo (rc=$rc)"
+fi
+
+# Given: hook with sourced script
+cd "$tmpdir/repo" || exit 1
+mkdir -p .git/hooks
+cat > .git/hooks/pre-commit << 'HOOKEOF'
+#!/bin/bash
+source utils.sh
+echo "running pre-commit"
+HOOKEOF
+chmod +x .git/hooks/pre-commit
+cat > .git/hooks/utils.sh << 'UTILEOF'
+#!/bin/bash
+echo "utils"
+UTILEOF
+
+output=$(bash "$SCRIPT" 2>&1) && rc=0 || rc=$?
+echo "$output" > "$tmpdir/result3.json"
+scripts_count=$(python3 -c "import json,sys; d=json.load(open('$tmpdir/result3.json')); print(len(d.get('scripts',[])))")
+if [[ "$scripts_count" == "2" ]]; then
+  ok "finds sourced script"
+else
+  die "expected 2 scripts, got $scripts_count"
 fi
 
 echo ""

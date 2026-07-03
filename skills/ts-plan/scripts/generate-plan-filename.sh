@@ -43,7 +43,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      echo '{"error":"unknown argument"}' >&2
+      echo '{"ok":false,"error":"unknown argument"}' >&2
       exit 1
       ;;
   esac
@@ -51,12 +51,12 @@ done
 
 # Validate required args
 if [[ -z "$plan_type" ]]; then
-  echo '{"error":"--type is required (feat, fix, or chore)"}' >&2
+  echo '{"ok":false,"error":"--type is required (feat, fix, or chore)"}' >&2
   exit 1
 fi
 
 if [[ -z "$slug" ]]; then
-  echo '{"error":"--slug is required"}' >&2
+  echo '{"ok":false,"error":"--slug is required"}' >&2
   exit 1
 fi
 
@@ -64,14 +64,20 @@ fi
 case "$plan_type" in
   feat|fix|chore) ;;
   *)
-    echo '{"error":"--type must be feat, fix, or chore"}' >&2
+    echo '{"ok":false,"error":"--type must be feat, fix, or chore"}' >&2
     exit 1
     ;;
 esac
 
 # R10: validate slug - reject shell metacharacters and spaces
-if [[ "$slug" =~ [\;\|\&\$\`\ ] ]]; then
-  echo '{"error":"--slug contains invalid characters (spaces or shell metacharacters)"}' >&2
+if [[ "$slug" =~ [\;\|\&\$\`\!\>\<\(\)\{\}\~\*\?/] || "$slug" =~ \  ]]; then
+  echo '{"ok":false,"error":"--slug contains invalid characters (spaces or shell metacharacters)"}' >&2
+  exit 1
+fi
+
+# Block path traversal
+if [[ "$slug" == *".."* ]]; then
+  echo '{"ok":false,"error":"--slug must not contain path traversal (..)"}' >&2
   exit 1
 fi
 
