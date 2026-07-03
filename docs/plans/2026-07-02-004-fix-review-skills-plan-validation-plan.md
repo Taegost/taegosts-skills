@@ -31,7 +31,7 @@ Additionally, other skills that do coding or reviewing work don't auto-discover 
 
 ### Plan Discovery
 
-- R5. A shared `load-plan` skill handles plan discovery for all skills that need plan context. Discovery uses: (1) use plan already passed as argument, (2) check `docs/plans/` for branch-name match or most recent, (3) ask user
+- R5. A shared `load-plan` skill handles plan discovery for all skills that need plan context. Discovery uses: (1) use plan already passed as argument, (2) check `docs/plans/` for a plan updated on the current branch (via `git diff` against the base branch) or pick the most recent, (3) ask user
 - R6. All skills that need plan context call `/load-plan`: `ts-work`, `ts-verify-implementation`, `ts-pr-fix-findings`, `ts-pr-review`, `ts-code-review`, `ts-coding-workflow`, `ts-do-work-loop`. Skills with existing plan discovery migrate to the shared skill.
 
 ### Test Coverage (Issue #79 Mismatches)
@@ -51,13 +51,13 @@ Additionally, other skills that do coding or reviewing work don't auto-discover 
 
 ## Key Technical Decisions
 
-**KTD1. Plan discovery via shared `load-plan` skill.** All skills that need plan context call `/load-plan` instead of implementing their own discovery. The skill uses a three-tier fallback: (1) use the plan already passed as an argument, (2) check `docs/plans/` for a plan matching the current branch name or pick the most recent, (3) ask the user. Explicit input always takes precedence over auto-discovery. The skill returns the plan path and content, or an error if no plan is found. Skills that already have their own plan discovery (ts-work, ts-code-review) migrate to calling `load-plan` to eliminate duplication.
+**KTD1. Plan discovery via shared `load-plan` skill.** All skills that need plan context call `/load-plan` instead of implementing their own discovery. The skill uses a three-tier fallback: (1) use the plan already passed as an argument, (2) check `docs/plans/` for a plan that has been updated on the current branch (via `git diff` against the base branch), or pick the most recent plan if none have been modified, (3) ask the user. Explicit input always takes precedence over auto-discovery. The skill returns the plan path and content, or an error if no plan is found. Skills that already have their own plan discovery (ts-work, ts-code-review) migrate to calling `load-plan` to eliminate duplication.
 
-**KTD2. KTD literal comparison.** The Completeness and Correctness subagents receive explicit instructions to extract each KTD from the plan, find the corresponding implementation code, and compare the literal strings. Completeness verifies "the exact spec is implemented" (not just "something exists"). Correctness verifies "implementation string matches KTD character-by-character." Both subagents receive the KTD section as separate structured input, not buried in the full plan text.
+**KTD2. KTD verification.** KTDs fall into two categories: (1) **literal specifications** — regex patterns, code snippets, exact strings — where the Completeness and Correctness subagents compare character-by-character, and (2) **behavioral or architectural decisions** — patterns, approaches, constraints — where the subagents verify the implementation follows the intent of the decision. Completeness verifies "the exact spec or behavioral intent is implemented" (not just "something exists"). Correctness verifies "implementation matches the KTD literally or follows its intent." Both subagents receive the KTD section as separate structured input, not buried in the full plan text.
 
 **KTD3. ts-work KTD inlining.** When ts-work reads a plan, it extracts the KTD section and presents each KTD as a named constraint to the implementer. For regex patterns, code snippets, or other literal specs, the KTD content is carried forward as a verification checklist item — the implementer must confirm the implementation matches the spec exactly.
 
-**KTD4. ts-pr-fix-findings plan cross-reference.** After reading PR findings, the skill searches `docs/plans/` for a plan matching the PR's branch. If found, it reads the plan's KTDs and Scope Boundaries. Each finding is cross-referenced: does the reviewer's request contradict a KTD? Is it asking for something explicitly out of scope? Divergences are noted in the remediation plan so the operator can make an informed decision.
+**KTD4. ts-pr-fix-findings plan cross-reference.** After reading PR findings, the skill checks `docs/plans/` for a plan that has been updated on the PR's branch (via `git diff` against the base branch). If found, it reads the plan's KTDs and Scope Boundaries. Each finding is cross-referenced: does the reviewer's request contradict a KTD? Is it asking for something explicitly out of scope? Divergences are noted in the remediation plan so the operator can make an informed decision.
 
 ## Implementation Units
 
