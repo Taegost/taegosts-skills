@@ -20,6 +20,29 @@ Three root causes allow implementation drift:
 
 Additionally, other skills that do coding or reviewing work don't auto-discover plans from `docs/plans/`, missing opportunities to validate against the plan.
 
+**Evidence:** The previous hardening pass (`docs/plans/2026-07-02-003-fix-pr-work-script-hardening-plan.md`) skipped many items that were part of the plan — test coverage gaps, documentation units, and bug fixes that were specified but not implemented. This is concrete evidence that plan drift is a real problem, not a theoretical one.
+
+## Issue #79 Mismatches
+
+| # | Description | Requirement | Unit |
+|---|-------------|-------------|------|
+| 1 | Regex format inconsistency (skills use different formats than KTD1 spec) | R2, R3, R4 | U2, U3, U4 |
+| 2 | Tests only verify `;` for metacharacter rejection, not full blocklist | R7 | U5 (verification) |
+| 3 | Path traversal tests missing (`foo/../bar` rejection, `foo..bar` acceptance) | R8 | U5 (verification) |
+| 4 | Missing-value guards untested (`--repo`/`--pr` with no value) | R9 | U5 (verification) |
+| 5 | Prior hardening plan U6 bug fix lacks regression test | R10 | U5 (verification) |
+| 6 | `detect-missing-artifacts.sh` `..` check over-rejects valid filenames | R11 | U5 (verification) |
+| 7 | `find-precommit-hook.sh` not validated by test | R12 | U5 (verification) |
+| 8 | `.git/` directory exclusion not tested | R13 | U5 (verification) |
+| 9 | Prior hardening plan U9 documentation incomplete | R14 | U5 (verification) |
+| 10 | Prior hardening plan U10 test audit incomplete | R15 | U5 (verification) |
+
+## Priority Tiers
+
+- **P1 (Core fix):** U1, U2, U3, U4 — address the root causes of plan-validation drift
+- **P2 (Verification):** U5 — verify the prior hardening plan was fully implemented using updated logic
+- **P3 (Infrastructure):** U6 — KTD extraction utility and standards documentation
+
 ## Requirements
 
 ### Skill Logic Fixes (Root Causes)
@@ -31,8 +54,8 @@ Additionally, other skills that do coding or reviewing work don't auto-discover 
 
 ### Plan Discovery
 
-- R5. A shared `load-plan` skill handles plan discovery for all skills that need plan context. Discovery uses: (1) use plan already passed as argument, (2) check `docs/plans/` for a plan updated on the current branch (via `git diff` against the base branch) or pick the most recent, (3) ask user
-- R6. All skills that need plan context call `/load-plan`: `ts-work`, `ts-verify-implementation`, `ts-pr-fix-findings`, `ts-pr-review`, `ts-code-review`, `ts-coding-workflow`, `ts-do-work-loop`. Skills with existing plan discovery migrate to the shared skill.
+- R5. A shared `load-plan` skill handles plan discovery for all skills that need plan context. Discovery uses: (1) use plan already passed as argument, (2) check `docs/plans/` for a plan updated on the current branch (via `git diff` against the base branch), or pick the most recent plan if none have been modified, (3) ask user. On ambiguity or error, ask the user what to do.
+- R6. All skills that need plan context call `/load-plan`: `ts-work`, `ts-verify-implementation`, `ts-pr-fix-findings`, `ts-code-review`, `ts-coding-workflow`, `ts-do-work-loop`. Skills with existing plan discovery migrate to the shared skill. `ts-pr-review` gets plan discovery transitively through `ts-code-review` and does not need its own migration.
 
 ### Test Coverage (Issue #79 Mismatches)
 
@@ -51,60 +74,61 @@ Additionally, other skills that do coding or reviewing work don't auto-discover 
 
 ## Key Technical Decisions
 
-**KTD1. Plan discovery via shared `load-plan` skill.** All skills that need plan context call `/load-plan` instead of implementing their own discovery. The skill uses a three-tier fallback: (1) use the plan already passed as an argument, (2) check `docs/plans/` for a plan that has been updated on the current branch (via `git diff` against the base branch), or pick the most recent plan if none have been modified, (3) ask the user. Explicit input always takes precedence over auto-discovery. The skill returns the plan path and content, or an error if no plan is found. Skills that already have their own plan discovery (ts-work, ts-code-review) migrate to calling `load-plan` to eliminate duplication.
+**KTD1 [literal]. Plan discovery via shared `load-plan` skill.** All skills that need plan context call `/load-plan` instead of implementing their own discovery. The skill is based on ts-code-review's existing plan discovery logic (keyword extraction from branch name, PR body scanning, confidence tagging). The skill uses a three-tier fallback: (1) use the plan already passed as an argument, (2) check `docs/plans/` for a plan that has been updated on the current branch (via `git diff` against the base branch), or pick the most recent plan if none have been modified, (3) ask the user. On ambiguity (multiple matches), always ask the user — never silently pick "most recent." On error (detached HEAD, shallow clone, no remote, unreadable file), ask the user what to do. The `plan:` argument is the recommended path for non-interactive callers. Explicit input always takes precedence over auto-discovery. The skill returns the plan path and content, or an error if no plan is found. The skill is a pure utility — it only locates and loads the plan. It does not execute, verify, modify, or extract content from the plan.
 
-**KTD2. KTD verification.** KTDs fall into two categories: (1) **literal specifications** — regex patterns, code snippets, exact strings — where the Completeness and Correctness subagents compare character-by-character, and (2) **behavioral or architectural decisions** — patterns, approaches, constraints — where the subagents verify the implementation follows the intent of the decision. Completeness verifies "the exact spec or behavioral intent is implemented" (not just "something exists"). Correctness verifies "implementation matches the KTD literally or follows its intent." Both subagents receive the KTD section as separate structured input, not buried in the full plan text.
+**KTD2 [literal]. KTD classification and verification.** Plan authors label each KTD with a type marker: `[literal]` for regex patterns, code snippets, and exact strings; `[behavioral]` for patterns, approaches, and constraints. If unclassified, default to `[literal]` (safer default). Literal KTDs: the Completeness and Correctness subagents compare character-by-character, applying a normalization policy (see `docs/solutions/ktd-normalization-policy.md`). Behavioral KTDs: the subagents verify the implementation follows the intent of the decision using criteria defined in `docs/solutions/behavioral-ktd-verification.md`. Both subagents receive the KTD section as separate structured input, not buried in the full plan text. KTD extraction is done by the consumer skill (not load-plan) by parsing markdown headers for the "Key Technical Decisions" section.
 
-**KTD3. ts-work KTD inlining.** When ts-work reads a plan, it extracts the KTD section and presents each KTD as a named constraint to the implementer. For regex patterns, code snippets, or other literal specs, the KTD content is carried forward as a verification checklist item — the implementer must confirm the implementation matches the spec exactly.
+**KTD3 [literal]. ts-work KTD inlining.** When ts-work reads a plan, it extracts the KTD section by parsing the "Key Technical Decisions" markdown header. Each KTD is presented as a named constraint to the implementer with its type marker (`[literal]` or `[behavioral]`). For literal KTDs, the content is carried forward as a verification checklist item — the implementer must confirm the implementation matches the spec exactly. For behavioral KTDs, the intent is presented as a constraint the implementation must satisfy.
 
-**KTD4. ts-pr-fix-findings plan cross-reference.** After reading PR findings, the skill checks `docs/plans/` for a plan that has been updated on the PR's branch (via `git diff` against the base branch). If found, it reads the plan's KTDs and Scope Boundaries. Each finding is cross-referenced: does the reviewer's request contradict a KTD? Is it asking for something explicitly out of scope? Divergences are noted in the remediation plan so the operator can make an informed decision.
+**KTD4 [literal]. ts-pr-fix-findings plan cross-reference.** After reading PR findings, the skill checks `docs/plans/` for a plan that has been updated on the PR's branch (via `git diff` against the base branch). If found, it reads the plan's KTDs and Scope Boundaries. Each finding is cross-referenced: does the reviewer's request contradict a KTD? Is it asking for something explicitly out of scope? Divergences are noted in the remediation plan so the operator can make an informed decision.
 
 ## Implementation Units
 
-### U1. Create shared `load-plan` skill and migrate consumers
+### U1. Create shared `load-plan` skill and migrate ts-pr-fix-findings (Phase 1)
 
-Create a new `load-plan` skill that handles plan discovery and reading for all skills. Migrate all consumers to call it instead of implementing their own discovery.
+Create a new `load-plan` skill based on ts-code-review's existing plan discovery logic. In Phase 1, migrate only ts-pr-fix-findings to validate the skill works. Remaining skills migrate in Phase 2 after validation.
 
-**Goal:** Single source of truth for plan discovery. All skills that need plan context call `/load-plan`.
+**Goal:** Single source of truth for plan discovery. Phase 1 validates with one consumer before broader migration.
 
 **Requirements:** R5, R6
 
-**Files:**
-- `skills/load-plan/SKILL.md` (new)
+**Phase 1 files:**
+- `skills/load-plan/SKILL.md` (new — based on ts-code-review Stage 2b logic)
 - `skills/ts-pr-fix-findings/SKILL.md` (migrate)
+
+**Phase 2 files (after Phase 1 validation):**
 - `skills/ts-do-work-loop/SKILL.md` (migrate)
 - `skills/ts-coding-workflow/SKILL.md` (migrate)
-- `skills/ts-work/SKILL.md` (migrate — remove Phase 0 inline discovery)
+- `skills/ts-work/SKILL.md` (migrate — remove Phase 1 step 1 inline glob discovery triggered by blank invocation via Phase 0)
 - `skills/ts-verify-implementation/SKILL.md` (migrate — remove inline `ls docs/plans/` fallback)
 - `skills/ts-code-review/SKILL.md` (migrate — remove Stage 2b inline discovery)
 - `skills/ts-pr-review/SKILL.md` (inherits via ts-code-review, no change needed)
 
 **Approach — `load-plan` skill:**
+- Based on ts-code-review's existing Stage 2b plan discovery logic (keyword extraction from branch name, PR body scanning, confidence tagging)
 - Accepts optional argument: plan path, plan filename, or blank
 - Three-tier fallback per KTD1:
   1. If argument is a valid plan path/filename, read and return it
-  2. If blank, glob `docs/plans/*.{md,html}` and match by current branch name. If no branch match, pick the most recent. If ambiguous (multiple matches), list candidates and ask the user
+  2. If blank, use keyword extraction from branch name to match plans. If no match, ask the user (never silently pick "most recent")
   3. If no plans exist, ask the user what to do
-- Returns: plan path + plan content (or error if not found)
-- The skill is a pure utility — it does not execute, verify, or modify the plan
+- On error (detached HEAD, shallow clone, no remote, unreadable file), ask the user what to do
+- `plan:` argument is recommended for non-interactive callers
+- Returns: plan path + plan content (or error)
+- Pure utility — only locates and loads the plan. Does not execute, verify, modify, or extract content.
 
-**Approach — consumer migration:**
-- `ts-pr-fix-findings`: Add step between Step 0 and Step 1: call `/load-plan` with the PR's branch as context. If a plan is found, extract KTDs and Scope Boundaries for cross-referencing.
-- `ts-do-work-loop`: When no argument provided, call `/load-plan` (blank) to auto-discover. Pass result to ts-work and ts-verify-implementation.
-- `ts-coding-workflow`: Replace the "Phase 1 gate" Rule's manual ask with `/load-plan` call. Present the result to the user.
-- `ts-work`: Replace Phase 0 inline glob discovery with `/load-plan` call.
-- `ts-verify-implementation`: Replace Step 2 inline `ls docs/plans/` with `/load-plan` call.
-- `ts-code-review`: Replace Stage 2b inline discovery with `/load-plan` call. Keep the `plan:` argument as tier 1 override.
+**Approach — consumer migration (Phase 1):**
+- `ts-pr-fix-findings`: Add step between Step 0 and Step 1: call `/load-plan` with the PR's branch as context. If a plan is found, extract KTDs (by parsing "Key Technical Decisions" header) and Scope Boundaries for cross-referencing.
 
 **Test scenarios:**
 - Happy path: `/load-plan` with explicit path returns plan
-- Happy path: `/load-plan` blank, branch matches a plan, returns it
-- Happy path: `/load-plan` blank, no branch match, returns most recent
-- Edge case: multiple plans exist, ambiguous, user is prompted
+- Happy path: `/load-plan` blank, branch keywords match a plan, returns it
+- Happy path: `/load-plan` blank, no match, user is prompted
+- Edge case: multiple plans match, user is prompted
 - Edge case: no plans exist, user is prompted
-- Error path: argument is a path but file doesn't exist, returns error
+- Edge case: detached HEAD, user is prompted
+- Error path: argument is a path but file doesn't exist, user is prompted
 
-**Verification:** All consumers call `/load-plan` and receive consistent plan discovery behavior.
+**Verification:** ts-pr-fix-findings calls `/load-plan` and receives correct plan discovery behavior. After PR finding resolution validates the skill, Phase 2 begins.
 
 ---
 
@@ -120,21 +144,24 @@ Modify the Completeness and Correctness subagents to verify implementations agai
 - `skills/ts-verify-implementation/SKILL.md`
 
 **Approach:**
-- Step 2 (Read the plan): Extract the KTD section separately. Pass each KTD as a structured item to the subagents (not buried in full plan text).
-- Subagent 2 (Completeness): Add instructions — "For each KTD in the plan, find the corresponding implementation code. Verify the *exact spec* is implemented, not just that *something* exists. For regex patterns, compare the literal character sequence. For code patterns, verify the exact approach matches."
-- Subagent 1 (Correctness): Add instructions — "For each KTD, extract the implementation string from the diff and compare it character-by-character against the KTD specification. Flag any difference — missing characters, extra characters, different quoting style, different escape sequences."
-- Both subagents receive a structured KTD list: `KTD-N: <spec text> | <files it applies to>`.
+- Step 2 (Read the plan): Extract the KTD section by parsing the "Key Technical Decisions" markdown header. Pass each KTD as a structured item to the subagents with its type marker (`[literal]` or `[behavioral]`).
+- Subagent 2 (Completeness): Add instructions — "For each KTD in the plan, find the corresponding implementation code. For `[literal]` KTDs, verify the *exact spec* is implemented — compare the literal character sequence after applying the normalization policy from `docs/solutions/ktd-normalization-policy.md`. For `[behavioral]` KTDs, verify the implementation follows the intent using criteria from `docs/solutions/behavioral-ktd-verification.md`."
+- Subagent 1 (Correctness): Add instructions — "For each `[literal]` KTD, extract the implementation string from the diff and compare it against the KTD specification using the normalization policy. Flag any difference — missing characters, extra characters, different quoting style, different escape sequences. For `[behavioral]` KTDs, verify the implementation satisfies the stated intent."
+- Both subagents receive a structured KTD list: `KTD-N [type]: <spec text> | <files it applies to>`.
 
 **Patterns to follow:** Current subagent output format (verdict + bulleted findings with file/line references).
 
 **Test scenarios:**
-- Happy path: implementation matches KTD exactly → PASS
+- Happy path: implementation matches `[literal]` KTD exactly → PASS
 - Happy path: implementation has wrong regex format → FAIL with specific mismatch
+- Happy path: implementation satisfies `[behavioral]` KTD intent → PASS
 - Edge case: KTD has two variants (non-path and file-path), both must be verified
 - Edge case: implementation uses a different quoting style (double-quoted vs ANSI-C) → FAIL
+- Edge case: `[literal]` KTD has minor whitespace differences — normalization policy determines if PASS or FAIL
 - Error path: KTD references a file that doesn't exist → FAIL with "file not found"
+- Error path: KTD has no type marker → defaults to `[literal]`, verified strictly
 
-**Verification:** Running ts-verify-implementation against a plan with KTDs catches literal mismatches.
+**Verification:** Running ts-verify-implementation against a plan with KTDs catches literal mismatches and behavioral intent violations.
 
 ---
 
@@ -150,16 +177,19 @@ Modify ts-work to extract KTDs from the plan and present them as named constrain
 - `skills/ts-work/SKILL.md`
 
 **Approach:**
-- Phase 1 (Quick Start), after reading the plan: Extract the KTD section. For each KTD, present it as a "verification constraint" with the exact spec text.
-- When a KTD contains a code pattern (regex, function signature, config format), the KTD content is carried forward as a checklist item — the implementer must confirm the implementation matches the spec exactly.
+- Phase 1 (Quick Start), after reading the plan: Extract the KTD section by parsing the "Key Technical Decisions" markdown header. For each KTD, present it as a "verification constraint" with the exact spec text and its type marker (`[literal]` or `[behavioral]`).
+- For `[literal]` KTDs containing code patterns (regex, function signature, config format), the KTD content is carried forward as a checklist item — the implementer must confirm the implementation matches the spec exactly.
+- For `[behavioral]` KTDs, the intent is presented as a constraint the implementation must satisfy.
 - For Implementation Units that reference KTDs (e.g., "Update per KTD1"), inline the KTD spec text into the unit's context so the implementer doesn't need to resolve the reference.
 
 **Patterns to follow:** Current Phase 1 "Review any references or links provided in the plan" pattern — extend it to KTDs.
 
 **Test scenarios:**
-- Happy path: plan has KTDs, implementer applies them literally
+- Happy path: plan has `[literal]` KTDs, implementer applies them literally
+- Happy path: plan has `[behavioral]` KTDs, implementer satisfies the intent
 - Edge case: plan has multiple KTDs, each applies to different files
 - Edge case: KTD references a standard in `docs/solutions/` — implementer reads the standard
+- Edge case: KTD has no type marker — defaults to `[literal]`
 
 **Verification:** ts-work implementations match KTD specs without drift.
 
@@ -177,8 +207,8 @@ Modify ts-pr-fix-findings to read the feature plan before remediating and cross-
 - `skills/ts-pr-fix-findings/SKILL.md`
 
 **Approach:**
-- New Step 1.5 (between repo context and ts-debug check): Call `/load-plan` with the PR's branch as context.
-- If a plan is found, extract KTDs and Scope Boundaries.
+- New step between Step 0 and Step 1 (between repo context and ts-debug check): Call `/load-plan` with the PR's branch as context.
+- If a plan is found, extract KTDs (by parsing "Key Technical Decisions" header) and Scope Boundaries.
 - Step 3 (Plan the fix): For each finding, cross-reference against the plan:
   - Does the reviewer's request contradict a KTD? Note the divergence.
   - Is the reviewer asking for something explicitly out of scope per the plan? Note it.
@@ -192,230 +222,94 @@ Modify ts-pr-fix-findings to read the feature plan before remediating and cross-
 - Happy path: finding contradicts a KTD, divergence noted in plan
 - Edge case: finding asks for something out of scope per plan, flagged
 - Edge case: no plan exists for the branch, skill proceeds without plan context
-- Error path: plan exists but is unreadable, skill warns and proceeds
+- Error path: plan exists but is unreadable, user is prompted
 
 **Verification:** Remediation plans note divergences between reviewer requests and plan specifications.
 
 ---
 
-### U5. Add individual metacharacter tests
+### U5. Verify prior hardening plan was fully implemented
 
-Expand test suites to verify each KTD1 metacharacter is rejected individually.
+Using the updated ts-verify-implementation logic from U2, verify that the prior hardening plan (`docs/plans/2026-07-02-003-fix-pr-work-script-hardening-plan.md`) was fully implemented. This consolidates the test coverage, documentation, and bug fix verification from the prior plan into a single unit.
 
-**Goal:** Tests verify the full metacharacter blocklist, not just `;`.
+**Goal:** Confirm the prior hardening plan's KTDs, requirements, and implementation units are all complete using the new verification infrastructure.
 
-**Requirements:** R7
+**Requirements:** R7, R8, R9, R10, R11, R12, R13, R14, R15
 
 **Files:**
-- `tests/skills/ts-work/test-detect-missing-artifacts.sh`
-- `tests/skills/ts-pr-fix-findings/test-check-thread-resolution.sh`
-- `tests/skills/ts-pr-fix-findings/test-fetch-issue-comments.sh`
-- `tests/skills/ts-plan/test-generate-plan-filename.sh`
-- `tests/skills/ts-verify-implementation/test-detect-file-status.sh`
+- All test files referenced by the prior hardening plan
+- All documentation files referenced by the prior hardening plan
+- `skills/ts-work/scripts/detect-missing-artifacts.sh` (if `..` over-rejection bug is found)
 
 **Approach:**
-- For each test file, add a test case for each metacharacter in KTD1: `|`, `&`, `$`, `` ` ``, `<`, `>`, `(`, `)`, `{`, `}`, `~`, `*`, `?`, `!`, `"`, `'`, space, `\t`, `\n`
-- Use a loop or parameterized test pattern to avoid bloating the file.
-- For file-path scripts, also test that `/` is rejected.
-- For non-path scripts, test that `/` is accepted (it's valid in non-path contexts like `owner/repo`).
-- Test that `\x01` (first control character), `\x1f` (last control character before DEL), and `\x7f` (DEL) are rejected as range boundaries.
-
-**Patterns to follow:** Existing test pattern — run script with invalid input, check exit code and error message.
+- Run the enhanced ts-verify-implementation against the prior hardening plan.
+- For each KTD and requirement, verify the implementation matches the spec.
+- For any gaps found: add missing tests, complete missing documentation, fix any bugs.
+- Specific items to verify:
+  - Metacharacter tests cover all KTD1 characters (not just `;`)
+  - Path traversal tests cover `foo/../bar` rejection and `foo..bar` acceptance
+  - Missing-value guards tested for `--repo`/`--pr`
+  - Prior U6 bug fix has regression test
+  - `detect-missing-artifacts.sh` `..` check doesn't over-reject valid filenames
+  - `find-precommit-hook.sh` covered by tests
+  - `.git/` directory exclusion tested
+  - Prior U9 documentation complete
+  - Prior U10 test audit complete
 
 **Test scenarios:**
-- Each metacharacter individually rejected with correct exit code
-- Valid inputs without metacharacters accepted
-- `/` rejected for file-path scripts, accepted for non-path scripts
+- Happy path: all prior plan items verified as implemented → PASS
+- Happy path: gap found, remediated, verified → PASS
+- Edge case: prior plan's KTD uses `[behavioral]` type — verified using behavioral criteria
+- Error path: prior plan references a file that no longer exists → FAIL with "file not found"
 
-**Verification:** All test suites pass with full metacharacter coverage.
+**Verification:** All items from the prior hardening plan are verified complete using the new infrastructure.
 
 ---
 
-### U6. Add path traversal and missing-value guard tests
+### U6. Create KTD extraction utility and standards documentation
 
-Add tests for `foo/../bar` rejection, `foo..bar` acceptance, and missing-value argument guards.
+Create a Python script for extracting KTDs from plan documents and document the KTD labeling standard and normalization policy in `docs/solutions/`.
 
-**Goal:** Path traversal and argument edge cases are tested.
+**Goal:** Standardized KTD extraction and documented standards for KTD classification and verification.
 
-**Requirements:** R8, R9
-
-**Note:** U6 and U8 overlap on path traversal tests for `detect-missing-artifacts.sh`. U8 fixes the underlying `..` over-rejection bug; U6 adds tests for the corrected behavior. Implement U8 first, then U6's `detect-missing-artifacts.sh` tests will pass against the fixed script.
+**Requirements:** R1, R2, R3
 
 **Files:**
-- `tests/skills/ts-work/test-detect-missing-artifacts.sh`
-- `tests/skills/ts-pr-fix-findings/test-check-thread-resolution.sh`
-- `tests/skills/ts-pr-fix-findings/test-fetch-issue-comments.sh`
+- `scripts/extract-ktds.py` (new)
+- `docs/solutions/ktd-normalization-policy.md` (new)
+- `docs/solutions/behavioral-ktd-verification.md` (new)
 
 **Approach:**
-- Path traversal: test that `foo/../bar` is rejected by scripts with `..` checks. Test that `foo..bar` (valid filename with `..` in the middle) is accepted.
-- Missing-value guards: test that `--repo` with no value exits with error. Test that `--pr` with no value exits with error.
-
-**Patterns to follow:** Existing test pattern.
+- `extract-ktds.py`: Parse markdown files, find the "Key Technical Decisions" section, extract each KTD with its type marker (`[literal]` or `[behavioral]`), spec text, and associated files. Output as structured JSON.
+- `ktd-normalization-policy.md`: Document the normalization policy for literal KTD comparison — what whitespace is normalized, what quoting differences are acceptable, what constitutes a literal match for multi-line snippets.
+- `behavioral-ktd-verification.md`: Document the criteria for verifying behavioral KTDs — what evidence to look for, what constitutes a match vs mismatch, how ambiguous cases are resolved. **Logic needs user approval before implementation.**
 
 **Test scenarios:**
-- `foo/../bar` rejected with path traversal error
-- `foo..bar` accepted (valid filename)
-- `--repo` with missing value exits non-zero with JSON error
-- `--pr` with missing value exits non-zero with JSON error
+- Happy path: plan with `[literal]` and `[behavioral]` KTDs extracted correctly
+- Happy path: plan with no type markers — all default to `[literal]`
+- Edge case: KTD spans multiple paragraphs — extracted as single item
+- Edge case: plan has no "Key Technical Decisions" section — returns empty array
+- Error path: file doesn't exist or is unreadable — returns error
 
-**Verification:** Tests pass for all edge cases.
-
----
-
-### U7. Add regression test for prior hardening plan U6 bug fix
-
-Add a test that verifies the specific bug fix from U6 of the prior hardening plan (`docs/plans/2026-07-02-003-fix-pr-work-script-hardening-plan.md`).
-
-**Goal:** The original U6 fix doesn't regress.
-
-**Requirements:** R10
-
-**Files:**
-- `tests/skills/ts-work/test-detect-missing-artifacts.sh`
-
-**Approach:**
-- Read U6 from `docs/plans/2026-07-02-003-fix-pr-work-script-hardening-plan.md` to identify the specific bug fix.
-- Add a test case that reproduces the original bug scenario and verifies the fix.
-
-**Patterns to follow:** Existing test pattern.
-
-**Test scenarios:**
-- Original bug scenario → correct behavior after fix
-
-**Verification:** Regression test passes.
-
----
-
-### U8. Fix detect-missing-artifacts.sh `..` over-rejection
-
-The `*\"..\"*` pattern over-rejects valid filenames like `my.config.js`.
-
-**Goal:** `..` check only rejects actual path traversal, not filenames containing `..`.
-
-**Requirements:** R11
-
-**Files:**
-- `skills/ts-work/scripts/detect-missing-artifacts.sh`
-- `tests/skills/ts-work/test-detect-missing-artifacts.sh`
-
-**Approach:**
-- Change the `..` check from `*\"..\"*` (glob match) to a more precise check that detects path traversal sequences (`/../`, `../` at start, `/..` at end) without rejecting valid filenames.
-- Add test cases: `my.config.js` accepted, `foo/../bar` rejected, `../etc/passwd` rejected.
-
-**Patterns to follow:** Existing metacharacter validation pattern — check specific dangerous patterns, not broad globs.
-
-**Test scenarios:**
-- `my.config.js` accepted (valid filename with `..` in extension)
-- `foo/../bar` rejected (path traversal)
-- `../etc/passwd` rejected (path traversal)
-- `foo..bar` accepted (valid filename)
-
-**Verification:** Tests pass, valid filenames not rejected.
-
----
-
-### U9. Add find-precommit-hook.sh test
-
-Validate `find-precommit-hook.sh` with a test.
-
-**Goal:** `find-precommit-hook.sh` is covered by tests.
-
-**Requirements:** R12
-
-**Files:**
-- `tests/skills/ts-work/test-find-precommit-hook.sh` (exists, 114 lines, 11 test cases)
-
-**Approach:**
-- Verify the existing test file adequately covers the script's functionality.
-- If gaps remain, add tests for the uncovered scenarios.
-
-**Patterns to follow:** Existing test pattern.
-
-**Test scenarios:**
-- Happy path: pre-commit hook found in expected location
-- Edge case: no pre-commit hook exists
-- Edge case: multiple hook directories
-
-**Verification:** Test passes and covers the script's key behaviors.
-
----
-
-### U10. Add `.git/` directory exclusion test
-
-Test that `.git/` directories are excluded from processing.
-
-**Goal:** `.git/` exclusion is verified by tests.
-
-**Requirements:** R13
-
-**Files:**
-- `tests/skills/ts-work/test-detect-missing-artifacts.sh`
-
-**Approach:**
-- Add a test case that includes a `.git/` directory path and verifies it's excluded.
-
-**Patterns to follow:** Existing test pattern.
-
-**Test scenarios:**
-- `.git/` directory path excluded from results
-- `.git/config` file excluded from results
-
-**Verification:** Test passes.
-
----
-
-### U11. Complete prior hardening plan U9 documentation unit
-
-Complete the U9 documentation unit from the prior hardening plan (`docs/plans/2026-07-02-003-fix-pr-work-script-hardening-plan.md`).
-
-**Goal:** U9 documentation is complete and accurate.
-
-**Requirements:** R14
-
-**Files:**
-- Relevant documentation files referenced by U9
-
-**Approach:**
-- Read U9 from `docs/plans/2026-07-02-003-fix-pr-work-script-hardening-plan.md` to understand what documentation was planned.
-- Identify any documentation gaps that remain (the prior plan's U9 may have been partially completed).
-- Complete the missing documentation.
-
-**Verification:** Documentation is complete.
-
----
-
-### U12. Complete prior hardening plan U10 test audit
-
-Complete the U10 test audit from the prior hardening plan (`docs/plans/2026-07-02-003-fix-pr-work-script-hardening-plan.md`).
-
-**Goal:** U10 test audit is complete and all gaps addressed.
-
-**Requirements:** R15
-
-**Files:**
-- Test files referenced by U10
-
-**Approach:**
-- Read U10 from `docs/plans/2026-07-02-003-fix-pr-work-script-hardening-plan.md` to understand what test audit was planned.
-- U12 depends on U5-U10 — only address gaps not already covered by those units.
-- Audit test coverage and fill any remaining gaps.
-
-**Verification:** Test audit complete, all gaps addressed.
+**Verification:** Python script correctly extracts KTDs from existing plan documents.
 
 ## Scope Boundaries
 
 **In scope:**
-- All 10 mismatches from issue #79 (mismatch #1 — regex format inconsistency — is addressed by U2-U4 skill logic fixes; mismatches #2-#10 are addressed by R7-R15 and U5-U12)
+- All 10 mismatches from issue #79 (see mismatch table above)
 - Plan-reading for all applicable skills
 - KTD literal verification in ts-verify-implementation
 - KTD inlining in ts-work
 - Plan cross-reference in ts-pr-fix-findings
+- KTD extraction utility and standards documentation
 
 **Deferred to Follow-Up Work:**
-- None
+- Phase 2 consumer migration (ts-work, ts-verify-implementation, ts-code-review, ts-do-work-loop, ts-coding-workflow) — after Phase 1 validation
 
 ## Risks & Dependencies
 
-- **Risk:** KTD literal comparison in subagents may be too strict — minor formatting differences (whitespace) could cause false positives. Mitigation: compare spec strings after normalizing whitespace. Quoting style differences (double-quoted vs ANSI-C) are intentional failures — different quoting has different escape semantics and should not be normalized.
-- **Risk:** Plan discovery by branch name may match wrong plans if branch names are generic. Mitigation: fall through to user prompt on ambiguity.
+- **Risk:** KTD literal comparison in subagents may be too strict — minor formatting differences (whitespace) could cause false positives. Mitigation: normalization policy documented in `docs/solutions/ktd-normalization-policy.md`. Quoting style differences (double-quoted vs ANSI-C) are intentional failures — different quoting has different escape semantics and should not be normalized.
+- **Risk:** Plan discovery by branch name may match wrong plans if branch names are generic. Mitigation: always ask the user on ambiguity, never silently pick "most recent."
+- **Risk:** load-plan becomes a single point of failure. Mitigation: two-phase migration — validate with one consumer before broader rollout.
 - **Dependency:** Issue #79 is the primary driver. PR #80 tracks the implementation.
+- **Dependency:** Behavioral KTD verification criteria (U6) need user approval before implementation.
