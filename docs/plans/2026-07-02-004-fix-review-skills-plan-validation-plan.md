@@ -27,21 +27,22 @@ Additionally, other skills that do coding or reviewing work don't auto-discover 
 | # | Description | Requirement | Unit |
 |---|-------------|-------------|------|
 | 1 | Regex format inconsistency (skills use different formats than KTD1 spec) | R2, R3, R4 | U2, U3, U4 |
-| 2 | Tests only verify `;` for metacharacter rejection, not full blocklist | R7 | U5 (verification) |
-| 3 | Path traversal tests missing (`foo/../bar` rejection, `foo..bar` acceptance) | R8 | U5 (verification) |
-| 4 | Missing-value guards untested (`--repo`/`--pr` with no value) | R9 | U5 (verification) |
-| 5 | Prior hardening plan U6 bug fix lacks regression test | R10 | U5 (verification) |
-| 6 | `detect-missing-artifacts.sh` `..` check over-rejects valid filenames | R11 | U5 (verification) |
-| 7 | `find-precommit-hook.sh` not validated by test | R12 | U5 (verification) |
-| 8 | `.git/` directory exclusion not tested | R13 | U5 (verification) |
-| 9 | Prior hardening plan U9 documentation incomplete | R14 | U5 (verification) |
-| 10 | Prior hardening plan U10 test audit incomplete | R15 | U5 (verification) |
+| 2 | Tests only verify `;` for metacharacter rejection, not full blocklist | Prior-R7 | U5 (verification) |
+| 3 | Path traversal tests missing (`foo/../bar` rejection, `foo..bar` acceptance) | Prior-R8 | U5 (verification) |
+| 4 | Missing-value guards untested (`--repo`/`--pr` with no value) | Prior-R9 | U5 (verification) |
+| 5 | Prior hardening plan U6 bug fix lacks regression test | Prior-R10 | U5 (verification) |
+| 6 | `detect-missing-artifacts.sh` `..` check over-rejects valid filenames | Prior-R11 | U5 (verification) |
+| 7 | `find-precommit-hook.sh` not validated by test | Prior-R12 | U5 (verification) |
+| 8 | `.git/` directory exclusion not tested | Prior-R13 | U5 (verification) |
+| 9 | Prior hardening plan U9 documentation incomplete | Prior-R14 | U5 (verification) |
+| 10 | Prior hardening plan U10 test audit incomplete | Prior-R15 | U5 (verification) |
+
+*Note: "Prior-R" and "Prior-U" identifiers reference the prior hardening plan (`2026-07-02-003`), not this plan's R/U namespace.*
 
 ## Priority Tiers
 
-- **P1 (Core fix):** U1, U2, U3, U4 — address the root causes of plan-validation drift
+- **P1 (Core fix):** U1, U2, U3, U4, U6 — address the root causes of plan-validation drift (U6 creates the normalization policy and behavioral verification criteria that U2 references)
 - **P2 (Verification):** U5 — verify the prior hardening plan was fully implemented using updated logic
-- **P3 (Infrastructure):** U6 — KTD extraction utility and standards documentation
 
 ## Requirements
 
@@ -54,7 +55,7 @@ Additionally, other skills that do coding or reviewing work don't auto-discover 
 
 ### Plan Discovery
 
-- R5. A shared `load-plan` skill handles plan discovery for all skills that need plan context. Discovery uses: (1) use plan already passed as argument, (2) check `docs/plans/` for a plan updated on the current branch (via `git diff` against the base branch), or pick the most recent plan if none have been modified, (3) ask user. On ambiguity or error, ask the user what to do.
+- R5. A shared `load-plan` skill handles plan discovery for all skills that need plan context. Discovery uses: (1) use plan already passed as argument, (2) if blank, use keyword extraction from the branch name to match plans in `docs/plans/`, (3) ask user. On ambiguity or error, ask the user what to do.
 - R6. All skills that need plan context call `/load-plan`: `ts-work`, `ts-verify-implementation`, `ts-pr-fix-findings`, `ts-code-review`, `ts-coding-workflow`, `ts-do-work-loop`. Skills with existing plan discovery migrate to the shared skill. `ts-pr-review` gets plan discovery transitively through `ts-code-review` and does not need its own migration.
 
 ### Test Coverage (Issue #79 Mismatches)
@@ -74,7 +75,7 @@ Additionally, other skills that do coding or reviewing work don't auto-discover 
 
 ## Key Technical Decisions
 
-**KTD1 [literal]. Plan discovery via shared `load-plan` skill.** All skills that need plan context call `/load-plan` instead of implementing their own discovery. The skill is based on ts-code-review's existing plan discovery logic (keyword extraction from branch name, PR body scanning, confidence tagging). The skill uses a three-tier fallback: (1) use the plan already passed as an argument, (2) check `docs/plans/` for a plan that has been updated on the current branch (via `git diff` against the base branch), or pick the most recent plan if none have been modified, (3) ask the user. On ambiguity (multiple matches), always ask the user — never silently pick "most recent." On error (detached HEAD, shallow clone, no remote, unreadable file), ask the user what to do. The `plan:` argument is the recommended path for non-interactive callers. Explicit input always takes precedence over auto-discovery. The skill returns the plan path and content, or an error if no plan is found. The skill is a pure utility — it only locates and loads the plan. It does not execute, verify, modify, or extract content from the plan.
+**KTD1 [literal]. Plan discovery via shared `load-plan` skill.** All skills that need plan context call `/load-plan` instead of implementing their own discovery. The skill is based on ts-code-review's existing plan discovery logic (keyword extraction from branch name, PR body scanning, confidence tagging). The skill uses a three-tier fallback: (1) use the plan already passed as an argument, (2) if blank, use keyword extraction from the branch name to match plans in `docs/plans/`, (3) ask the user. On ambiguity (multiple matches), always ask the user — never silently pick "most recent." On error (detached HEAD, shallow clone, no remote, unreadable file), ask the user what to do. The `plan:` argument is the recommended path for non-interactive callers. Explicit input always takes precedence over auto-discovery. The skill returns the plan path and content, or an error if no plan is found. The skill is a pure utility — it only locates and loads the plan. It does not execute, verify, modify, or extract content from the plan.
 
 **KTD2 [literal]. KTD classification and verification.** Plan authors label each KTD with a type marker: `[literal]` for regex patterns, code snippets, and exact strings; `[behavioral]` for patterns, approaches, and constraints. If unclassified, default to `[literal]` (safer default). Literal KTDs: the Completeness and Correctness subagents compare character-by-character, applying a normalization policy (see `docs/solutions/ktd-normalization-policy.md`). Behavioral KTDs: the subagents verify the implementation follows the intent of the decision using criteria defined in `docs/solutions/behavioral-ktd-verification.md`. Both subagents receive the KTD section as separate structured input, not buried in the full plan text. KTD extraction is done by the consumer skill (not load-plan) by parsing markdown headers for the "Key Technical Decisions" section.
 
@@ -202,6 +203,7 @@ Modify ts-pr-fix-findings to read the feature plan before remediating and cross-
 **Goal:** ts-pr-fix-findings detects when a reviewer's request contradicts the original design intent.
 
 **Requirements:** R4
+**Depends on:** U1 (creates `/load-plan` skill)
 
 **Files:**
 - `skills/ts-pr-fix-findings/SKILL.md`
@@ -235,6 +237,7 @@ Using the updated ts-verify-implementation logic from U2, verify that the prior 
 **Goal:** Confirm the prior hardening plan's KTDs, requirements, and implementation units are all complete using the new verification infrastructure.
 
 **Requirements:** R7, R8, R9, R10, R11, R12, R13, R14, R15
+**Depends on:** U2 (provides enhanced ts-verify-implementation logic)
 
 **Files:**
 - All test files referenced by the prior hardening plan
