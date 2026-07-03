@@ -31,8 +31,8 @@ Additionally, other skills that do coding or reviewing work don't auto-discover 
 
 ### Plan Discovery
 
-- R5. All applicable skills auto-discover plans using: (1) use plan already passed as argument or in session, (2) check `docs/plans/` for branch-name match or most recent, (3) ask user
-- R6. Skills in scope: `ts-work`, `ts-verify-implementation`, `ts-pr-fix-findings`, `ts-pr-review`, `ts-code-review`, `ts-coding-workflow`, `ts-do-work-loop`. Of these, `ts-work` and `ts-verify-implementation` already read plans (enhanced by U2/U3), `ts-pr-review` delegates to `ts-code-review` (which already has plan discovery via Stage 2b), and `ts-code-review` already has keyword-based auto-discovery. U1 adds or enhances discovery for the remaining 3 skills.
+- R5. A shared `load-plan` skill handles plan discovery for all skills that need plan context. Discovery uses: (1) use plan already passed as argument, (2) check `docs/plans/` for branch-name match or most recent, (3) ask user
+- R6. All skills that need plan context call `/load-plan`: `ts-work`, `ts-verify-implementation`, `ts-pr-fix-findings`, `ts-pr-review`, `ts-code-review`, `ts-coding-workflow`, `ts-do-work-loop`. Skills with existing plan discovery migrate to the shared skill.
 
 ### Test Coverage (Issue #79 Mismatches)
 
@@ -51,7 +51,7 @@ Additionally, other skills that do coding or reviewing work don't auto-discover 
 
 ## Key Technical Decisions
 
-**KTD1. Plan discovery mechanism.** All skills use a three-tier fallback: (1) use the plan already passed as an argument or loaded in session, (2) check `docs/plans/` for a plan matching the current branch name or pick the most recent, (3) ask the user. Explicit input always takes precedence over auto-discovery. This standardizes behavior across skills that currently use different discovery methods (ts-work globs by recency, ts-code-review globs by branch keywords, ts-verify-implementation prompts the user).
+**KTD1. Plan discovery via shared `load-plan` skill.** All skills that need plan context call `/load-plan` instead of implementing their own discovery. The skill uses a three-tier fallback: (1) use the plan already passed as an argument, (2) check `docs/plans/` for a plan matching the current branch name or pick the most recent, (3) ask the user. Explicit input always takes precedence over auto-discovery. The skill returns the plan path and content, or an error if no plan is found. Skills that already have their own plan discovery (ts-work, ts-code-review) migrate to calling `load-plan` to eliminate duplication.
 
 **KTD2. KTD literal comparison.** The Completeness and Correctness subagents receive explicit instructions to extract each KTD from the plan, find the corresponding implementation code, and compare the literal strings. Completeness verifies "the exact spec is implemented" (not just "something exists"). Correctness verifies "implementation string matches KTD character-by-character." Both subagents receive the KTD section as separate structured input, not buried in the full plan text.
 
@@ -61,36 +61,50 @@ Additionally, other skills that do coding or reviewing work don't auto-discover 
 
 ## Implementation Units
 
-### U1. Standardize plan discovery across skills
+### U1. Create shared `load-plan` skill and migrate consumers
 
-Add a consistent plan-discovery preamble to skills that don't already have one. The preamble follows the three-tier fallback from KTD1.
+Create a new `load-plan` skill that handles plan discovery and reading for all skills. Migrate all consumers to call it instead of implementing their own discovery.
 
-**Goal:** All applicable skills can discover and load plans from `docs/plans/` automatically.
+**Goal:** Single source of truth for plan discovery. All skills that need plan context call `/load-plan`.
 
 **Requirements:** R5, R6
 
 **Files:**
-- `skills/ts-pr-fix-findings/SKILL.md`
-- `skills/ts-do-work-loop/SKILL.md`
-- `skills/ts-coding-workflow/SKILL.md`
+- `skills/load-plan/SKILL.md` (new)
+- `skills/ts-pr-fix-findings/SKILL.md` (migrate)
+- `skills/ts-do-work-loop/SKILL.md` (migrate)
+- `skills/ts-coding-workflow/SKILL.md` (migrate)
+- `skills/ts-work/SKILL.md` (migrate — remove Phase 0 inline discovery)
+- `skills/ts-verify-implementation/SKILL.md` (migrate — remove inline `ls docs/plans/` fallback)
+- `skills/ts-code-review/SKILL.md` (migrate — remove Stage 2b inline discovery)
+- `skills/ts-pr-review/SKILL.md` (inherits via ts-code-review, no change needed)
 
-**Approach:**
-- For `ts-pr-fix-findings`: Add a new step between Step 0 (repo context) and Step 1 (ts-debug check) that searches `docs/plans/` for a plan matching the PR's branch. If found, read the plan's KTDs and Scope Boundaries as context for remediation.
-- For `ts-do-work-loop`: Add auto-discovery when no argument is provided — glob `docs/plans/*.{md,html}`, pick the most recent, and pass it to ts-work and ts-verify-implementation.
-- For `ts-coding-workflow`: Enhance the "Phase 1 gate" Rule (line 57 in the skill file) to auto-discover plans from `docs/plans/` using branch-name keyword matching, presenting candidates to the user instead of asking blindly.
-- `ts-work` already has plan discovery (enhanced in U3). `ts-verify-implementation` already reads plans (enhanced in U2). `ts-code-review` already has keyword-based plan discovery in Stage 2b. `ts-pr-review` delegates to `ts-code-review`, so it inherits plan discovery. No changes needed for these 4 skills in this unit.
+**Approach — `load-plan` skill:**
+- Accepts optional argument: plan path, plan filename, or blank
+- Three-tier fallback per KTD1:
+  1. If argument is a valid plan path/filename, read and return it
+  2. If blank, glob `docs/plans/*.{md,html}` and match by current branch name. If no branch match, pick the most recent. If ambiguous (multiple matches), list candidates and ask the user
+  3. If no plans exist, ask the user what to do
+- Returns: plan path + plan content (or error if not found)
+- The skill is a pure utility — it does not execute, verify, or modify the plan
 
-**Patterns to follow:** `ts-work` Phase 0 blank-invocation auto-discovery (glob `docs/plans/*.{md,html}`, pick most recent). `ts-code-review` Stage 2b branch-name keyword extraction.
+**Approach — consumer migration:**
+- `ts-pr-fix-findings`: Add step between Step 0 and Step 1: call `/load-plan` with the PR's branch as context. If a plan is found, extract KTDs and Scope Boundaries for cross-referencing.
+- `ts-do-work-loop`: When no argument provided, call `/load-plan` (blank) to auto-discover. Pass result to ts-work and ts-verify-implementation.
+- `ts-coding-workflow`: Replace the "Phase 1 gate" Rule's manual ask with `/load-plan` call. Present the result to the user.
+- `ts-work`: Replace Phase 0 inline glob discovery with `/load-plan` call.
+- `ts-verify-implementation`: Replace Step 2 inline `ls docs/plans/` with `/load-plan` call.
+- `ts-code-review`: Replace Stage 2b inline discovery with `/load-plan` call. Keep the `plan:` argument as tier 1 override.
 
 **Test scenarios:**
-- Happy path (ts-do-work-loop): skill invoked with no argument, plan exists in `docs/plans/`, most recent is auto-discovered
-- Happy path (ts-pr-fix-findings): PR branch name matches a plan in `docs/plans/`, plan is loaded as context
-- Happy path (ts-coding-workflow): branch-name keyword matching finds a candidate plan, user is presented with it
-- Edge case: multiple plans exist, most recent is selected (ts-do-work-loop) or user is prompted (ts-coding-workflow)
-- Edge case: no plans exist, skill falls through to user prompt
-- Error path: plan file referenced but doesn't exist on disk
+- Happy path: `/load-plan` with explicit path returns plan
+- Happy path: `/load-plan` blank, branch matches a plan, returns it
+- Happy path: `/load-plan` blank, no branch match, returns most recent
+- Edge case: multiple plans exist, ambiguous, user is prompted
+- Edge case: no plans exist, user is prompted
+- Error path: argument is a path but file doesn't exist, returns error
 
-**Verification:** Each skill can discover a plan from `docs/plans/` when invoked without an explicit path.
+**Verification:** All consumers call `/load-plan` and receive consistent plan discovery behavior.
 
 ---
 
@@ -163,8 +177,8 @@ Modify ts-pr-fix-findings to read the feature plan before remediating and cross-
 - `skills/ts-pr-fix-findings/SKILL.md`
 
 **Approach:**
-- New Step 1.5 (between repo context and ts-debug check): Search `docs/plans/` for a plan matching the PR's branch. Use branch-name keyword extraction (same pattern as ts-code-review Stage 2b auto-discover).
-- If a plan is found, read it. Extract KTDs and Scope Boundaries.
+- New Step 1.5 (between repo context and ts-debug check): Call `/load-plan` with the PR's branch as context.
+- If a plan is found, extract KTDs and Scope Boundaries.
 - Step 3 (Plan the fix): For each finding, cross-reference against the plan:
   - Does the reviewer's request contradict a KTD? Note the divergence.
   - Is the reviewer asking for something explicitly out of scope per the plan? Note it.
@@ -398,7 +412,7 @@ Complete the U10 test audit from the prior hardening plan (`docs/plans/2026-07-0
 - Plan cross-reference in ts-pr-fix-findings
 
 **Deferred to Follow-Up Work:**
-- Shared plan-discovery utility/script (each skill currently reimplements discovery independently; a shared utility would reduce duplication, but is not required for correctness)
+- None
 
 ## Risks & Dependencies
 
