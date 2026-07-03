@@ -35,12 +35,12 @@ CodeRabbit review of PR #20 identified security and quality findings across seve
 
 **Safe Execution & Credential Handling**
 
-- R11. All validated user inputs must be consumed via double-quoted variable expansion or passed as separate command arguments — never interpolated into eval, heredoc, or unquoted shell contexts. This should also be documented in the main repo documentation.
+- R11. All validated user inputs must be consumed via double-quoted variable expansion or passed as separate command arguments — never interpolated into eval, heredoc, or unquoted shell contexts.
 - R12. GitHub API credentials are handled externally (via `gh` CLI) and are out of scope for this repository. The new JSON error output format must not echo API responses or token fragments.
 
 **Documentation & Test Coverage**
 
-- R13. Repository documentation is expanded with shell script standards (shebang flags, metacharacter validation, error output format, safe execution context) to ensure future scripts follow the same patterns.
+- R13. Repository documentation is expanded with shell script standards (shebang flags, metacharacter validation, error output format, safe execution context per R11, credential handling per R12) to ensure future scripts follow the same patterns.
 - R14. Test plans are extended to cover all new failure modes introduced by this hardening (missing option values, path traversal slugs, malformed repo/PR inputs, unknown arguments, JSON error validation).
 
 ## Key Technical Decisions
@@ -49,8 +49,8 @@ CodeRabbit review of PR #20 identified security and quality findings across seve
 
 The five scripts with validation currently use four different character classes across two matching mechanisms. Define two regex variants:
 
-- **Non-path inputs** (repo names, slugs): `[\;\|\&\$\`\"\'\/\ \<\>\(\)\{\}\~\ \n\t]` — blocks shell metacharacters, path traversal, redirect operators, subshell syntax, brace expansion, and whitespace control characters. Used by `check-thread-resolution.sh`, `fetch-issue-comments.sh`, and `generate-plan-filename.sh`.
-- **File-path inputs** (`detect-missing-artifacts.sh`, `detect-file-status.sh`): `[\;\|\&\$\`\"\'\<\>\(\)\{\}\~\ \n\t]` — same as above but excludes `/` since paths legitimately contain it.
+- **Non-path inputs** (repo names, slugs): `[\;\|\&\$\`\"\'\/\ \<\>\(\)\{\}\~\ $'\n\t']` — blocks shell metacharacters, path traversal, redirect operators, subshell syntax, brace expansion, and whitespace control characters. Used by `check-thread-resolution.sh`, `fetch-issue-comments.sh`, and `generate-plan-filename.sh`. Note: `\n` and `\t` require ANSI-C quoting (`$'\n\t'`) since bash `[[ =~ ]]` does not interpret backslash escapes.
+- **File-path inputs** (`detect-missing-artifacts.sh`, `detect-file-status.sh`): `[\;\|\&\$\`\"\'\<\>\(\)\{\}\~\ $'\n\t']` — same as above but excludes `/` since paths legitimately contain it.
 
 The `..` sequence is additionally blocked in `generate-plan-filename.sh`'s slug validation since the regex alone doesn't catch it. `find-precommit-hook.sh` has no metacharacter validation and is excluded.
 
@@ -101,7 +101,7 @@ Both `detect-file-status.sh` and `find-precommit-hook.sh` already use `|| { ... 
 
 **Goal:** Add `owner/repo` format validation and numeric `--pr` check to both `check-thread-resolution.sh` and `fetch-issue-comments.sh`.
 
-**Requirements:** R1, R2
+**Requirements:** R1, R2, R4
 
 **Dependencies:** U1 (regex standardization happens first)
 
@@ -109,13 +109,15 @@ Both `detect-file-status.sh` and `find-precommit-hook.sh` already use `|| { ... 
 - `skills/ts-pr-fix-findings/scripts/check-thread-resolution.sh`
 - `skills/ts-pr-fix-findings/scripts/fetch-issue-comments.sh`
 
-**Approach:** After the metacharacter check, add validation that `$repo` matches `^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$` (owner/repo with exactly one `/`) and `$pr_number` matches `^[0-9]+$`. Use JSON error output on failure.
+**Approach:** After the metacharacter check, add validation that `$repo` matches `^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$` (owner/repo with exactly one `/`) and `$pr_number` matches `^[0-9]+$`. Use JSON error output on failure. Also add a `$# -ge 2` guard before assigning `$2` in the argument parser (same pattern as U5) to prevent unbound-variable crashes when `--repo` or `--pr` is the last argument with no value.
 
 **Test scenarios:**
 - Happy path: valid `owner/repo` and numeric PR number pass validation.
 - Edge case: repo with no `/` is rejected.
 - Edge case: repo with multiple `/` is rejected (e.g., `owner/repo/extra`).
 - Edge case: PR number with non-numeric characters is rejected (e.g., `abc`, `12a`).
+- Error path: `--repo` with no value produces JSON error and exit 1.
+- Error path: `--pr` with no value produces JSON error and exit 1.
 - Error path: invalid repo produces JSON error to stderr with exit 1.
 - Error path: invalid PR number produces JSON error to stderr with exit 1.
 
@@ -301,7 +303,7 @@ Both `detect-file-status.sh` and `find-precommit-hook.sh` already use `|| { ... 
 **In scope:** The six issues listed in #69 plus cross-cutting regex, error format, test standardization, repository documentation of standards, and test coverage for all new failure modes.
 
 **Deferred to Follow-Up Work:**
-- Metacharacter regex standardization in `find-precommit-hook.sh` (if it lacks validation) — verify during implementation and include if trivial.
+- Metacharacter regex standardization in `find-precommit-hook.sh` is excluded per R7 — it has no validation and none is planned.
 
 ## Verification
 
