@@ -1,6 +1,6 @@
 # Validator Sub-agent Prompt Template
 
-This template is used by Stage 5b to spawn one validator sub-agent per surviving finding before externalization. The validator's job is **independent re-verification**, not re-reasoning. It is a fresh second opinion, not a critic of the original persona's analysis.
+This template is used by Stage 5b to spawn one validator sub-agent per surviving finding before externalization. The validator's job is **independent re-verification**, not re-reasoning. It is a fresh second opinion, not a critic of the original agent's analysis.
 
 ---
 
@@ -42,9 +42,9 @@ When scope is local-aligned (default), use read tools (Read, Grep, Glob, git bla
 Your task is to answer three questions:
 
 1. **Is the issue real in the code as written?** Read the cited file and surrounding code. If the code does not actually have the problem the finding describes, the finding is invalid. Common false-positive shapes:
-   - The persona missed an existing guard / null check / validation that handles the case
-   - The persona misread types or signatures
-   - The persona flagged a pattern that is intentional in this codebase (check comments, parallel handlers, project conventions)
+   - The agent missed an existing guard / null check / validation that handles the case
+   - The agent misread types or signatures
+   - The agent flagged a pattern that is intentional in this codebase (check comments, parallel handlers, project conventions)
 
 2. **Is the issue introduced by THIS diff?** In local-aligned scope, use git blame or diff inspection. In `pr-remote` / `branch-remote`, determine this from the provided diff and remote-head `git show` output only. If the cited line predates this PR's commits and the diff does not interact with it (does not call into it, does not change its callers in a way that newly exposes the issue), the finding is pre-existing — not validated for externalization regardless of whether it is a real issue.
 
@@ -78,12 +78,12 @@ Rules:
 
 | Variable | Source | Description |
 |----------|--------|-------------|
-| `{finding_title}` | Stage 5 merged finding | The persona's title for the issue |
+| `{finding_title}` | Stage 5 merged finding | The agent's title for the issue |
 | `{finding_severity}` | Stage 5 merged finding | P0 / P1 / P2 / P3 |
 | `{finding_file}` | Stage 5 merged finding | Repo-relative file path |
 | `{finding_line}` | Stage 5 merged finding | Primary line number |
 | `{finding_why_it_matters}` | Per-agent artifact file (detail tier) | Loaded from disk for this validation; required for the validator to understand the finding |
 | `{finding_suggested_fix}` | Stage 5 merged finding (optional) | Pass empty string if not present |
-| `{finding_reviewer}` | Stage 5 merged finding | Original persona name (informational; helps validator interpret the framing) |
-| `{finding_confidence}` | Stage 5 merged finding | The persona's anchor (informational) |
+| `{finding_reviewer}` | Stage 5 merged finding | Original agent name (informational; helps validator interpret the framing) |
+| `{finding_confidence}` | Stage 5 merged finding | The agent's anchor (informational) |
 | `{diff}` | Stage 1 output | Full diff for context |

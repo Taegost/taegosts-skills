@@ -136,7 +136,7 @@ This fails because: no pipe-delimited tables, no severity-grouped `###` headers,
 - **Severity-grouped sections** -- `### P0 -- Critical`, `### P1 -- High`, `### P2 -- Moderate`, `### P3 -- Low`. Omit empty severity levels.
 - **Stable sequential finding numbers** -- assign finding numbers once after sorting, continue them across severity sections, and reuse those same numbers when findings are repeated in Actionable Findings. Do not restart at `1` for each severity or route bucket.
 - **Always include file:line location** for code review issues
-- **Reviewer column** shows which persona(s) flagged the issue. Multiple reviewers = cross-reviewer agreement.
+- **Reviewer column** shows which agent(s) flagged the issue. Multiple reviewers = cross-reviewer agreement.
 - **Confidence column** shows the finding's anchor as an integer (`50`, `75`, or `100`). Never render as a float.
 - **No `Route` column in the per-severity tables** -- the synthesized route (``<autofix_class> -> <owner>``) appears only in the Actionable Findings table and the `mode:agent` JSON. The scannable severity tables are 5 columns: `# | File | Issue | Reviewer | Confidence`.
 - **Detail line (per finding, as needed)** -- keep the `Issue` cell to **one short clause** (roughly 12 words or fewer, no second sentence -- the scannable index, not the explanation); put the full explanation in a bullet list immediately under the severity table, keyed by stable `#`: `- **#N** — <why it matters + concrete fix direction>`. Add a detail line for findings whose one-liner is not self-sufficient -- usually P0/P1; P2/P3 are typically terse-only. This keyed list is the sanctioned home for depth -- never expand a finding into `Field:`-prefixed blocks.
