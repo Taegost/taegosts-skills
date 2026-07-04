@@ -104,9 +104,9 @@ Add a "Plan Divergence" column to the remediation plan noting any conflict betwe
 
 After planning fixes, group the findings for parallel dispatch:
 
-- Group by file proximity (same file or closely related files) and concern type (same category of fix)
-- Each group must be independently fixable — no group depends on another group's fix landing first
-- If a finding depends on another finding's fix, merge them into the same group
+- **File proximity:** Findings targeting the same file go in the same group. Findings targeting files in the same directory are candidates for合并 if they share a concern type.
+- **Concern type:** Map to `autofix_class` categories — findings with the same `autofix_class` (e.g., both `safe_auto` or both `gated_auto`) and touching related code paths can share a group.
+- **Independence:** Each group must be independently fixable — no group depends on another group's fix landing first. If a finding depends on another finding's fix, merge them into the same group.
 - Record the group assignments in the remediation plan
 
 ### 4. Validate the plan against the findings
@@ -119,7 +119,7 @@ After planning fixes, group the findings for parallel dispatch:
 
 ### 5. Remediate valid findings
 
-Launch one ts-debug subagent per group in parallel. Use worktree isolation when available to prevent write conflicts.
+Launch one ts-debug subagent per group in parallel only when each group has an isolated worktree. If worktree isolation is unavailable, serialize the groups (or create a per-group checkout) before dispatch.
 
 For each group:
 1. Move all finding Kanban cards in the group to `running`

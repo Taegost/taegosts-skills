@@ -1,7 +1,7 @@
 ---
 name: framework-docs-researcher
 description: Gathers comprehensive technical documentation and best practices for software libraries and frameworks.
-tools: Read, Grep, Glob, WebSearch, WebFetch
+tools: Read, Grep, Glob, WebSearch, WebFetch, Bash
 effort: medium
 ---
 

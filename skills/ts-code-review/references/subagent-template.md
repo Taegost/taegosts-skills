@@ -116,7 +116,7 @@ False-positive categories to actively suppress. Do NOT emit a finding when any o
 
 - **Pre-existing issues unrelated to this diff.** Mark `pre_existing: true` only for unchanged code the diff does not interact with. If the diff makes a previously-dormant issue newly relevant (e.g., changes a caller in a way that exposes a bug downstream), it is a secondary finding, not pre-existing. PR-comment and agent-mode externalization filter pre-existing entirely; interactive review surfaces them in a separate section.
 - **Pedantic style nitpicks that a linter or formatter would catch.** Missing semicolons, indentation, import ordering, unused-variable warnings the project's tooling already catches. Style belongs to the toolchain.
-- **Code that looks wrong but is intentional.** Check comments, commit messages, PR description, or surrounding code for evidence of intent before flagging. A agent-flagged "missing null check" guarded by an upstream `.present?` call is a false positive.
+- **Code that looks wrong but is intentional.** Check comments, commit messages, PR description, or surrounding code for evidence of intent before flagging. An agent-flagged "missing null check" guarded by an upstream `.present?` call is a false positive.
 - **Issues already handled elsewhere.** Check callers, guards, middleware, framework defaults, and parallel handlers before flagging. If a controller's input is already validated by a parent middleware, the controller-level check the agent wants to add is redundant.
 - **Suggestions that restate what the code already does in different words.** "Consider extracting this into a helper" when the code is already a small helper, "consider adding a guard" when a guard one line up already enforces it.
 - **Generic "consider adding" advice without a concrete failure mode.** If you cannot name what breaks, the finding is not actionable. Either find the failure mode or suppress.
@@ -186,4 +186,4 @@ Diff:
 | `{file_list}` | Stage 1 output | Changed-file list — inline, or a staged file path to Read for a large review |
 | `{diff}` | Stage 1 output | The diff to review — inline hunks, or a staged file path to Read for a large review |
 | `{run_id}` | Stage 4 output | Unique review run identifier for the artifact directory |
-| `{reviewer_name}` | Stage 3 output | Agent or agent name used as the artifact filename stem |
+| `{reviewer_name}` | Stage 3 output | Agent name used as the artifact filename stem |

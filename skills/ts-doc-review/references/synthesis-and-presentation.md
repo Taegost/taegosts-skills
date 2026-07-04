@@ -12,7 +12,7 @@ Check each agent's returned JSON against the findings schema:
 - Drop findings with invalid enum values (including the pre-rename `auto` / `present` values from older agents — treat those as malformed until all agent output has been regenerated)
 - Note the agent name for any malformed output in the Coverage section
 
-**Do not narrate remap / validation diagnostics to the user.** Schema-drift notes ("agent X returned unknown enum Y, remapped to Z"), agent-prompt-drift commentary, and other validator-internal diagnostics are maintainer-facing information. They do not belong in the Phase 4 output the user reads. If a agent's output is malformed, the only user-visible consequence is a Coverage-row annotation (e.g., the agent shows fewer findings or a `malformed` marker). Everything else stays internal.
+**Do not narrate remap / validation diagnostics to the user.** Schema-drift notes ("agent X returned unknown enum Y, remapped to Z"), agent-prompt-drift commentary, and other validator-internal diagnostics are maintainer-facing information. They do not belong in the Phase 4 output the user reads. If an agent's output is malformed, the only user-visible consequence is a Coverage-row annotation (e.g., the agent shows fewer findings or a `malformed` marker). Everything else stays internal.
 
 ### 3.2 Confidence Gate (Anchor-Based)
 
@@ -97,7 +97,7 @@ Every merged finding carries exactly one `recommended_action` field consumed by 
 - Else if any contributing agent implied Defer → `recommended_action: Defer`
 - Else → `recommended_action: Apply`
 
-**Agent-to-action mapping.** A agent implies an action through its classification:
+**Agent-to-action mapping.** An agent implies an action through its classification:
 
 - `safe_auto` or `gated_auto` → implies Apply
 - `manual` with a concrete `suggested_fix` and a recommended resolution → implies Apply (the agent has an opinion about what to do)
@@ -333,7 +333,7 @@ For each current-round finding, compare against the primer's rejected list:
 - **Materially-different exception:** if the current document state has changed around the finding's section since the prior round (e.g., the section was edited and the evidence quote no longer appears in the current text), treat the finding as new — the underlying context shifted and the concern may be genuinely different now. The agent's evidence itself reveals this: a quote that doesn't appear in the current document is a signal the prior-round rejection no longer applies.
 - **On suppression:** record the drop in Coverage with a "previously rejected, re-raised this round" note so the user can see what was suppressed. The user can explicitly escalate by invoking the review again on a different context if they believe the suppression was wrong.
 
-This rule runs at synthesis time, not at the agent level. Agents have a soft instruction via the subagent template's `{decision_primer}` variable to avoid re-raising rejected findings, but the orchestrator is the authoritative gate — if a agent re-raises despite the primer, synthesis drops the finding.
+This rule runs at synthesis time, not at the agent level. Agents have a soft instruction via the subagent template's `{decision_primer}` variable to avoid re-raising rejected findings, but the orchestrator is the authoritative gate — if an agent re-raises despite the primer, synthesis drops the finding.
 
 ### R30 Fix-Landed Matching Predicate
 

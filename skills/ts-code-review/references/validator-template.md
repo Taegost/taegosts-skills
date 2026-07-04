@@ -82,7 +82,7 @@ Rules:
 | `{finding_severity}` | Stage 5 merged finding | P0 / P1 / P2 / P3 |
 | `{finding_file}` | Stage 5 merged finding | Repo-relative file path |
 | `{finding_line}` | Stage 5 merged finding | Primary line number |
-| `{finding_why_it_matters}` | Per-agent artifact file (detail tier) | Loaded from disk for this validation; required for the validator to understand the finding |
+| `{finding_why_it_matters}` | Per-agent artifact file (detail tier) | Loaded from disk for this validation; empty string if the artifact file is missing |
 | `{finding_suggested_fix}` | Stage 5 merged finding (optional) | Pass empty string if not present |
 | `{finding_reviewer}` | Stage 5 merged finding | Original agent name (informational; helps validator interpret the framing) |
 | `{finding_confidence}` | Stage 5 merged finding | The agent's anchor (informational) |

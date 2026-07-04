@@ -2,7 +2,7 @@
 
 11 reviewer agents + 2 local prompt assets organized into always-on, cross-cutting conditional, and migration-specific layers. The orchestrator uses this catalog to select which reviewers to spawn for each review.
 
-## Always-on (4 structured agents + 1 local prompt asset)
+## Always-on (4 structured agents + 2 local prompt assets)
 
 Spawned on every review regardless of diff content.
 
@@ -19,13 +19,14 @@ Spawned on every review regardless of diff content.
 
 | Prompt asset | Focus |
 |-------|-------|
+| `agent-native-reviewer` | Reviews changes using the project's own agent conventions and patterns |
 | `learnings-researcher` | Search docs/solutions/ for past issues related to this PR's modules and patterns |
 
 ## Conditional (7 agents)
 
 Spawned when the orchestrator identifies relevant patterns in the diff. The orchestrator reads the full diff and reasons about selection -- this is agent judgment, not keyword matching.
 
-| Agent | Agent | Select when diff touches... |
+| Alias | Agent | Select when diff touches... |
 |---------|-------|---------------------------|
 | `security` | `security-reviewer` | Auth middleware, public endpoints, user input handling, permission checks, secrets management |
 | `performance` | `performance-reviewer` | Database queries, ORM calls, loop-heavy data transforms, caching layers, async/concurrent code |
@@ -45,7 +46,7 @@ Use `deployment-verification-agent` when the migration-artifact gate applies **a
 
 ## Selection rules
 
-1. **Always spawn all 4 always-on agents** plus the always-on local prompt asset (`learnings-researcher`).
+1. **Always spawn all 4 always-on agents** plus the always-on local prompt assets (`agent-native-reviewer`, `learnings-researcher`).
 2. **For each cross-cutting conditional agent**, the orchestrator reads the diff and decides whether the agent's domain is relevant. This is a judgment call, not a keyword match.
 3. **For `data-migration`**, spawn only when the diff includes migration or schema artifacts (`db/migrate/*`, `db/schema.rb`, `db/structure.sql`, Alembic/Flyway/Liquibase paths, or explicit backfill/data-transform scripts). Do **not** spawn for model-only or query-only changes without those files.
 4. **For CE conditional prompt assets**, use `deployment-verification-agent` when the migration-artifact gate applies and the change is risky (see above).
