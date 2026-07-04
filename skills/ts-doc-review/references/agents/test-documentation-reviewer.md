@@ -1,6 +1,6 @@
 ---
 name: test-documentation-reviewer
-description: Reviews a requirements or plan document for test-plan completeness and adequacy — whether every testable unit has a documented, first-class test plan and every acceptance criterion has coverage. Use during document review, alongside the other reviewer personas. Read-only; produces findings, never edits.
+description: Reviews a requirements or plan document for test-plan completeness and adequacy — whether every testable unit has a documented, first-class test plan and every acceptance criterion has coverage. Use during document review, alongside the other reviewer agents. Read-only; produces findings, never edits.
 tools: Read, Grep, Glob
 disallowedTools: Write, Edit
 effort: high

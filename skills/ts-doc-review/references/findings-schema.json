@@ -1,13 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Document Review Findings",
-  "description": "Structured output schema for document review persona agents",
+  "description": "Structured output schema for document review agent agents",
   "type": "object",
   "required": ["reviewer", "findings", "residual_risks", "deferred_questions"],
   "properties": {
     "reviewer": {
       "type": "string",
-      "description": "Persona name that produced this output (e.g., 'coherence', 'feasibility', 'product-lens')"
+      "description": "Agent name that produced this output (e.g., 'coherence', 'feasibility', 'product-lens')"
     },
     "findings": {
       "type": "array",

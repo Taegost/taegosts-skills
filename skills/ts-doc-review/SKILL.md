@@ -6,7 +6,7 @@ argument-hint: "[mode:headless] [path/to/document.md]"
 
 # Document Review
 
-Review requirements or plan documents through multi-persona analysis. Dispatches generic subagents seeded with skill-local reviewer prompt assets, auto-applies `safe_auto` fixes, and routes remaining findings through a four-option interaction (per-finding walk-through, auto-resolve with best judgment, Append-to-Open-Questions, Report-only) for user decision.
+Review requirements or plan documents through multi-agent analysis. Dispatches generic subagents seeded with skill-local reviewer prompt assets, auto-applies `safe_auto` fixes, and routes remaining findings through a four-option interaction (per-finding walk-through, auto-resolve with best judgment, Append-to-Open-Questions, Report-only) for user decision.
 
 ## Interactive mode rules
 
@@ -66,11 +66,11 @@ Use these signals to decide:
 
 **Tie-breaker rule.** When the content signals are mixed or sparse, fall back to path: `docs/brainstorms/` → `requirements`, `docs/plans/` → `plan`. When neither path location applies, treat the dominant content shape as authoritative; if shape is genuinely ambiguous, default to `requirements` (the more conservative classification — it activates fewer plan-specific feasibility checks).
 
-Pass the classification result to each persona via the `{document_type}` slot in the subagent template. Personas read this and adapt their analysis accordingly.
+Pass the classification result to each agent via the `{document_type}` slot in the subagent template. Personas read this and adapt their analysis accordingly.
 
 ### Cross-check against repo conventions
 
-After classifying the document but before dispatching personas, extract key resource types and patterns from the document (e.g., Deployments, NetworkPolicies, cache URLs, probe configs, database extensions). For each, check `docs/solutions/` for relevant conventions:
+After classifying the document but before dispatching agents, extract key resource types and patterns from the document (e.g., Deployments, NetworkPolicies, cache URLs, probe configs, database extensions). For each, check `docs/solutions/` for relevant conventions:
 
 ```bash
 # Example: if the document proposes a Valkey deployment
@@ -82,7 +82,7 @@ Pass relevant convention excerpts to the feasibility reviewer as supplementary c
 
 ### Select Conditional Personas
 
-Analyze the document content to determine which conditional personas to activate. Check for these signals:
+Analyze the document content to determine which conditional agents to activate. Check for these signals:
 
 **product-lens** -- activate when the document makes challengeable claims about what to build and why, or when the proposed work carries strategic weight beyond the immediate problem. The system's users may be end users, developers, operators, maintainers, or any other audience -- the criteria are domain-agnostic. Check for either leg:
 
@@ -132,7 +132,7 @@ Do NOT activate adversarial on a routine plan document that derives from a valid
 
 ### Announce the Review Team
 
-Tell the user which personas will review and why. For conditional personas, include the justification:
+Tell the user which agents will review and why. For conditional agents, include the justification:
 
 ```
 Reviewing with:
@@ -147,8 +147,10 @@ Reviewing with:
 Always include:
 - `coherence-reviewer`
 - `feasibility-reviewer`
+- `documentation-reviewer`
 
-Add activated conditional personas:
+Add activated conditional agents:
+- `test-documentation-reviewer` -- document has testable units or acceptance criteria
 - `product-lens-reviewer`
 - `design-lens-reviewer`
 - `security-lens-reviewer`
@@ -159,7 +161,7 @@ Add activated conditional personas:
 
 Dispatch generic subagents using **bounded parallelism** with the platform's subagent primitive (e.g., `Agent` in Claude Code, `spawn_agent` in Codex) where available; otherwise run the work inline or serially. Omit the `mode` parameter so the user's configured permission settings apply. Respect the current harness's active-subagent limit: queue selected reviewers, dispatch only as many as the harness accepts, and fill freed slots as reviewers complete. Treat active-agent/thread/concurrency-limit spawn errors as backpressure, not reviewer failure: leave the reviewer queued and retry after a slot frees. Record a reviewer as failed only after a successful dispatch times out/fails, or when dispatch fails for a non-capacity reason.
 
-For each selected reviewer, read the matching skill-local prompt asset at `references/personas/<reviewer-name>.md` and pass its full content as `{persona_file}`. Do not dispatch standalone agents by type/name and do not rely on platform-level custom-agent registration.
+For each selected reviewer, read the matching skill-local prompt asset at `references/agents/<reviewer-name>.md` and pass its full content as `{agent_file}`. Do not dispatch standalone agents by type/name and do not rely on platform-level custom-agent registration.
 
 **Model tiering lives here, not in prompt assets.** Local prompt files have no frontmatter and carry no model metadata. Apply these dispatch-time preferences when the platform exposes a known model override; otherwise omit the override and inherit the parent model rather than guessing a platform-specific model name:
 
@@ -171,7 +173,7 @@ Each subagent receives the prompt built from the subagent template included belo
 
 | Variable | Value |
 |----------|-------|
-| `{persona_file}` | Full content of the selected local prompt asset from `references/personas/` |
+| `{agent_file}` | Full content of the selected local prompt asset from `references/agents/` |
 | `{schema}` | Content of the findings schema included below |
 | `{document_type}` | "requirements" or "plan" from Phase 1 classification |
 | `{document_path}` | Path to the document |
@@ -214,7 +216,7 @@ Round 2 — applied (N entries):
 
 Each entry carries an `Evidence:` line because synthesis R29 (rejected-finding suppression) and R30 (fix-landed verification) both use an evidence-substring overlap check as part of their matching predicate — without the evidence snippet in the primer, the orchestrator cannot compute the `>50%` overlap test and has to fall back to fingerprint-only matching, which either re-surfaces rejected findings or suppresses too aggressively. The `{evidence_snippet}` is the first evidence quote from the finding, truncated to the first ~120 characters (preserving whole words at the boundary) and with internal quotes escaped. If a finding has multiple evidence entries, use the first one; the rest live in the run artifact and are not needed for the overlap check.
 
-Accumulate across all rounds in the current session. Skip, Defer, and Acknowledge actions all count as "rejected" for suppression purposes — each signals the user decided the finding wasn't worth actioning this round (Acknowledge is the no-fix-guard variant: the user saw a finding with no `suggested_fix`, chose not to defer or skip explicitly, and recorded acknowledgement instead; for round-to-round suppression that is semantically equivalent to Skip). Applied findings stay on the applied list so round-N+1 personas can verify fixes landed (see R30 in `references/synthesis-and-presentation.md`).
+Accumulate across all rounds in the current session. Skip, Defer, and Acknowledge actions all count as "rejected" for suppression purposes — each signals the user decided the finding wasn't worth actioning this round (Acknowledge is the no-fix-guard variant: the user saw a finding with no `suggested_fix`, chose not to defer or skip explicitly, and recorded acknowledgement instead; for round-to-round suppression that is semantically equivalent to Skip). Applied findings stay on the applied list so round-N+1 agents can verify fixes landed (see R30 in `references/synthesis-and-presentation.md`).
 
 Cross-session persistence is out of scope. A new invocation of ts-doc-review on the same document starts with a fresh round 1 and no carried primer, even if prior sessions deferred findings into the document's Open Questions section.
 
@@ -224,7 +226,7 @@ Cross-session persistence is out of scope. A new invocation of ts-doc-review on 
 
 ## Phases 3-5: Synthesis, Presentation, and Next Action
 
-After all dispatched agents return, read `references/synthesis-and-presentation.md` for the synthesis pipeline (validate, anchor-based gate, dedup, cross-persona agreement promotion, resolve contradictions, auto-promotion, route by three tiers with FYI subsection), `safe_auto` fix application, headless-envelope output, and the handoff to the routing question.
+After all dispatched agents return, read `references/synthesis-and-presentation.md` for the synthesis pipeline (validate, anchor-based gate, dedup, cross-agent agreement promotion, resolve contradictions, auto-promotion, route by three tiers with FYI subsection), `safe_auto` fix application, headless-envelope output, and the handoff to the routing question.
 
 For the four-option routing question and per-finding walk-through (interactive mode), read `references/walkthrough.md`. For the bulk-action preview used by best-judgment routing, Append-to-Open-Questions, and walk-through `Auto-resolve with best judgment on the rest`, read `references/bulk-preview.md`. Do not load these files before agent dispatch completes.
 
@@ -240,4 +242,4 @@ For the four-option routing question and per-finding walk-through (interactive m
 
 @./references/findings-schema.json
 
-Selected reviewer prompt assets live under `references/personas/`. Read only the prompt files selected for the current review.
+Selected reviewer prompt assets live under `references/agents/`. Read only the prompt files selected for the current review.

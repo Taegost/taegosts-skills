@@ -68,13 +68,13 @@ Skipping (2):
 
 ## Per-finding line format
 
-Each line uses the compressed form of the framing-quality guidance from the subagent template (observable-consequence-first, no internal section numbering unless needed to locate). The one-line summary is drawn from the persona-produced `why_it_matters` by taking the first sentence (and, when the first sentence is too long for the preview width, paraphrasing it tightly to fit).
+Each line uses the compressed form of the framing-quality guidance from the subagent template (observable-consequence-first, no internal section numbering unless needed to locate). The one-line summary is drawn from the agent-produced `why_it_matters` by taking the first sentence (and, when the first sentence is too long for the preview width, paraphrasing it tightly to fit).
 
 - **Shape:** `[<severity>] <section> — <one-line summary>`
 - **Width target:** keep lines near 80 columns so the preview renders cleanly in narrow terminals. Truncate with ellipsis when necessary.
 - **No section numbering** unless the reader needs it to locate the issue (when multiple findings hit the same named section).
 
-When no `why_it_matters` is available for a finding (rare — only if persona output was malformed), fall back to the finding's title directly. Note the gap in the completion report's Coverage section if it affects more than a few findings in the same run.
+When no `why_it_matters` is available for a finding (rare — only if agent output was malformed), fall back to the finding's title directly. Note the gap in the completion report's Coverage section if it affects more than a few findings in the same run.
 
 ---
 
