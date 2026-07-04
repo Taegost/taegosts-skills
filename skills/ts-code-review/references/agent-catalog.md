@@ -1,8 +1,8 @@
 # Agent Catalog
 
-11 reviewer agents + 2 local prompt assets organized into always-on, cross-cutting conditional, and migration-specific layers. The orchestrator uses this catalog to select which reviewers to spawn for each review.
+Reviewer agents and CE local prompt assets organized into always-on, cross-cutting conditional, and migration-specific layers. The orchestrator uses this catalog to select which reviewers to spawn for each review.
 
-## Always-on (4 structured agents + 1 local prompt asset)
+## Always-on
 
 Spawned on every review regardless of diff content.
 
@@ -45,7 +45,7 @@ Use `deployment-verification-agent` when the migration-artifact gate applies **a
 
 ## Selection rules
 
-1. **Always spawn all 4 always-on agents** plus the always-on local prompt asset (`learnings-researcher`).
+1. **Always spawn all always-on agents** plus the always-on local prompt assets.
 2. **For each cross-cutting conditional agent**, the orchestrator reads the diff and decides whether the agent's domain is relevant. This is a judgment call, not a keyword match.
 3. **For `data-migration`**, spawn only when the diff includes migration or schema artifacts (`db/migrate/*`, `db/schema.rb`, `db/structure.sql`, Alembic/Flyway/Liquibase paths, or explicit backfill/data-transform scripts). Do **not** spawn for model-only or query-only changes without those files.
 4. **For CE conditional prompt assets**, use `deployment-verification-agent` when the migration-artifact gate applies and the change is risky (see above).

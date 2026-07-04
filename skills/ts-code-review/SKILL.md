@@ -106,7 +106,7 @@ Routing rules:
 
 ## Reviewers
 
-14 reviewer agents in layered conditionals, plus CE local prompt assets. Quick roster with one-line triggers below; the agent catalog included at the bottom has the full per-agent selection criteria and spawn gates. Each selected reviewer is a generic subagent seeded with a local prompt file from `references/agents/`; do not dispatch standalone agents by type/name.
+Reviewer agents in layered conditionals, plus CE local prompt assets. Quick roster with one-line triggers below; the agent catalog included at the bottom has the full per-agent selection criteria and spawn gates. Each selected reviewer is a generic subagent seeded with a local prompt file from `references/agents/`; do not dispatch standalone agents by type/name.
 
 **Always-on (every review):** local prompt assets `correctness-reviewer`, `testing-reviewer`, `maintainability-reviewer`, `project-standards-reviewer` plus CE local prompt asset `learnings-researcher`.
 
