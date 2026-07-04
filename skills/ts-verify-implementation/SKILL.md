@@ -110,4 +110,4 @@ Each subagent outputs a verdict (PASS / FAIL / PARTIAL) followed by a bulleted l
 | # | Severity | File | Issue |
 |---|----------|------|-------|
 
-Group by severity (Critical → Medium → Low → Info). Include a final verdict and list of items confirmed correct.
+Group by severity (Critical → Major → Minor). Include a final verdict and list of items confirmed correct.

@@ -590,7 +590,6 @@ Minimum shape:
   "pre_existing_findings": [],
   "requirements_completeness": null,
   "learnings": [],
-  "agent_native_gaps": [],
   "deployment_notes": [],
   "residual_risks": [],
   "testing_gaps": [],
