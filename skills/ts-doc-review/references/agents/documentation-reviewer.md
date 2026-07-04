@@ -1,6 +1,6 @@
 ---
 name: documentation-reviewer
-description: Reviews a requirements or plan document against the repository's existing documentation and declared conventions — flags proposals that conflict with what's already written down, and flags missing documentation updates when the plan changes something a doc currently describes or introduces a new standard. Use during document review, alongside the other reviewer agents. Requires read access to the repo's doc corpus (README, CONTRIBUTING, docs/, ADRs, CLAUDE.md) alongside the plan.
+description: Reviews requirements and plan documents against repository documentation and conventions — flags conflicts and missing doc updates.
 tools: Read, Grep, Glob
 disallowedTools: Write, Edit
 effort: high

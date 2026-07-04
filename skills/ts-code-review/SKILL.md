@@ -108,7 +108,7 @@ Routing rules:
 
 14 reviewer agents in layered conditionals, plus CE local prompt assets. Quick roster with one-line triggers below; the agent catalog included at the bottom has the full per-agent selection criteria and spawn gates. Each selected reviewer is a generic subagent seeded with a local prompt file from `references/agents/`; do not dispatch standalone agents by type/name.
 
-**Always-on (every review):** local prompt assets `correctness-reviewer`, `testing-reviewer`, `maintainability-reviewer`, `project-standards-reviewer`, plus CE local prompt assets `agent-native-reviewer` and `learnings-researcher`.
+**Always-on (every review):** local prompt assets `correctness-reviewer`, `testing-reviewer`, `maintainability-reviewer`, `project-standards-reviewer` plus CE local prompt asset `learnings-researcher`.
 
 **Cross-cutting conditional (per diff):**
 
@@ -314,7 +314,6 @@ Review team:
 - testing (always) [mid-tier]
 - maintainability (always) [mid-tier]
 - project-standards (always) [mid-tier]
-- agent-native-reviewer (always) [mid-tier]
 - learnings-researcher (always) [mid-tier]
 - security -- new endpoint in routes.rb accepts user-provided redirect URL [session model]
 - julik-frontend-races -- Stimulus controller with async DOM updates [mid-tier]
@@ -412,7 +411,7 @@ Each agent sub-agent writes full JSON (all schema fields) to `/tmp/taegosts-skil
 
 The artifact file **must** carry the detail-tier fields (`why_it_matters`, `evidence`); the compact *return* omits them, but writing the compact shape to the artifact (a common reviewer slip) silently strips the detail Coverage and the keyed detail lines depend on. However review context is delivered — inlined, or staged to disk for a large diff — each reviewer still receives the full subagent-template output contract; staging context never licenses a thinner one. `suggested_fix` is optional in both tiers -- included in compact returns when present so callers can apply fixes after review. If the file write fails, the compact return still provides everything the merge needs.
 
-**CE always-on local prompt assets** (`agent-native-reviewer`, `learnings-researcher`) are dispatched as generic subagents through the same bounded parallel scheduler as the structured agents. Read their prompt files from `references/agents/`, then give them the same review context bundle the agents receive: entry mode, any PR metadata gathered in Stage 1, intent summary, review base branch name when known, `BASE:` marker, file list, diff, and `UNTRACKED:` scope notes. Do not invoke them with a generic "review this" prompt. Their output is unstructured and synthesized separately in Stage 6.
+**CE always-on local prompt assets** (`learnings-researcher`) are dispatched as generic subagents through the same bounded parallel scheduler as the structured agents. Read their prompt files from `references/agents/`, then give them the same review context bundle the agents receive: entry mode, any PR metadata gathered in Stage 1, intent summary, review base branch name when known, `BASE:` marker, file list, diff, and `UNTRACKED:` scope notes. Do not invoke them with a generic "review this" prompt. Their output is unstructured and synthesized separately in Stage 6.
 
 **CE conditional local prompt assets** (`deployment-verification-agent` only) are dispatched as generic subagents through the same bounded parallel scheduler when the migration-artifact gate applies. Read the prompt file from `references/agents/`, then pass the same review context bundle plus the applicability reason (for example, which migration files triggered the prompt asset). Its output is unstructured and must be preserved for Stage 6 synthesis just like the CE always-on prompt assets. Schema drift is handled by the `data-migration` agent as structured findings — not here.
 
@@ -461,7 +460,7 @@ When a finding qualifies:
    - **Group shape:** short title, the included stable finding `#`s, one-line context, preferred resolution, and why — when one fix path resolves several findings, name it and say which finding to handle first.
    - **Ordering:** order groups by the highest-severity finding they contain, then by lowest stable `#`. A finding appears in at most one group; leave genuinely unrelated findings ungrouped.
 10. **Collect coverage data.** Union residual_risks and testing_gaps across reviewers.
-11. **Preserve CE local-prompt artifacts.** Keep the learnings, agent-native, and deployment-verification outputs alongside the merged finding set. Do not drop unstructured output just because it does not match the agent JSON schema. Schema drift from `data-migration` is already in the merged finding set.
+11. **Preserve CE local-prompt artifacts.** Keep the learnings, and deployment-verification outputs alongside the merged finding set. Do not drop unstructured output just because it does not match the agent JSON schema. Schema drift from `data-migration` is already in the merged finding set.
 
 ### Stage 5b: Validation pass (optional quality gate)
 
@@ -555,9 +554,8 @@ Per-severity tables are **5 columns** — `Route` is not shown here (it appears 
 5. **Actionable Findings.** Include when the actionable queue is non-empty — findings the caller should address (`gated_auto` / `manual` with `downstream-resolver`), plus anything Stage 5c chose not to apply. In default mode, findings already applied appear in the Applied section, not here.
 6. **Pre-existing.** Separate section, does not count toward verdict.
 7. **Learnings & Past Solutions.** Surface `learnings-researcher` local-prompt results: if past solutions are relevant, flag them as "Known Pattern" with links to docs/solutions/ files.
-8. **Agent-Native Gaps.** Surface `agent-native-reviewer` local-prompt results. Omit section if no gaps found.
-9. **Deployment Notes.** If the `deployment-verification-agent` local prompt ran, surface the key Go/No-Go items: blocking pre-deploy checks, the most important verification queries, rollback caveats, and monitoring focus areas. Keep the checklist actionable rather than dropping it into Coverage. Schema drift appears in the findings tables as `data-migration` P1 rows — do not add a separate Schema Drift section.
-10. **Coverage.** Applied count (when Stage 5c ran), suppressed count by anchor (e.g., "N findings suppressed at anchor 50, M at anchor 25"), mode-aware demotion count, validator drop count and reasons (when Stage 5b ran), any P0/P1 with degraded validation (kept on validator infra failure), validator over-budget drops (when the 15-cap fired), residual risks, testing gaps, failed/timed-out reviewers, and inferred-intent uncertainty when applicable. **Removable surface (only when deletion-oriented maintainability findings exist):** one line giving the approximate net lines/files those findings would remove if applied (e.g., "Removable surface: ~120 lines / 2 files across findings #4, #7"). This is a dead-weight signal, **not** a reduction target — never lower the bar for a finding or invent deletions to grow the number, and omit the line entirely when no finding proposes a deletion.
+8. **Deployment Notes.** If the `deployment-verification-agent` local prompt ran, surface the key Go/No-Go items: blocking pre-deploy checks, the most important verification queries, rollback caveats, and monitoring focus areas. Keep the checklist actionable rather than dropping it into Coverage. Schema drift appears in the findings tables as `data-migration` P1 rows — do not add a separate Schema Drift section.
+9. **Coverage.** Applied count (when Stage 5c ran), suppressed count by anchor (e.g., "N findings suppressed at anchor 50, M at anchor 25"), mode-aware demotion count, validator drop count and reasons (when Stage 5b ran), any P0/P1 with degraded validation (kept on validator infra failure), validator over-budget drops (when the 15-cap fired), residual risks, testing gaps, failed/timed-out reviewers, and inferred-intent uncertainty when applicable. **Removable surface (only when deletion-oriented maintainability findings exist):** one line giving the approximate net lines/files those findings would remove if applied (e.g., "Removable surface: ~120 lines / 2 files across findings #4, #7"). This is a dead-weight signal, **not** a reduction target — never lower the bar for a finding or invent deletions to grow the number, and omit the line entirely when no finding proposes a deletion.
 11. **Verdict.** Ready to merge / Ready with fixes / Not ready. Fix order if applicable. When an `explicit` plan has unaddressed requirements or implementation units, the verdict must reflect it — a PR that's code-clean but missing planned requirements is "Not ready" unless the omission is intentional. When an `inferred` plan has unaddressed requirements or implementation units, note it in the verdict reasoning but do not block on it alone.
 
 Do not include time estimates.

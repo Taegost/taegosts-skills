@@ -345,7 +345,7 @@ Determine how to proceed based on what was provided in `<input_document>`.
    - When browser tooling is available, inspect the changed UI at desktop and mobile widths before final validation. If no browser access is available, do a code-level responsive/layout review and record that browser verification was unavailable.
    - Phase 4's screenshot capture still applies when the change is user-visible.
 
-8. **Track Progress**
+7. **Track Progress**
    - Keep the task list updated as you complete tasks
    - Note any blockers or unexpected discoveries
    - Create new tasks if scope expands

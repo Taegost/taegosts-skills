@@ -104,7 +104,7 @@ Add a "Plan Divergence" column to the remediation plan noting any conflict betwe
 
 After planning fixes, group the findings for parallel dispatch:
 
-- **File proximity:** Findings targeting the same file go in the same group. Findings targeting files in the same directory are candidates for合并 if they share a concern type.
+- **File proximity:** Findings targeting the same file go in the same group. Findings targeting files in the same directory are candidates formerging if they share a concern type.
 - **Concern type:** Map to `autofix_class` categories — findings with the same `autofix_class` (e.g., both `safe_auto` or both `gated_auto`) and touching related code paths can share a group.
 - **Independence:** Each group must be independently fixable — no group depends on another group's fix landing first. If a finding depends on another finding's fix, merge them into the same group.
 - Record the group assignments in the remediation plan
