@@ -174,7 +174,7 @@ Determine how to proceed based on what was provided in `<input_document>`.
 
    **Subagent dispatch** uses your available subagent or task spawning mechanism. For each unit, give the subagent:
    - The full plan file path (for overall context)
-   - The specific unit's Goal, Files, Approach, Execution note, Patterns, Test scenarios, and Verification
+   - The specific unit's Goal, Files, Approach, Execution note, Patterns, Test scenarios, KTDs, and Verification
    - Any resolved deferred questions relevant to that unit
    - Instruction to check whether the unit's test scenarios cover all applicable categories (happy paths, edge cases, error paths, integration) and supplement gaps before writing tests
 

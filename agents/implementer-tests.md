@@ -1,5 +1,5 @@
 ---
-name: test-coder
+name: implementer-tests
 description: Implements the documented test plan for a unit of work — writes tests, fixtures, and mocks against named scenarios, either tests-first or post-hoc per the plan. Use for the test-writing pass, kept separate from implementation. Does not modify application code or production config; reports an implementation gap as a finding rather than changing the code under test.
 tools: Read, Edit, Write, Bash, Grep, Glob
 effort: medium
