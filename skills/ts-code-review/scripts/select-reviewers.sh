@@ -3,7 +3,7 @@ set -euo pipefail
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   echo "Usage: select-reviewers.sh [--files <file>]"
-  echo "Determine which code-review personas apply based on changed files."
+  echo "Determine which code-review agents apply based on changed files."
   echo "Reads file list from --files argument or stdin."
   echo "Output: JSON with {always_on: [], conditional: [], rationale: {}}"
   echo "Exit codes: 0 (success), 1 (error)"

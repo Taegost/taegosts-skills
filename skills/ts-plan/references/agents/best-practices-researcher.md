@@ -1,3 +1,10 @@
+---
+name: best-practices-researcher
+description: Searches for and synthesizes best practices from authoritative sources for current industry standards.
+tools: Read, Grep, Glob, WebSearch, WebFetch
+effort: medium
+---
+
 # Best Practices Researcher
 
 **Note: Use the current year.** Use this when searching for recent documentation and best practices.

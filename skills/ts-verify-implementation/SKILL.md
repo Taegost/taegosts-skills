@@ -87,19 +87,21 @@ For each KTD extracted in Step 2:
 KTD-N [type]: <spec text> | <files it applies to>
 ```
 
-Launch all 4 in parallel:
+Launch all 4 verifiers in parallel. For each verifier, read the corresponding agent file from `references/agents/` and spawn a generic subagent using the subagent template at `references/subagent-template.md`.
 
-**Subagent 1 — Correctness:**
-For each changed file, verify the implementation matches the plan. Flag logic errors, behavioral deviations, or anything that contradicts the plan. For literal KTDs, verify the script output shows `match: true`. For behavioral KTDs, verify the implementation satisfies the intent per `docs/solutions/behavioral-ktd-verification.md`.
+| Verifier | Agent file | Focus |
+|----------|-----------|-------|
+| Correctness | `references/agents/correctness-verifier.md` | Logic errors, behavioral deviations, plan contradictions |
+| Completeness | `references/agents/completeness-verifier.md` | Missing, partially done, or skipped plan items |
+| Scope | `references/agents/scope-verifier.md` | Changes not called for in the plan |
+| Standards | `references/agents/standards-verifier.md` | Convention, naming, style violations |
 
-**Subagent 2 — Completeness:**
-Cross-reference every item in the plan (Requirements, Implementation Units, Files, Test scenarios, Verification criteria, KTDs) against what was implemented. Flag anything missing, partially done, or skipped. For literal KTDs, verify the script output shows `match: true` for all referenced files. For behavioral KTDs, verify the implementation capability exists per `docs/solutions/behavioral-ktd-verification.md`.
-
-**Subagent 3 — Scope:**
-Flag any changes NOT called for in the plan — files touched beyond what was needed, logic altered past what was asked, or additions the plan doesn't account for. For behavioral KTDs, check for scope creep using the significance test from `docs/solutions/behavioral-ktd-verification.md`: would a reasonable implementer reading only the plan produce this addition?
-
-**Subagent 4 — Standards:**
-Review the changes against project instruction files and any linting or formatting config files in the repo root. Flag violations of repo conventions, naming, structure, or code style.
+Each subagent receives:
+- The agent file content (identity, scope, calibration, suppress conditions)
+- The full plan content
+- The git diff of all changes
+- The structured KTD list
+- Re-verification context (if re-verifying a prior round's findings)
 
 ### 5. Consolidate results
 
@@ -108,4 +110,4 @@ Each subagent outputs a verdict (PASS / FAIL / PARTIAL) followed by a bulleted l
 | # | Severity | File | Issue |
 |---|----------|------|-------|
 
-Group by severity (Critical → Medium → Low → Info). Include a final verdict and list of items confirmed correct.
+Group by severity (Critical → Major → Minor). Include a final verdict and list of items confirmed correct.

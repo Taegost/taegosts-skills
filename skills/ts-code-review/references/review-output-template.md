@@ -136,7 +136,7 @@ This fails because: no pipe-delimited tables, no severity-grouped `###` headers,
 - **Severity-grouped sections** -- `### P0 -- Critical`, `### P1 -- High`, `### P2 -- Moderate`, `### P3 -- Low`. Omit empty severity levels.
 - **Stable sequential finding numbers** -- assign finding numbers once after sorting, continue them across severity sections, and reuse those same numbers when findings are repeated in Actionable Findings. Do not restart at `1` for each severity or route bucket.
 - **Always include file:line location** for code review issues
-- **Reviewer column** shows which persona(s) flagged the issue. Multiple reviewers = cross-reviewer agreement.
+- **Reviewer column** shows which agent(s) flagged the issue. Multiple reviewers = cross-reviewer agreement.
 - **Confidence column** shows the finding's anchor as an integer (`50`, `75`, or `100`). Never render as a float.
 - **No `Route` column in the per-severity tables** -- the synthesized route (``<autofix_class> -> <owner>``) appears only in the Actionable Findings table and the `mode:agent` JSON. The scannable severity tables are 5 columns: `# | File | Issue | Reviewer | Confidence`.
 - **Detail line (per finding, as needed)** -- keep the `Issue` cell to **one short clause** (roughly 12 words or fewer, no second sentence -- the scannable index, not the explanation); put the full explanation in a bullet list immediately under the severity table, keyed by stable `#`: `- **#N** — <why it matters + concrete fix direction>`. Add a detail line for findings whose one-liner is not self-sufficient -- usually P0/P1; P2/P3 are typically terse-only. This keyed list is the sanctioned home for depth -- never expand a finding into `Field:`-prefixed blocks.
@@ -147,7 +147,6 @@ This fails because: no pipe-delimited tables, no severity-grouped `###` headers,
 - **Actionable Findings section** -- include when the actionable queue is non-empty (findings for the caller to handle)
 - **Pre-existing section** -- separate table, no confidence column (these are informational)
 - **Learnings & Past Solutions section** -- results from the `learnings-researcher` local prompt asset, with links to docs/solutions/ files
-- **Agent-Native Gaps section** -- results from the `agent-native-reviewer` local prompt asset. Omit if no gaps found.
 - **Deployment Notes section** -- key checklist items from the `deployment-verification-agent` local prompt asset. Omit if the prompt did not run. Schema drift surfaces as `data-migration` findings — no separate section.
 - **Coverage section** -- suppressed count, removable surface (only when deletion-oriented maintainability findings exist; approximate net lines/files removable if applied -- a dead-weight signal, never a reduction target, omit otherwise), residual risks, testing gaps, failed reviewers
 - **Summary uses blockquotes** for verdict, reasoning, and fix order

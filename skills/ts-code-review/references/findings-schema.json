@@ -7,7 +7,7 @@
   "properties": {
     "reviewer": {
       "type": "string",
-      "description": "Persona name that produced this output (e.g., 'correctness', 'security')"
+      "description": "Agent name that produced this output (e.g., 'correctness', 'security')"
     },
     "findings": {
       "type": "array",

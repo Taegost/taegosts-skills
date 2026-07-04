@@ -40,7 +40,7 @@ Fields come from the finding's schema:
 - `{title}` — the finding's title field
 - `{section}` — the finding's section field, unmodified (human-readable)
 - `{severity}` — P0 / P1 / P2 / P3
-- `{reviewer}` — the persona that produced the finding (after dedup, the persona with the highest confidence anchor; surface all co-flagging personas if multiple)
+- `{reviewer}` — the agent that produced the finding (after dedup, the agent with the highest confidence anchor). If multiple agents co-flag, render them as a comma-separated list in this slot.
 - `{confidence}` — the integer anchor (`50`, `75`, or `100`), emitted without a decimal point or percent sign
 - `{why_it_matters}` — the full why_it_matters text, preserving the framing guidance from the subagent template
 
