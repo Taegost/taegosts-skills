@@ -126,7 +126,7 @@ Reviewer agents in layered conditionals, plus CE local prompt assets. Quick rost
 
 ## Review Scope
 
-Every review spawns generic subagents for all 4 always-on agents plus the 2 CE always-on local prompt assets, then adds whichever cross-cutting and stack-specific conditionals fit the diff. The model naturally right-sizes: a small config change triggers 0 conditionals = 6 reviewers. A Rails auth feature might trigger security + reliability + adversarial = 9 reviewers.
+Every review spawns generic subagents for all always-on agents plus the CE always-on local prompt assets, then adds whichever cross-cutting and stack-specific conditionals fit the diff.
 
 ## Protected Artifacts
 
@@ -289,7 +289,7 @@ If a plan is found, read its **Requirements** section — `## Requirements` in c
 
 ### Stage 3: Select reviewers
 
-Read the diff and file list from Stage 1. The 4 always-on agents and 2 CE always-on agents are automatic. For each cross-cutting and stack-specific conditional agent in the agent catalog included below, decide whether the diff warrants it. This is agent judgment, not keyword matching.
+Read the diff and file list from Stage 1. The always-on agents and CE always-on agents are automatic. For each cross-cutting and stack-specific conditional agent in the agent catalog included below, decide whether the diff warrants it. This is agent judgment, not keyword matching.
 
 **File-type awareness for conditional selection:** Instruction-prose files (Markdown skill definitions, JSON schemas, config files) are product code but do not benefit from runtime-focused reviewers. The adversarial reviewer's techniques (race conditions, cascade failures, abuse cases) target executable code behavior. For diffs that only change instruction-prose files, skip adversarial unless the prose describes auth, payment, or data-mutation behavior. Count only executable code lines toward line-count thresholds.
 
@@ -556,7 +556,7 @@ Per-severity tables are **5 columns** — `Route` is not shown here (it appears 
 7. **Learnings & Past Solutions.** Surface `learnings-researcher` local-prompt results: if past solutions are relevant, flag them as "Known Pattern" with links to docs/solutions/ files.
 8. **Deployment Notes.** If the `deployment-verification-agent` local prompt ran, surface the key Go/No-Go items: blocking pre-deploy checks, the most important verification queries, rollback caveats, and monitoring focus areas. Keep the checklist actionable rather than dropping it into Coverage. Schema drift appears in the findings tables as `data-migration` P1 rows — do not add a separate Schema Drift section.
 9. **Coverage.** Applied count (when Stage 5c ran), suppressed count by anchor (e.g., "N findings suppressed at anchor 50, M at anchor 25"), mode-aware demotion count, validator drop count and reasons (when Stage 5b ran), any P0/P1 with degraded validation (kept on validator infra failure), validator over-budget drops (when the 15-cap fired), residual risks, testing gaps, failed/timed-out reviewers, and inferred-intent uncertainty when applicable. **Removable surface (only when deletion-oriented maintainability findings exist):** one line giving the approximate net lines/files those findings would remove if applied (e.g., "Removable surface: ~120 lines / 2 files across findings #4, #7"). This is a dead-weight signal, **not** a reduction target — never lower the bar for a finding or invent deletions to grow the number, and omit the line entirely when no finding proposes a deletion.
-11. **Verdict.** Ready to merge / Ready with fixes / Not ready. Fix order if applicable. When an `explicit` plan has unaddressed requirements or implementation units, the verdict must reflect it — a PR that's code-clean but missing planned requirements is "Not ready" unless the omission is intentional. When an `inferred` plan has unaddressed requirements or implementation units, note it in the verdict reasoning but do not block on it alone.
+10. **Verdict.** Ready to merge / Ready with fixes / Not ready. Fix order if applicable. When an `explicit` plan has unaddressed requirements or implementation units, the verdict must reflect it — a PR that's code-clean but missing planned requirements is "Not ready" unless the omission is intentional. When an `inferred` plan has unaddressed requirements or implementation units, note it in the verdict reasoning but do not block on it alone.
 
 Do not include time estimates.
 
