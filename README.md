@@ -34,8 +34,9 @@ Then enable the plugin in `enabledPlugins`:
 
 | Skill | Description | Dependencies |
 |-------|-------------|-------------|
+| `/load-plan` | Loads a plan document for skill execution. Auto-discovers plans from branch names, PR bodies, or explicit paths. | None (self-contained) |
 | `/ts-pr-review` | Reviews a pull request and posts inline findings | `code-review` plugin (claude-plugins-official) |
-| `/ts-pr-fix-findings` | Fixes findings from a PR review and updates the PR | `/ts-debug` (included) |
+| `/ts-pr-fix-findings` | Fixes findings from a PR review and updates the PR | `/ts-debug` (included), `/load-plan` |
 | `/ts-verify-implementation` | Verifies a feature branch against its plan | None (self-contained) |
 | `/ts-coding-workflow` | Mandatory workflow for all coding tasks — plan, review, doc-review, work | `/ts-plan`, `/ts-doc-review`, `/ts-do-work-loop` |
 | `/ts-do-work-loop` | Run ts-work and ts-verify-implementation in a loop until the plan is fully satisfied | `/ts-work`, `/ts-verify-implementation`, `/ts-compound` |
@@ -62,6 +63,10 @@ These 9 skills were extracted from [EveryInc/compound-engineering-plugin](https:
 | `/ts-brainstorm` | Requirements brainstorming | None |
 | `/ts-commit` | Commit workflow | None |
 | `/ts-commit-push-pr` | Commit + PR creation | None |
+
+### Documented Solutions
+
+`docs/solutions/` — documented solutions to past problems (bugs, best practices, workflow patterns), organized by category with YAML frontmatter (`module`, `tags`, `problem_type`). Relevant when implementing or debugging in documented areas.
 
 ## Usage
 

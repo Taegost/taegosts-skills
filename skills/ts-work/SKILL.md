@@ -60,6 +60,17 @@ Determine how to proceed based on what was provided in `<input_document>`.
    - **Do not skip this** - better to ask questions now than build the wrong thing
    - **Do not edit the plan body during execution.** The plan is a decision artifact; progress lives in git commits and the task tracker, not the plan. `ts-work` does not mutate the plan — whether it shipped is derived from git, not recorded in the doc. Legacy plans may contain `- [ ]` / `- [x]` marks on unit headings or a `status:` field — ignore them as state; per-unit completion is determined during execution by reading the current file state.
 
+   - **Extract KTD specifications.** After reading the plan, extract the Key Technical Decisions section:
+     ```bash
+     python3 scripts/extract-ktds.py "docs/plans/$ARGUMENTS"
+     ```
+     This returns a JSON object with `plan`, `ktds`, and `count` fields. The `ktds` field contains an array of KTDs with their type markers (`[literal]` or `[behavioral]`). For each KTD:
+     - **Literal KTDs** (`[literal]`): Present as a "verification constraint" with the exact spec text. The implementer must confirm the implementation matches the spec exactly. These are carried forward as checklist items.
+     - **Behavioral KTDs** (`[behavioral]`): Present as a constraint the implementation must satisfy. The intent is what matters, not exact string matching.
+     - **No type marker**: Default to `[literal]` (safer default).
+
+     For Implementation Units that reference KTDs (e.g., "Update per KTD1"), inline the KTD spec text into the unit's context so the implementer doesn't need to resolve the reference.
+
    - **Cross-check against repo conventions.** After reading the plan, extract the key resource types and patterns it uses (e.g., Deployments, NetworkPolicies, cache URLs, probe configs). For each, grep `docs/solutions/` for relevant conventions:
      ```bash
      # Example: if the plan creates a Valkey deployment
