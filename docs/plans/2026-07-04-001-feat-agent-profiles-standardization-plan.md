@@ -3,6 +3,7 @@ title: "feat: Implement agent profiles instead of personas"
 type: feat
 date: 2026-07-04
 origin: "GitHub Issue #74"
+status: completed
 ---
 
 # Implement Agent Profiles Instead of Personas
