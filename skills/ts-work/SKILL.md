@@ -328,16 +328,7 @@ Determine how to proceed based on what was provided in `<input_document>`.
 
    If **`ce-simplify-code`** is available, invoke it at phase boundaries (especially before Phase 3 when the diff is >=30 lines). Otherwise, review the changed files yourself for reuse and consolidation opportunities.
 
-6. **Figma Design Sync** (if applicable)
-
-   For UI work with Figma designs:
-
-   - Implement components following design specs
-   - Read `references/agents/figma-design-sync.md` and dispatch a generic subagent seeded with that local prompt to compare implementation against the Figma design. Do not dispatch a standalone agent by type/name.
-   - Fix visual differences identified
-   - Repeat until implementation matches design
-
-7. **Frontend Design Guidance** (if applicable)
+6. **Frontend Design Guidance** (if applicable)
 
    For UI tasks without a Figma design -- where the implementation touches view, template, component, layout, or page files, creates user-visible routes, or the plan contains explicit UI/frontend/design language:
 

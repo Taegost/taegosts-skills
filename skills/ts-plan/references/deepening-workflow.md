@@ -140,7 +140,7 @@ The names below are skill-local prompt asset file stems under `references/agents
 **Risks & Dependencies / Operational Notes**
 - Use the specialist that matches the actual risk:
   - `security-sentinel` for security, auth, privacy, and exploit risk
-  - `data-integrity-guardian` for migrations, backfills, persistent data safety, constraints, transaction boundaries, and production data transformation risk (plan context — not the PR-review `data-migration-reviewer` persona)
+  - `data-integrity-guardian` for migrations, backfills, persistent data safety, constraints, transaction boundaries, and production data transformation risk (plan context — not the PR-review `data-migration-reviewer` agent)
   - `deployment-verification-agent` for rollout checklists, rollback planning, and launch verification
   - `performance-oracle` for capacity, latency, and scaling concerns
 
