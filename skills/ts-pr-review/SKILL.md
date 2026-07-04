@@ -30,7 +30,7 @@ If no argument is provided, list open PRs and prompt the user to specify one.
 
 ### 1. Ensure code-review skill is available
 
-If the `/ts-code-review` skill is not available, stop and alert the user. Do not continue
+If the `/code-review` skill is not available, stop and alert the user. Do not continue
 
 ### 2. Gather the state of the pull request (batch all API calls)
 
@@ -56,7 +56,7 @@ gh pr diff NUMBER > /tmp/ts-pr-review-diff.txt
   
 ### 3. Review the pull request
 
-- Use the `/ts-code-review` skill to perform the review. Pass it the saved diff file (`/tmp/ts-pr-review-diff.txt`) so it doesn't need to re-fetch.
+- Use the `/code-review` skill to perform the review. Pass it the saved diff file (`/tmp/ts-pr-review-diff.txt`) so it doesn't need to re-fetch.
 - **IMPORTANT:** While reviewing, record the file path and new-file line number for each finding. Do NOT re-parse the diff later to find line numbers.
 
 ### 4. Add a review to the pull request with your findings

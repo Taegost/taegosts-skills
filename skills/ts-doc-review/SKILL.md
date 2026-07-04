@@ -163,7 +163,7 @@ Dispatch generic subagents using **bounded parallelism** with the platform's sub
 
 For each selected reviewer, read the matching skill-local prompt asset at `references/agents/<reviewer-name>.md` and pass its full content as `{agent_file}`. Do not dispatch standalone agents by type/name and do not rely on platform-level custom-agent registration.
 
-**Model tiering lives here, not in prompt assets.** Local prompt files have no frontmatter and carry no model metadata. Apply these dispatch-time preferences when the platform exposes a known model override; otherwise omit the override and inherit the parent model rather than guessing a platform-specific model name:
+**Model tiering lives here, not in prompt assets.** Agent files have frontmatter for identity metadata (`name`, `description`, `tools`, `effort`) but do not carry model tiering information. Apply these dispatch-time preferences when the platform exposes a known model override; otherwise omit the override and inherit the parent model rather than guessing a platform-specific model name:
 
 - `coherence-reviewer`: cheapest capable extraction/reasoning tier.
 - `design-lens-reviewer`, `security-lens-reviewer`, `scope-guardian-reviewer`: platform mid-tier model.

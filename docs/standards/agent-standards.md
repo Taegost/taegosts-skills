@@ -29,6 +29,7 @@ effort: <low | medium | high | xhigh | max>
 | `description` | Yes | One-line description of when to activate this agent. The orchestrator uses this to decide which agents to dispatch for a given task. |
 | `tools` | Yes | Comma-separated list of tools the agent may use. Common values: `Read, Grep, Glob` (read-only analysis), `Read, Grep, Glob, WebSearch, WebFetch` (research agents), `Read, Edit, Write, Bash, Grep, Glob` (implementers). |
 | `effort` | Yes | Reasoning effort tier. `low` for mechanical tasks, `medium` for standard analysis, `high` for complex reasoning, `xhigh`/`max` for adversarial review or deep research. |
+| `disallowedTools` | No | Comma-separated list of tools the agent must NOT use. Used when an agent should be explicitly prevented from certain actions (e.g., `Write, Edit` for read-only reviewers). |
 
 ### Example
 
@@ -43,7 +44,7 @@ effort: high
 
 ## Identity Text
 
-After the frontmatter, every agent file must include 1-2 paragraphs of identity text. This text defines the agent's persona, domain expertise, and analytical stance. The identity text is the agent's "who am I" — it shapes how the agent approaches the task.
+After the frontmatter, every agent file must include 1-2 paragraphs of identity text. This text defines the agent's identity, domain expertise, and analytical stance. The identity text is the agent's "who am I" — it shapes how the agent approaches the task.
 
 ## Heading Sub-Templates
 
