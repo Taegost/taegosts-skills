@@ -100,6 +100,15 @@ For each finding, check against the plan's KTDs and Scope Boundaries:
 
 Add a "Plan Divergence" column to the remediation plan noting any conflict between what the reviewer asked for and what the plan specified.
 
+**Group findings for parallel remediation:**
+
+After planning fixes, group the findings for parallel dispatch:
+
+- Group by file proximity (same file or closely related files) and concern type (same category of fix)
+- Each group must be independently fixable — no group depends on another group's fix landing first
+- If a finding depends on another finding's fix, merge them into the same group
+- Record the group assignments in the remediation plan
+
 ### 4. Validate the plan against the findings
 
 - Review each of your proposed remediations in the plan and verify:
@@ -110,10 +119,19 @@ Add a "Plan Divergence" column to the remediation plan noting any conflict betwe
 
 ### 5. Remediate valid findings
 
-- For each finding being remediated:
-  1. Move the finding's Kanban card to `running`
-  2. Use the `/ts-debug` skill to perform the remediation. Make sure you pass it any necessary context, including the plan document.
-  3. After remediation, move the card to `done`
+Launch one ts-debug subagent per group in parallel. Use worktree isolation when available to prevent write conflicts.
+
+For each group:
+1. Move all finding Kanban cards in the group to `running`
+2. Launch a ts-debug subagent with:
+   - The group's findings and their fix plans
+   - The relevant file context (the files being modified)
+   - The plan document (if loaded)
+   - Any KTD or scope boundary context from Step 3
+3. After all subagents complete, consolidate results:
+   - Move successfully remediated cards to `done`
+   - Move failed cards back to `todo` for re-planning
+4. If any subagent fails, diagnose the failure before re-dispatching
 
 ### 6. Review your remediations
 
