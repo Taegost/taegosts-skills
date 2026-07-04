@@ -66,7 +66,7 @@ Use these signals to decide:
 
 **Tie-breaker rule.** When the content signals are mixed or sparse, fall back to path: `docs/brainstorms/` → `requirements`, `docs/plans/` → `plan`. When neither path location applies, treat the dominant content shape as authoritative; if shape is genuinely ambiguous, default to `requirements` (the more conservative classification — it activates fewer plan-specific feasibility checks).
 
-Pass the classification result to each agent via the `{document_type}` slot in the subagent template. Personas read this and adapt their analysis accordingly.
+Pass the classification result to each agent via the `{document_type}` slot in the subagent template. Agents read this and adapt their analysis accordingly.
 
 ### Cross-check against repo conventions
 
@@ -80,7 +80,7 @@ grep -ril "networkpolicy" docs/solutions/
 
 Pass relevant convention excerpts to the feasibility reviewer as supplementary context. The feasibility reviewer checks: "Does the document's approach contradict any documented convention? If yes, flag it." This catches plan-vs-convention conflicts during the review phase, before implementation begins — the user doesn't have to be the one to notice the contradiction.
 
-### Select Conditional Personas
+### Select Conditional Agents
 
 Analyze the document content to determine which conditional agents to activate. Check for these signals:
 
@@ -128,7 +128,7 @@ Analyze the document content to determine which conditional agents to activate. 
 
 Do NOT activate adversarial on a routine plan document that derives from a validated origin requirements doc, stays within scope, and does not introduce high-stakes domains or new abstractions. The plan's structural decisions (more units, more rationale) are not by themselves adversarial signal -- those are the plan doing its job.
 
-## Phase 2: Announce and Dispatch Personas
+## Phase 2: Announce and Dispatch Agents
 
 ### Announce the Review Team
 
@@ -177,7 +177,7 @@ Each subagent receives the prompt built from the subagent template included belo
 | `{schema}` | Content of the findings schema included below |
 | `{document_type}` | "requirements" or "plan" from Phase 1 classification |
 | `{document_path}` | Path to the document |
-| `{origin_path}` | Value of the document's `origin:` frontmatter field if present, or the literal string `none` if absent. Personas that adapt on origin (product-lens, adversarial, scope-guardian) read this slot to gate technique suppression — they do NOT re-parse frontmatter themselves. Extract this once during Phase 1 reading. |
+| `{origin_path}` | Value of the document's `origin:` frontmatter field if present, or the literal string `none` if absent. Agents that adapt on origin (product-lens, adversarial, scope-guardian) read this slot to gate technique suppression — they do NOT re-parse frontmatter themselves. Extract this once during Phase 1 reading. |
 | `{document_content}` | Full text of the document |
 | `{decision_primer}` | Cumulative prior-round decisions in the current session, or an empty `<prior-decisions>` block on round 1. See "Decision primer" below. |
 
