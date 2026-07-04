@@ -155,9 +155,18 @@ Determine how to proceed based on what was provided in `<input_document>`.
 
    | Strategy | When to use |
    |----------|-------------|
-   | **Inline** | 1-2 small tasks, or tasks needing user interaction mid-flight. **Default for bare-prompt work** — bare prompts rarely produce enough structured context to justify subagent dispatch |
-   | **Serial subagents** | 3+ tasks with dependencies between them. Each subagent gets a fresh context window focused on one unit — prevents context degradation across many tasks. Requires plan-unit metadata (Goal, Files, Approach, Test scenarios) |
+   | **Serial subagents** | Tasks with dependencies between them. Each subagent gets a fresh context window focused on one unit — prevents context degradation across many tasks. Requires plan-unit metadata (Goal, Files, Approach, Test scenarios) |
    | **Parallel subagents** | 3+ tasks that pass the Parallel Safety Check (below). Dispatch independent units simultaneously, run dependent units after their prerequisites complete. Requires plan-unit metadata |
+
+   **Always dispatch subagents** — even for small or bare-prompt work. The decision is serial vs parallel, not inline vs subagent. Bare prompts also dispatch subagents; the orchestrator constructs the unit context from the prompt.
+
+   **Choose Agent Type** — for each unit, select the appropriate implementer agent:
+
+   - If the unit's `Files:` list contains only test files, fixtures, mocks, or test config → use `implementer-tests` from `references/agents/implementer-tests.md`
+   - Otherwise → use `implementer-general` from `references/agents/implementer-general.md` (this is the default; it covers application code, scripts, production config, infrastructure, and any mixed unit)
+   - If the unit has an `Execution note` indicating test-first → dispatch `implementer-tests` first, then `implementer-general`
+
+   Read the selected agent file from `references/agents/` and include its full content in the subagent prompt along with the unit context.
 
    **Parallel Safety Check** — required before choosing parallel dispatch:
 
