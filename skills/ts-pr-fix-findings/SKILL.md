@@ -140,7 +140,15 @@ For each fix you performed, verify it actually landed. Do NOT assume a fix worke
 **Semantic verification:**
 - Does it match the plan?
 - Does it remediate the finding as stated in the review?
-  - If your planned remediation didn't match the criteria given by the reviewer, skip this question
+
+**Resolution verification (MANDATORY for each fix with disposition "fix"):**
+
+For each finding that was dispositioned as "fix," verify the fix actually resolves the reviewer's concern — not just that the code changed:
+
+1. **Re-read the reviewer's original concern.** What specific behavior, pattern, or issue did they call out?
+2. **Check the code path the reviewer referenced.** Does the fix address the specific code the reviewer pointed at, or did it change something adjacent?
+3. **Note whether the concern is resolved.** If the fix changed code but the reviewer's specific concern still applies (e.g., they flagged a missing validation and you added a comment instead), the fix is unresolved.
+4. **Treat unresolvable fixes as unresolved.** If a fix cannot resolve the concern (e.g., the reviewer's request conflicts with a KTD or is out of scope), this must be surfaced — do not silently skip it.
 
 **Technical verification (MANDATORY for each fix):**
 1. **Re-read the file** after editing. Confirm the expected change is present in the actual file content. Python `str.replace()` silently returns the unchanged string when the pattern doesn't match — a non-match looks identical to a successful edit.
@@ -151,9 +159,31 @@ For each fix you performed, verify it actually landed. Do NOT assume a fix worke
 
 If any verification step fails, fix the issue before proceeding. Do not commit and hope.
 
-- If the answer to any of those questions is "no", then repeat the process from step 3 for that finding.
-  - If you have looped a particular finding 10 times, then skip it with a note that you are having trouble finding a proper remediation for the finding and that the user should review the latest remediation plan  
- 
+- If semantic, resolution, or technical verification fails for a finding, repeat the process from step 3 for that finding.
+  - If you have looped a particular finding 10 times, then skip it with a note that you are having trouble finding a proper remediation for the finding and that the user should review the latest remediation plan
+
+### 6a. Holistic verification (conditional — requires plan)
+
+**Gate:** This step only runs if Step 0a successfully loaded a feature plan. If no plan was found, skip directly to Step 7.
+
+After all individual finding remediations pass Step 6 verification, run holistic verification against the full feature plan:
+
+1. Invoke `/ts-verify-implementation <plan-filename>` — pass only the plan filename (e.g., `2026-07-04-002-feat-pr-fix-findings-verification-loop-plan.md`), not the full path. The skill prepends `docs/plans/` to its argument.
+2. If the sub-skill fails to execute (error, timeout, or unavailable), log a warning and continue to Step 7. Do not block the PR update on verification infrastructure failures.
+3. If the sub-skill executes but returns a PARTIAL or FAIL verdict, proceed to Step 6b.
+4. If the sub-skill returns PASS, proceed to Step 7.
+
+**Why holistic verification matters:** Step 6 verifies each fix individually. This step catches regressions, scope creep, and plan violations that per-finding checks miss — the same 4-dimension model (correctness, completeness, scope, standards) used by `ts-do-work-loop`.
+
+### 6b. Verification failure loop (conditional — runs when 6a returns PARTIAL or FAIL)
+
+When `ts-verify-implementation` reports FAIL or PARTIAL findings:
+
+1. Parse the verification output for failing dimensions (correctness, completeness, scope, standards).
+2. For each failing finding, re-enter the Step 3 fix-plan flow. Verification findings use the same disposition model as Step 2b: **fix**, **decline**, or **needs input**. The user may decline a verification finding if they judge it acceptable.
+3. After re-planning and re-fixing, re-run Step 6a.
+4. **Cap at 2 iterations.** If verification still fails after 2 cycles, report the remaining findings to the user and ask whether to continue iterating, address manually, or accept as-is. Do not silently loop.
+
 ### 7. Update the pull request with your results
 
 - If the reviewer used threaded conversations for the findings, make sure you note each one with their specific notes
