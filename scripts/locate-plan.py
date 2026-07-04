@@ -102,8 +102,8 @@ def find_plan_by_keywords(keywords: list[str], plans_dir: Path) -> list[str]:
         # Extract keywords from filename (remove date prefix)
         filename_keywords = re.split(r'[-_]', re.sub(r'^\d{4}-\d{2}-\d{2}-\d{3}-', '', filename))
 
-        # Count matching keywords
-        matches = sum(1 for kw in keywords if kw in filename_keywords or kw in filename)
+        # Count matching keywords (exact token match only, no substring)
+        matches = sum(1 for kw in keywords if kw in filename_keywords)
         if matches > 0:
             scores.append((matches, plan_file))
 
@@ -178,10 +178,10 @@ def main():
         }))
         sys.exit(0)
     elif len(plan_paths) > 1:
-        # Multiple matches - return ambiguity error
+        # Multiple matches - return ambiguity status (not an error)
         print(json.dumps({
             'path': '',
-            'error': 'Multiple plans match',
+            'status': 'ambiguous',
             'candidates': plan_paths
         }))
         sys.exit(0)

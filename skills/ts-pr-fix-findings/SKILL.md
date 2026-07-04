@@ -41,7 +41,7 @@ Before reviewing findings, attempt to load the feature plan for this PR's branch
 
 1. Call `/load-plan --non-interactive` (the skill uses the current branch name for discovery)
 2. If a plan is found:
-   - Extract KTDs by calling `python3 scripts/extract-ktds.py <plan-path>`
+   - Extract KTDs by calling `python3 scripts/extract-ktds.py "<plan-path>"`
    - Extract Scope Boundaries from the plan's "Scope Boundaries" section
    - Store both for cross-referencing in Step 3
 3. If no plan is found, proceed without plan context (this is not an error)

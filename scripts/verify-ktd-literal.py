@@ -124,28 +124,28 @@ def find_normalized_match(normalized_spec: str, normalized_content: str) -> int 
     if not spec_lines:
         return None
 
-    # For single-line specs, search for substring in any content line
+    # For single-line specs, search for exact line match in any content line
     # Skip empty spec lines to avoid false positives ('' in anything is True)
     if len(spec_lines) == 1:
         spec_line = spec_lines[0]
         if not spec_line.strip():
             return None
         for i, content_line in enumerate(content_lines, 1):
-            if spec_line in content_line:
+            if spec_line == content_line:
                 return i
         return None
 
-    # For multi-line specs, search for consecutive lines
+    # For multi-line specs, search for consecutive exact line matches
     # Filter out empty/blank spec lines to avoid false positives
     non_empty_spec_lines = [line for line in spec_lines if line.strip()]
     if not non_empty_spec_lines:
         return None
 
     for i in range(len(content_lines) - len(non_empty_spec_lines) + 1):
-        # Check if the spec lines match starting at position i
+        # Check if the spec lines match exactly starting at position i
         match = True
         for j, spec_line in enumerate(non_empty_spec_lines):
-            if spec_line not in content_lines[i + j]:
+            if spec_line != content_lines[i + j]:
                 match = False
                 break
         if match:
@@ -203,10 +203,6 @@ def main():
     parser.add_argument(
         '--file', type=str, required=True,
         help='Target file to search in'
-    )
-    parser.add_argument(
-        '--json', action='store_true', default=True,
-        help='Output as JSON (default)'
     )
 
     args = parser.parse_args()

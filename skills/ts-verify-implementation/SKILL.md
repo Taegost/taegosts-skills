@@ -35,7 +35,7 @@ Read `docs/plans/$ARGUMENTS`. If no argument was provided, run `ls docs/plans/` 
 
 **Extract KTD specifications:**
 
-After reading the plan, extract the Key Technical Decisions section:
+After reading the plan, extract the Key Technical Decisions section. If `$ARGUMENTS` is empty (user was prompted in Step 2), use the plan path from Step 2:
 ```bash
 python3 scripts/extract-ktds.py "docs/plans/$ARGUMENTS"
 ```
@@ -68,10 +68,12 @@ Each subagent receives the plan content, the git diff, and the extracted KTD lis
 
 For each KTD extracted in Step 2:
 
-1. **Literal KTDs** (`[literal]` type): Run deterministic script comparison. Write the KTD spec to a temporary file to avoid shell interpretation of special characters:
+1. **Literal KTDs** (`[literal]` type): Run deterministic script comparison. Write the KTD spec to a unique temporary file to avoid shell interpretation of special characters and concurrent-run conflicts:
    ```bash
-   echo '<KTD spec text>' > /tmp/ktd-spec.txt
-   python3 scripts/verify-ktd-literal.py --spec-file /tmp/ktd-spec.txt --file <target-file>
+   KTD_SPEC_FILE=$(mktemp /tmp/ktd-spec-XXXXXX.txt)
+   printf '%s\n' '<KTD spec text>' > "$KTD_SPEC_FILE"
+   python3 scripts/verify-ktd-literal.py --spec-file "$KTD_SPEC_FILE" --file "<target-file>"
+   rm -f "$KTD_SPEC_FILE"
    ```
    The script returns JSON with `match: true/false` and a diff if mismatched. Include this output in the subagent's context.
 

@@ -6,7 +6,7 @@ Parses the "Key Technical Decisions" section of a plan document and extracts
 each KTD with its type marker ([literal] or [behavioral]), title, spec text,
 and associated files.
 
-Output: JSON array of KTD objects.
+Output: JSON object with 'plan', 'ktds', and 'count' fields.
 
 Usage:
     python3 scripts/extract-ktds.py <plan-file>
@@ -112,7 +112,8 @@ def extract_ktds(section_content: str) -> list[dict]:
             spec_text = para[spec_start:].strip()
 
             # Extract file references from the heading paragraph
-            file_refs = re.findall(r'`([^`]+\.(?:py|sh|md|js|ts|yaml|yml|json|txt))`', para)
+            # Match any backtick-wrapped filename with an extension
+            file_refs = re.findall(r'`([^`]+\.[a-zA-Z0-9]+)`', para)
 
             current_ktd = {
                 'id': ktd_id,
@@ -129,8 +130,8 @@ def extract_ktds(section_content: str) -> list[dict]:
                 current_ktd['spec'] = para
 
             # Extract file references from the spec
-            # Look for patterns like `scripts/foo.py` or `skills/bar/SKILL.md`
-            file_refs = re.findall(r'`([^`]+\.(?:py|sh|md|js|ts|yaml|yml|json|txt))`', para)
+            # Match any backtick-wrapped filename with an extension
+            file_refs = re.findall(r'`([^`]+\.[a-zA-Z0-9]+)`', para)
             current_ktd['files'].extend(file_refs)
 
     # Don't forget the last KTD
