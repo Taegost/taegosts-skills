@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# scan-repo-structure.sh -- Scan repo for ecosystem, languages, frameworks, and config files
 set -euo pipefail
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then

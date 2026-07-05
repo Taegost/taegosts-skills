@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
-# Run shellcheck on all test scripts
+# run-shellcheck.sh -- Run shellcheck on all shell scripts in the repository
 # Usage: scripts/run-shellcheck.sh
-set -uo pipefail
+set -euo pipefail
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'
 Usage: run-shellcheck.sh
 
-Run shellcheck on all test scripts to catch shell safety issues.
+Run shellcheck on all shell scripts in the repository to catch shell safety issues.
+
+Scans:
+  - tests/        (test scripts)
+  - scripts/      (repo scripts)
+  - skills/*/scripts/  (skill scripts)
 
 Exit codes:
   0 - all scripts pass shellcheck
@@ -16,6 +21,8 @@ Exit codes:
 
 Requires: shellcheck (https://www.shellcheck.net/)
 Install: apt-get install shellcheck (or brew install shellcheck)
+
+Configuration: see .shellcheckrc in the repo root for project-level settings.
 EOF
   exit 0
 fi
@@ -31,21 +38,21 @@ if ! command -v shellcheck &>/dev/null; then
   exit 1
 fi
 
-# Find all test scripts
-test_scripts=()
+# Find all shell scripts across tests, scripts, and skills
+all_scripts=()
 while IFS= read -r -d '' file; do
-  test_scripts+=("$file")
-done < <(find "$REPO_ROOT/tests" -name "*.sh" -type f -print0)
+  all_scripts+=("$file")
+done < <(find "$REPO_ROOT/tests" "$REPO_ROOT/scripts" "$REPO_ROOT/skills" -name "*.sh" -type f -print0 2>/dev/null)
 
-if [[ ${#test_scripts[@]} -eq 0 ]]; then
-  echo "No test scripts found."
+if [[ ${#all_scripts[@]} -eq 0 ]]; then
+  echo "No shell scripts found."
   exit 0
 fi
 
-echo "=== Running shellcheck on ${#test_scripts[@]} test scripts ==="
+echo "=== Running shellcheck on ${#all_scripts[@]} shell scripts ==="
 
 issues=0
-for script in "${test_scripts[@]}"; do
+for script in "${all_scripts[@]}"; do
   rel_path="${script#"$REPO_ROOT"/}"
   if ! shellcheck "$script" 2>/dev/null; then
     echo "FAIL: $rel_path"

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# U6: classify-document.sh — detect document type from content signals
+# classify-document.sh -- Detect document type from content signals
 # Input: Document path
 # Output: JSON with type, signals, confidence
 # Exit codes: 0 success, 1 error
 
-set -uo pipefail
+set -euo pipefail
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'

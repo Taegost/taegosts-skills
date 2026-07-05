@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# verify-scripts.sh — Pre-commit gate for scripts
+# verify-scripts.sh -- Pre-commit gate for scripts
 # Runs all validation checks in one pass. Use before committing.
 #
 # Usage:

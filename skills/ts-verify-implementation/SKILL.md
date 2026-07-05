@@ -29,15 +29,19 @@ if [ -z "$base_branch" ]; then
 fi
 ```
 
-### 2. Read the plan
+### 2. Load the plan
 
-Read `docs/plans/$ARGUMENTS`. If no argument was provided, run `ls docs/plans/` and prompt the user to specify which plan to use.
+Invoke `/load-plan` to discover and load the plan. The skill resolves the plan path through explicit path (if provided), PR body scanning, or branch name extraction:
+- If `$ARGUMENTS` is provided, pass it as an explicit path: `/load-plan plan:$ARGUMENTS`
+- If `$ARGUMENTS` is empty, use auto-discovery: `/load-plan`
+
+Store the returned **plan path** and **plan content** for all subsequent steps.
 
 **Extract KTD specifications:**
 
-After reading the plan, extract the Key Technical Decisions section. If `$ARGUMENTS` is empty (user was prompted in Step 2), use the plan path from Step 2:
+After loading the plan, extract the Key Technical Decisions section using the plan path returned by `load-plan`:
 ```bash
-python3 scripts/extract-ktds.py "docs/plans/$ARGUMENTS"
+python3 scripts/extract-ktds.py "<plan-path>"
 ```
 
 This returns a JSON object with `plan`, `ktds`, and `count` fields. The `ktds` field contains an array of KTDs with their type markers (`[literal]` or `[behavioral]`). Store the `ktds` array for cross-referencing in Step 4.

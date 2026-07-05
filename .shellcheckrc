@@ -1,0 +1,45 @@
+# Shellcheck configuration for taegosts-skills
+# See docs/solutions/script-security-standards.md#shellcheck-configuration for rationale.
+
+# Shell dialect
+shell=bash
+
+# --- Disabled checks ---
+
+# SC2015 (info): Note that A && B || C is not if-then-else.
+# Used intentionally in test assertion patterns (tests/scripts/test-verify-fix.sh)
+# where the `cmd && pass++ || fail++` idiom is deliberate and correct.
+# The `|| true` guard in scripts/detect-diff-scope.sh also absorbs failures
+# intentionally.
+disable=SC2015
+
+# SC2016 (info): Expressions don't expand in single quotes.
+# False positive: single-quoted strings are intentionally passed as literal
+# arguments to grep and other commands (tests/scripts/test-cleanup-traps.sh,
+# tests/scripts/test-to-json.sh).
+disable=SC2016
+
+# SC2140 (warning): Word is of the form "A"B"C".
+# False positive: escaped quotes inside double-quoted strings are intentional
+# when embedding code for external interpreters (tests/scripts/test-to-json.sh).
+disable=SC2140
+
+# SC2181 (style): Check exit code directly with 'if mycmd;'.
+# Style preference in test setup code; the $? pattern is idiomatic in test
+# scripts (tests/skills/ts-doc-review/test-check-creds-in-configmaps.sh).
+disable=SC2181
+
+# SC2034 (warning): variable appears unused.
+# Assigned for intent clarity or side effects in test scripts
+# (tests/skills/ts-doc-review/test-check-networkpolicy-selectors.sh).
+disable=SC2034
+
+# SC2155 (warning): Declare and assign separately to avoid masking return values.
+# Used in test setup code where the assignment is safe and the return value is
+# not checked (tests/scripts/test-cleanup-traps.sh).
+disable=SC2155
+
+# SC2317 (info): Command appears to be unreachable.
+# False positive for function definitions that are called via traps
+# (tests/scripts/test-verify-scripts.sh).
+disable=SC2317

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# verify-fix.sh — Confirm that a file edit actually landed
+# verify-fix.sh -- Confirm that a file edit actually landed
 # Solves the #1 cause of carry-over findings: silent str.replace/sed failures.
 #
 # Usage:

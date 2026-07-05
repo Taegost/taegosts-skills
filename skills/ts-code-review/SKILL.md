@@ -83,9 +83,9 @@ All reviewers use P0-P3:
 | Level | Meaning | Action |
 |-------|---------|--------|
 | **P0** | Critical breakage, exploitable vulnerability, data loss/corruption | Must fix before merge |
-| **P1** | High-impact defect likely hit in normal usage, breaking contract | Should fix |
-| **P2** | Moderate issue with meaningful downside (edge case, perf regression, maintainability trap) | Fix if straightforward |
-| **P3** | Low-impact, narrow scope, minor improvement | User's discretion |
+| **P1** | High-impact defect likely hit in normal usage, breaking contract | Must fix before merge |
+| **P2** | Moderate issue with meaningful downside (edge case, perf regression, maintainability trap) | Should fix |
+| **P3** | Low-impact, narrow scope, minor improvement | Fix if straightforward |
 
 ## Action Routing
 
@@ -421,6 +421,7 @@ Convert multiple reviewer compact JSON returns into one deduplicated, confidence
 
 `confidence` is one of 5 discrete anchors (`0`, `25`, `50`, `75`, `100`) with behavioral definitions in the findings schema. Synthesis treats anchors as integers; do not coerce to floats.
 
+<!-- markdownlint-disable MD029 -->
 1. **Validate.** Check each compact return for required top-level and per-finding fields, plus value constraints. Drop malformed returns or findings. Record the drop count.
    - **Top-level required:** reviewer (string), findings (array), residual_risks (array), testing_gaps (array). Drop the entire return if any are missing or wrong type.
    - **Per-finding required:** title, severity, file, line, confidence, autofix_class, owner, requires_verification, pre_existing
@@ -442,12 +443,11 @@ Convert multiple reviewer compact JSON returns into one deduplicated, confidence
 A finding qualifies for demotion when **all** of these hold:
    - Severity is P2 or P3 (P0 and P1 always stay in primary findings)
    - `autofix_class` is `advisory` (concrete-fix findings stay in primary)
-   - **All** contributing reviewers are `testing` or `maintainability` — if any other agent also flagged this finding, cross-reviewer corroboration is present and the finding stays in primary findings regardless of its severity or advisory status (expand the weak-signal list later only with evidence)
+   - **All** contributing reviewers are `maintainability` — if any other agent also flagged this finding, cross-reviewer corroboration is present and the finding stays in primary findings regardless of its severity or advisory status (expand the weak-signal list later only with evidence)
 
 When a finding qualifies:
    - Move demoted findings out of the primary set. If the contributing reviewer is `testing`, append `<file:line> -- <title>` to `testing_gaps`. If `maintainability`, append to `residual_risks`. Use title-only lines (compact return omits `why_it_matters`). Record the demotion count for Coverage.
-
-7. **Confidence gate.** After dedup, promotion, and demotion have shaped the primary set, suppress remaining findings below anchor 75. Exception: P0 findings at anchor 50+ survive the gate -- critical-but-uncertain issues must not be silently dropped. Record the suppressed count by anchor (so Coverage can report "N findings suppressed at anchor 50, M at anchor 25"). The gate runs late deliberately: anchor-50 findings need a chance to be promoted by step 3 (cross-reviewer corroboration) or rerouted by step 6b (mode-aware demotion to soft buckets) before any drop decision.
+7. **Confidence gate.** After dedup, promotion, and demotion have shaped the primary set, suppress remaining findings below anchor 75. Exception: P0 and P1 findings at anchor 50+ survive the gate -- critical-but-uncertain issues must not be silently dropped. Record the suppressed count by anchor (so Coverage can report "N findings suppressed at anchor 50, M at anchor 25"). The gate runs late deliberately: anchor-50 findings need a chance to be promoted by step 3 (cross-reviewer corroboration) or rerouted by step 6b (mode-aware demotion to soft buckets) before any drop decision.
 8. **Partition the work.** Build two sets:
    - actionable queue: `gated_auto` or `manual` findings whose owner is `downstream-resolver` (hand off to caller)
    - report-only queue: `advisory` findings plus anything owned by `human` or `release`
@@ -461,6 +461,7 @@ When a finding qualifies:
    - **Ordering:** order groups by the highest-severity finding they contain, then by lowest stable `#`. A finding appears in at most one group; leave genuinely unrelated findings ungrouped.
 10. **Collect coverage data.** Union residual_risks and testing_gaps across reviewers.
 11. **Preserve CE local-prompt artifacts.** Keep the learnings and deployment-verification outputs alongside the merged finding set. Do not drop unstructured output just because it does not match the agent JSON schema. Schema drift from `data-migration` is already in the merged finding set.
+<!-- markdownlint-enable MD029 -->
 
 ### Stage 5b: Validation pass (optional quality gate)
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# check-thread-resolution.sh - check which review threads are resolved vs unresolved
+# check-thread-resolution.sh -- Check which review threads are resolved vs unresolved
 # Input: --repo owner/repo --pr <number>
 # Output: JSON array of {thread_id, is_resolved, comments: [...]}
 # Exit codes: 0 success, 1 error

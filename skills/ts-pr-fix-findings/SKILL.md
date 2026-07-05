@@ -77,14 +77,30 @@ Before planning fixes, list every finding with its proposed action: **fix**, **d
 
 ### 2c. Create Kanban board and cards
 
-After the user confirms dispositions, create a Kanban board for tracking:
+After the user confirms dispositions, set up tracking. First probe Hermes availability once (e.g., `hermes kanban boards list`; any connection/command failure means unavailable) and record the result as `HERMES_AVAILABLE=true|false` for the rest of the session — do not re-probe per step.
+
+**Always (Hermes or not):** create the verification tracker file `docs/pull_requests/<pr#>_verification.md` with this initial content:
+
+```markdown
+# PR <pr#> verification tracker
+verdict: PENDING
+iteration: 0
+updated: <ISO 8601 UTC>
+```
+
+This file is the authoritative structural gate for Step 7 — the PR must not be updated while its verdict is `PENDING`. It is a working artifact: do not commit it to the PR branch (add to `.git/info/exclude` or remove before final push).
+
+**When `HERMES_AVAILABLE=true` (required, not optional):** also create a Kanban board for tracking:
 
 1. Check if a board named `pr-fix-{pr_number}` already exists (`hermes kanban boards list`). If it exists, reuse it. If not, create it using `hermes kanban boards create`
 2. For each finding, create a card with:
    - **Title:** `Finding #{id}: {severity} — {file}`
    - **Body:** Disposition (fix/decline/needs-input), the finding summary, and planned remediation
    - **Status:** `todo`
-3. This board serves as persistent working memory across sessions. If a session is interrupted, the next session can read the board to see what's been completed.
+3. Create a `verification-loop-tracker` card mirroring the tracker file (verdict `PENDING`, iteration 0). The file remains authoritative; the card is the cross-session mirror.
+4. This board serves as persistent working memory across sessions. If a session is interrupted, the next session can read the board to see what's been completed.
+
+**When `HERMES_AVAILABLE=false`:** skip all Kanban operations in this and every later step (2c, 5, 6b). Card moves become no-ops; the tracker file and the remediation plan docs carry all state. Do not stop, warn once and continue.
 
 ### 3. Plan the fix for each finding
 
@@ -162,16 +178,23 @@ If any verification step fails, fix the issue before proceeding. Do not commit a
 - If semantic, resolution, or technical verification fails for a finding, repeat the process from step 3 for that finding. Note: resolution verification is more stringent than semantic verification — it can fail when the code changed but doesn't address the reviewer's specific concern. If the failure is due to a KTD conflict or scope boundary (unresolvable), do not loop — surface it as a known residual instead.
   - If you have looped a particular finding 10 times, then skip it with a note that you are having trouble finding a proper remediation for the finding and that the user should review the latest remediation plan
 
-### 6a. Holistic verification (conditional — requires plan)
+### 6a. Holistic verification (ALWAYS executes — outcome depends on plan)
 
-**Gate:** This step only runs if Step 0a successfully loaded a feature plan. If no plan was found, skip directly to Step 7.
+**This step is NOT skippable.** It runs after Step 6 in every invocation of this skill, whether or not a plan exists. What varies is the outcome, and every outcome MUST be written to the tracker file (`docs/pull_requests/<pr#>_verification.md`) before Step 7:
+
+- **No plan was loaded in Step 0a:** write verdict `skipped-no-plan` to the tracker file (and mirror to the Kanban card when `HERMES_AVAILABLE=true`), then proceed to Step 7. Recording the skip IS the step — "no plan" without a written verdict means Step 6a did not run.
+- **A plan was loaded in Step 0a:** run holistic verification against the full feature plan as follows.
 
 After all individual finding remediations pass Step 6 verification, run holistic verification against the full feature plan:
 
-1. Extract the filename from Step 0a's plan path: use `basename <plan-path>` to strip the `docs/plans/` prefix. Then invoke `/ts-verify-implementation <plan-filename>` — pass only the filename (e.g., `2026-07-04-002-feat-pr-fix-findings-verification-loop-plan.md`), not the full path. The skill prepends `docs/plans/` to its argument.
-2. If the sub-skill fails to execute (error, timeout, or unavailable), log a warning and continue to Step 7. Do not block the PR update on verification infrastructure failures.
-3. If the sub-skill executes but returns a PARTIAL or FAIL verdict, proceed to Step 6b.
-4. If the sub-skill returns PASS, proceed to Step 7.
+1. Invoke `/ts-verify-implementation <plan-path>` — pass the full plan path from Step 0a (e.g., `docs/plans/2026-07-04-002-feat-pr-fix-findings-verification-loop-plan.md`). The skill delegates path resolution to `load-plan`, which handles explicit paths, PR body scanning, and branch name extraction.
+2. If the sub-skill fails to execute (error, timeout, or unavailable), write verdict `INFRA-FAILURE` to the tracker file, log a warning, and continue to Step 7. Do not block the PR update on verification infrastructure failures — but the failure must be recorded, not silent.
+3. If the sub-skill executes but returns a PARTIAL or FAIL verdict, write that verdict to the tracker file and proceed to Step 6b.
+4. If the sub-skill returns PASS, write verdict `PASS` to the tracker file, then proceed to Step 7.
+
+Mirror every tracker-file write to the `verification-loop-tracker` Kanban card when `HERMES_AVAILABLE=true`.
+
+**Every path out of this step writes a verdict to the tracker file.** There is no path from Step 6 to Step 7 that leaves the file at `PENDING`.
 
 **Why holistic verification matters:** Step 6 verifies each fix individually. This step catches regressions, scope creep, and plan violations that per-finding checks miss — the same 4-dimension model (correctness, completeness, scope, standards) used by `ts-do-work-loop`.
 
@@ -183,12 +206,24 @@ When `ts-verify-implementation` reports FAIL or PARTIAL:
 2. **Create Kanban cards for verification findings.** Use the same format as Step 2c, tagged with `[verification-round-N]` to distinguish from original review findings.
 3. **Map to Step 3 format.** For each verification finding, translate it to Step 3's expected input: file path, line reference (if available), the verification concern as the reviewer note, and mark the source as `[verification-round-N]`.
 4. **Present dispositions to the user.** List each verification finding with its proposed action: **fix**, **decline**, or **needs input**. Do not proceed until the user confirms. The user may decline a verification finding if they judge it acceptable.
-5. **Track iteration count.** If no `verification-loop-tracker` Kanban card exists, create one with iteration count 0. Then increment the count and update the card before each round. Read this card before starting to determine whether the cap has been reached.
+5. **Track iteration count.** Read `iteration:` from the tracker file (`docs/pull_requests/<pr#>_verification.md`) before starting to determine whether the cap has been reached, then increment it and write it back before each round. Mirror to the `verification-loop-tracker` Kanban card when `HERMES_AVAILABLE=true`.
 6. After user confirmation, re-enter the Step 3 fix-plan flow for confirmed findings.
 7. After re-planning and re-fixing, re-run Step 6a.
-8. **Cap at 2 iterations.** If verification still fails after 2 cycles, report the remaining findings to the user. Continue to Step 7 without blocking — the user can address remaining findings in a follow-up session. Do not silently loop.
+8. **Cap at 2 iterations.** If verification still fails after 2 cycles, write verdict `FAIL-CAPPED` to the tracker file (mirror to Kanban when available), and report the remaining findings to the user. Continue to Step 7 without blocking — the user can address remaining findings in a follow-up session. Do not silently loop.
 
 ### 7. Update the pull request with your results
+
+**HARD GATE — verify before ANY PR mutation (commenting, resolving threads, pushing):**
+
+Read the tracker file `docs/pull_requests/<pr#>_verification.md`. Its verdict must be one of: `PASS`, `FAIL-CAPPED`, `skipped-no-plan`, or `INFRA-FAILURE`.
+
+- Verdict is `PENDING` or the file is missing -> Step 6a was skipped. STOP. Go back to Step 6a. Do not rationalize this ("verification is effectively done", "the individual fixes were all verified") — Step 6 verifies fixes individually; Step 6a is a different check (regressions, scope creep, plan violations) and per-fix verification is NOT a substitute for it.
+- Verdict is `FAIL` or `PARTIAL` without `FAIL-CAPPED` -> Step 6b is mid-loop. Return to Step 6b.
+- Any valid verdict -> proceed, and carry the verdict into the Step 9 summary.
+
+This gate reads the file only — it works identically whether or not Hermes is available.
+
+Then:
 
 - If the reviewer used threaded conversations for the findings, make sure you note each one with their specific notes
 - For each finding, make a brief note about what your remediation was for it.
@@ -231,8 +266,8 @@ gh pr comment {pr_number} --body "All review findings addressed and resolved. Re
 Group by severity (Critical -> High -> Moderate -> Minor -> Info)
 - Include a final verdict
 
-**If holistic verification ran (Step 6a):**
-- Add a "Verification" row to the summary showing the verdict: **PASS**, **FAIL**, or **skipped-no-plan**
+**Holistic verification (always present):**
+- Add a "Verification" row to the summary showing the verdict read from the tracker file: **PASS**, **FAIL-CAPPED**, **skipped-no-plan**, or **INFRA-FAILURE**. This row is mandatory in every summary — if you cannot fill it in, Step 6a did not run and the summary must not be delivered.
 - If verification found issues, add a sub-table of verification findings with their resolution status:
 
 | # | Severity | File | Verification Finding | Resolution |

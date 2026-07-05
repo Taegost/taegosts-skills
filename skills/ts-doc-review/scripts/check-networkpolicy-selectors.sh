@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# check-networkpolicy-selectors.sh -- Check NetworkPolicy files for namespaceSelector/metalLB hairpin issues
 set -euo pipefail
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then

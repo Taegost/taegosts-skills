@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# fetch-issue-comments.sh - fetch PR issue-level comments (not threaded inline review comments)
+# fetch-issue-comments.sh -- Fetch PR issue-level comments (not threaded inline review comments)
 # Input: --repo owner/repo --pr <number>
 # Output: JSON array of {id, user, body, created_at}
 # Exit codes: 0 success, 1 error
