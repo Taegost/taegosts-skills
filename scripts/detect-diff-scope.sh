@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # detect-diff-scope.sh -- Compute diff scope and detect which reviewers apply
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

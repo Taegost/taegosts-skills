@@ -31,7 +31,7 @@ Every `.sh` file in `scripts/` and `skills/*/scripts/` must include a descriptio
 # Output: JSON with type, signals, confidence
 # Exit codes: 0 success, 1 error
 
-set -uo pipefail
+set -euo pipefail
 ```
 
 ## Test Scripts (Excluded)

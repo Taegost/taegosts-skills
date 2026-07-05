@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run shellcheck on all shell scripts in the repository
+# run-shellcheck.sh -- Run shellcheck on all shell scripts in the repository
 # Usage: scripts/run-shellcheck.sh
 set -euo pipefail
 

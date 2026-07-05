@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # validate-findings-json.sh -- Validate findings JSON has required fields
 set -euo pipefail
 
