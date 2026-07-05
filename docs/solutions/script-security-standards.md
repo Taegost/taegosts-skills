@@ -189,7 +189,7 @@ The following checks are disabled globally in `.shellcheckrc` with documented ra
 
 | Code | Level | Rationale |
 |------|-------|-----------|
-| SC2015 | info | `A && B \|\| C` pattern used intentionally in test assertions and `|| true` guards |
+| SC2015 | info | Pattern used intentionally in test assertions and OR-true guards |
 | SC2016 | info | Single-quoted strings intentionally passed as literal arguments to grep/commands |
 | SC2140 | warning | Escaped quotes inside double-quoted strings are intentional when embedding code |
 | SC2155 | warning | Declare-and-assign-separately in test setup code where return value is not checked |

@@ -22,6 +22,7 @@ All scripts in `scripts/`.
 | [sync-taegosts-skills.sh](sync-taegosts-skills.sh) | Persistent clone + sync for taegosts-skills |
 | [to-json.sh](to-json.sh) | Safe JSON output for bash scripts |
 | [validate-findings-json.sh](validate-findings-json.sh) | Validate findings JSON has required fields |
+| [validate-index-standards.py](validate-index-standards.py) | Validate R7/R8 compliance for documentation files |
 | [verify-fix.sh](verify-fix.sh) | Confirm that a file edit actually landed |
 | [verify-ktd-literal.py](verify-ktd-literal.py) | Verify whether a literal KTD specification appears in a target file |
 | [verify-scripts.sh](verify-scripts.sh) | Pre-commit gate for scripts |

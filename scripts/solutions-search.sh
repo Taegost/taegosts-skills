@@ -129,7 +129,7 @@ for kw in "${keywords[@]}"; do
       # Shorten excerpt to 200 chars at word boundary
       if [[ ${#excerpt} -gt 200 ]]; then
         excerpt="${excerpt:0:197}"
-        last_space=$(echo "$excerpt" | grep -bo ' ' | tail -1 | cut -d: -f1)
+        last_space=$(echo "$excerpt" | grep -bo ' ' | tail -1 | cut -d: -f1 || true)
         if [[ -n "$last_space" ]]; then
           excerpt="${excerpt:0:$last_space}..."
         else

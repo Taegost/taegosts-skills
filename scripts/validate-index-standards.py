@@ -67,25 +67,39 @@ def check_r7_links(content: str) -> list[dict]:
     """
     violations = []
     lines = content.splitlines()
+    in_code_block = False
 
     for i, line in enumerate(lines, 1):
-        # Skip lines that are not link-like
+        # Track fenced code block state
+        if line.strip().startswith('```'):
+            in_code_block = not in_code_block
+            continue
+        if in_code_block:
+            continue
+
+        seen_urls = set()  # Deduplicate violations per line
+
         # Check for bare URLs (not wrapped in link syntax)
         # Pattern: URL not preceded by [ or ](
         for match in re.finditer(r'(?<!\])\((https?://[^\s)]+)\)', line):
             # Check if this is inside a link syntax [text](url)
             before = line[:match.start()]
             if not re.search(r'\[[^\]]*\]$', before):
-                violations.append({
-                    'rule': 'R7',
-                    'line': i,
-                    'message': f'Bare URL found: {match.group(1)}',
-                    'fix': f'Wrap in link syntax: [descriptive name]({match.group(1)})'
-                })
+                url = match.group(1).rstrip('.,;:)')
+                if url not in seen_urls:
+                    seen_urls.add(url)
+                    violations.append({
+                        'rule': 'R7',
+                        'line': i,
+                        'message': f'Bare URL found: {url}',
+                        'fix': f'Wrap in link syntax: [descriptive name]({url})'
+                    })
 
         # Check for bare URLs at end of line or before whitespace
         for match in re.finditer(r'(?:^|\s)(https?://[^\s]+)', line):
-            url = match.group(1)
+            url = match.group(1).rstrip('.,;:)')
+            if url in seen_urls:
+                continue
             # Check if this URL is already part of a link
             pos = match.start()
             before = line[:pos]
@@ -100,6 +114,7 @@ def check_r7_links(content: str) -> list[dict]:
                 if re.search(r'\]\([^\s]*\)', after):
                     continue
 
+            seen_urls.add(url)
             violations.append({
                 'rule': 'R7',
                 'line': i,
@@ -180,7 +195,7 @@ def check_r8_table(content: str) -> list[dict]:
     return violations
 
 
-def check_r8_scope(content: str, filepath: Path, docs_root: Path) -> list[dict]:
+def check_r8_scope(content: str, filepath: Path) -> list[dict]:
     """R8: Verify INDEX.md only references files in scope.
 
     Scope: own folder + one subfolder deep.
@@ -246,7 +261,7 @@ def check_r8_scope(content: str, filepath: Path, docs_root: Path) -> list[dict]:
     return violations
 
 
-def validate_file(filepath: Path, docs_root: Path) -> dict:
+def validate_file(filepath: Path) -> dict:
     """Validate a single file for R7/R8 compliance.
 
     Returns a dict with file path, pass/fail status, and violations.
@@ -259,7 +274,7 @@ def validate_file(filepath: Path, docs_root: Path) -> dict:
 
     try:
         content = filepath.read_text(encoding='utf-8')
-    except Exception as e:
+    except (OSError, UnicodeDecodeError) as e:
         result['passed'] = False
         result['violations'].append({
             'rule': 'SYSTEM',
@@ -278,7 +293,7 @@ def validate_file(filepath: Path, docs_root: Path) -> dict:
     if filepath.name == 'INDEX.md':
         violations.extend(check_r8_frontmatter(content, filepath))
         violations.extend(check_r8_table(content))
-        violations.extend(check_r8_scope(content, filepath, docs_root))
+        violations.extend(check_r8_scope(content, filepath))
 
     if violations:
         result['passed'] = False
@@ -325,16 +340,6 @@ Rules checked:
 
     args = parser.parse_args()
 
-    # Find docs root (directory containing the validated files)
-    docs_root = None
-    for path_str in args.paths:
-        p = Path(path_str).resolve()
-        if p.is_dir():
-            docs_root = p
-            break
-    if docs_root is None:
-        docs_root = Path.cwd()
-
     # Collect all markdown files
     all_files = []
     for path_str in args.paths:
@@ -357,7 +362,7 @@ Rules checked:
     all_passed = True
 
     for filepath in all_files:
-        result = validate_file(filepath, docs_root)
+        result = validate_file(filepath)
         results.append(result)
         if not result['passed']:
             all_passed = False
