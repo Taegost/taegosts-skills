@@ -18,6 +18,14 @@ A KTD whose specification requires intent matching — patterns, approaches, and
 
 The rules for comparing literal KTD specs against implementations. Covers whitespace stripping, ANSI-C quoting normalization, inline code backtick removal, and multi-line comparison. Defined in `docs/solutions/ktd-normalization-policy.md`.
 
+## Agent
+
+A subagent prompt file that defines a specialist's identity, scope, and output contract. Used as the canonical term; "persona" is deprecated. Agent files may live in a skill's `references/agents/` directory (dispatched by the skill's orchestrator) or in a root `agents/` staging area (awaiting placement). See `docs/standards/agent-standards.md` for the full definition format.
+
+## Agent Profile
+
+An agent file that conforms to the standard frontmatter schema (`name`, `description`, `tools`, `effort`, and optionally `disallowedTools`) and follows one of the two heading sub-templates (implementer or reviewer). The term distinguishes conformant files from legacy agent files that lack frontmatter or use non-standard headings.
+
 ## Plan Discovery
 
 The mechanism by which skills locate and load plan documents. Uses three-tier discovery: explicit path, PR body scanning, and branch-name keyword extraction. Implemented by `skills/load-plan/` and `scripts/locate-plan.py`.
