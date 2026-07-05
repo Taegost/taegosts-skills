@@ -92,6 +92,7 @@ Create a JSON file with the review body and inline comments. The `body` field is
     {
       "path": "relative/path/to/file.ext",
       "line": 42,
+      "side": "RIGHT",
       "body": "### <severity emoji> Finding 1 — <Severity> | `file.ext` line 42\n\n**Summary:** <brief description>\n\n**Description:** <longer context if needed, max 10 lines>\n\n**Reason:** <why this is a finding>\n\n**Severity:** <Critical|High|Moderate|Minor|Info>\n\n**Proposed Fix:** <description or code block, max 10 lines>\n\n**AI Prompt:** <prompt for an AI agent to validate and fix>"
     }
   ]
@@ -101,6 +102,7 @@ Create a JSON file with the review body and inline comments. The `body` field is
 - `path` — file path relative to the repo root, matching the diff
 - `line` — the line number in the **new file** (right side of the diff) where the comment should appear
 - `body` — the full finding text (all fields: Summary, Description, Reason, Severity, Proposed Fix, AI Prompt)
+- `side` — required for inline comments on PR diffs; set to `"RIGHT"` to comment on added/modified lines (the right side of the diff). The GitHub Reviews API requires this field to disambiguate which side of a diff the comment applies to. Omit it only when commenting on context lines (unchanged lines within a hunk)
 - `event` — use `COMMENT` for findings; use `APPROVE` if all findings are Info-only; use `REQUEST_CHANGES` if any Moderate+ findings exist
 
 #### 4c. Post the review
