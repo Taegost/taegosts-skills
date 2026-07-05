@@ -8,7 +8,7 @@ date: 2026-07-05
 
 ## Summary
 
-Close the test-coverage blind spot where new scripts ship without automated tests (Issue 102), reduce token consumption in ts-plan and ts-doc-review by standardizing subagent dispatch and restructuring skill files (Issue 103), and harden multi-agent dispatch against missed completion notifications (Issue 98). All changes produce standards documentation for Issue #94 (Wave 2) as a downstream consumer.
+Close the test-coverage blind spot where new scripts ship without automated tests (Issue 102), reduce token consumption in ts-plan and ts-doc-review by standardizing subagent dispatch and restructuring skill files (Issue 103), and add notification recovery via Monitor-based file watching (Issue 98). All changes produce standards documentation for Issue #94 (Wave 2) as a downstream consumer.
 
 ## Problem Frame
 
@@ -25,7 +25,7 @@ Three independent design gaps combine to create friction in the skill workflow:
 **Test coverage (Issue 102)**
 
 - R1. When an implementation unit creates new application code (not test files), `ts-work` dispatches `implementer-tests` after `implementer-general` to create corresponding test files using the unit's test scenarios as the test plan.
-- R2. A coverage-gap detector script flags new Python scripts above a line threshold (default 100) that have no corresponding test file in `tests/`.
+- R2. A coverage-gap detector script flags any new script that has no corresponding test file in `tests/`. If a script exists, it needs a test — no line threshold.
 - R3. `ts-verify-implementation` runs the coverage-gap detector as an additional verification dimension.
 - R4. Test files created by the automatic dispatch follow the established conventions: `ok()`/`die()` helpers, `tmpdir` with cleanup trap, exit-code assertions (per test suite hardening plan).
 
@@ -38,8 +38,8 @@ Three independent design gaps combine to create friction in the skill workflow:
 
 **Notification resilience (Issue 98)**
 
-- R9. The bootstrap dispatch pattern is resilient to missed notifications: agents write output to discoverable files, and the orchestrator can recover state from disk when notifications fail.
-- R10. When multiple agents complete between turns, the orchestrator can detect and recover all completions without sequential polling.
+- R9. When an agent writes output to disk, the orchestrator can detect completion by checking file existence via Monitor-based file watching, regardless of notification state. This is a recovery mechanism — the harness-level notification reliability problem remains unsolved.
+- R10. The orchestrator can detect and recover all completions between turns by watching the output directory for new files, without sequential polling.
 
 **Standards documentation**
 
@@ -47,15 +47,15 @@ Three independent design gaps combine to create friction in the skill workflow:
 
 ## Key Technical Decisions
 
-KTD-1. **Bootstrap dispatch over inline-content dispatch.** The orchestrator passes a minimal bootstrap prompt (~150-300 tokens) listing file paths the subagent must read in full before starting: operating contract, role prompt, schema, and target document. Dynamic slots (`document_type`, `origin_path`, decision primer) stay inline. The inline-content pattern remains documented as a fallback for harnesses without subagent file-read tools. *Rationale:* Orchestrator dispatch output drops from ~10k tokens per reviewer to ~150-300. The "IN FULL before starting" instruction is a hard constraint — lazy partial reads are the known failure mode.
+KTD-1. **Bootstrap dispatch over inline-content dispatch.** The orchestrator passes a minimal bootstrap prompt (~150-300 tokens) listing file paths the subagent must read in full before starting: operating contract, role prompt, schema, and target document. Dynamic slots (`document_type`, `origin_path`, decision primer) stay inline. The inline-content pattern remains documented as a fallback for harnesses without subagent file-read tools. The bootstrap prompt includes two additional instructions: (1) a bootstrap-ack requirement — the agent must emit a brief list of files read (paths + line counts) before starting analysis, so the orchestrator can verify all expected files were read; (2) a schema-as-guidance instruction — "Schema `description` fields contain behavioral guidance — read them as instructions, not metadata." *Rationale:* Orchestrator dispatch output drops from ~10k tokens per reviewer to ~150-300. The bootstrap-ack catches lazy partial reads (the known failure mode). The schema-as-guidance instruction ensures agents process rubric descriptions as behavioral rules.
 
-KTD-2. **Coverage-gap detection as post-implementation verification, not plan-time mandate.** The detector runs in `ts-verify-implementation` after implementation completes, checking whether new scripts above a threshold have corresponding test files. It does not require plans to pre-list test files. *Rationale:* Plans already define test scenarios; the gap is that `implementer-general` doesn't create the files. A post-implementation check catches the gap regardless of plan quality, and doesn't require every plan to be perfect.
+KTD-2. **Coverage-gap detection as post-implementation verification, not plan-time mandate.** The detector runs in `ts-verify-implementation` after implementation completes, checking whether any new script has a corresponding test file. No line threshold — if a script exists, it needs a test. The detector does not require plans to pre-list test files. *Rationale:* Plans already define test scenarios; the gap is that `implementer-general` doesn't create the files. A post-implementation check catches the gap regardless of plan quality, and doesn't require every plan to be perfect. Test planning is an important step of an implementation plan — the detector is the backstop, not the primary mechanism.
 
 KTD-3. **Confidence rubric anchored in schema descriptions.** The behavioral anchor definitions (0/25/50/75/100) already exist in the `confidence` property's `description` field in `references/findings-schema.json`. The subagent template references the schema's description rather than restating the anchors inline. The P0-P3 severity translation, evidence-must-be-array, and anchors-0/25-suppress-silently rules stay inline in the template (cheap and load-bearing). The synthesis-and-presentation doc's third restatement is replaced with a pointer to the schema. *Rationale:* ~800 words of redundancy removed per dispatch. Single source of truth prevents the two-way drift risk between template and synthesis doc.
 
 KTD-4. **ts-plan restructure: inline routing + deferred procedures.** What stays in SKILL.md: routing/classification logic, phase guards, firing conditions, never/always constraints. What moves to references: procedure elaboration, worked examples, rationale prose. Target: ≤9k words (dedup pass). *Rationale:* The file already uses `@./references/` for 8 files; this extends the same pattern to the remaining inline prose.
 
-KTD-5. **Notification resilience via disk-first state.** Agents write structured output to files on disk as their primary state mechanism. The orchestrator's recovery path reads files, not memory. When the bootstrap pattern is used, agents are self-contained — they read their own instructions from disk, so a missed notification doesn't lose the agent's operating context. *Rationale:* Issue #98 shows notifications are unreliable 40-50% of the time. Disk-first design means the orchestrator can always recover by reading output files, even when notifications are lost and the task registry drops entries.
+KTD-5. **Notification recovery via disk-first state and Monitor-based file watching.** Agents write structured output to files on disk as their primary state mechanism. The orchestrator uses Monitor with `inotifywait` to watch the output directory for new files, detecting completion without relying on notifications. When the bootstrap pattern is used, agents are self-contained — they read their own instructions from disk, so a missed notification doesn't lose the agent's operating context. *Rationale:* Issue #98 shows notifications are unreliable 40-50% of the time. Disk-first design with Monitor-based detection means the orchestrator can recover by watching for output files, even when notifications are lost. This is a recovery mechanism — the harness-level notification reliability problem remains unsolved and needs a separate fix.
 
 ## High-Level Technical Design
 
@@ -114,6 +114,7 @@ flowchart LR
 
 ### Deferred to Follow-Up Work
 
+- Harness-level notification fix (Issue #98 root cause) — the Monitor-based recovery in U4b is a mitigation, not a solution. The harness team needs to implement interrupt-safe notification delivery for a complete fix.
 - Further ts-plan SKILL.md compression to ≤6k words (router pass) — the ≤9k dedup pass is the primary target; the deeper pass moves per-phase procedure detail into phase-scoped references and is a separate effort.
 - Conditional-agent gating logic, model tiering assignments, and anchor-based confidence gate changes — these already do the right economic work.
 - Compressing defensive rule-restatement within references (`synthesis-and-presentation.md` R-rules, `walkthrough.md`) — that density is load-bearing for adherence.
@@ -156,7 +157,7 @@ flowchart LR
 - Passthrough: conventional commit prefix `feat:` not consumed as output token
 - Integration: non-output `<word>:<word>` tokens preserved in remainder
 
-**Verification:** Script passes all test scenarios. `ts-plan` SKILL.md Phase 0.0 prose is replaced with script invocation reference. Existing ts-plan invocations produce identical output format resolution.
+**Verification:** Script passes all test scenarios. `ts-plan` SKILL.md Phase 0.0 prose is replaced with script invocation reference. Diff outputs from baseline invocations before/after — flag deviations beyond minor.
 
 ---
 
@@ -186,7 +187,7 @@ flowchart LR
 - Integration: full ts-doc-review run produces equivalent findings pre- and post-change
 - Regression: P0-P3 severity translation still works correctly with the schema-referenced rubric
 
-**Verification:** Confidence rubric exists in exactly one authoritative location (`findings-schema.json`). Template and synthesis doc reference it. A dispatched reviewer's output validates correctly. ~800 words of redundancy removed per dispatch.
+**Verification:** Confidence rubric exists in exactly one authoritative location (`findings-schema.json`). Template and synthesis doc reference it. Diff ts-doc-review outputs before/after — flag deviations beyond minor. Same deviations occurring across multiple tests increase the signal. ~800 words of redundancy removed per dispatch.
 
 ---
 
@@ -223,15 +224,15 @@ Every removed rule has a verified home in a reference that the corresponding pha
 - Regression: brainstorm-sourced invocation (Phase 5.1.5) still works correctly
 - Regression: all existing plan files in `docs/plans/` remain valid (no format changes)
 
-**Verification:** Word count ≤9,000. Every removed rule has a verified home in a reference the phase mandates reading. Full ts-plan invocations (interactive and headless) produce equivalent plans.
+**Verification:** Word count ≤9,000. Every removed rule has a verified home in a reference the phase mandates reading. Before U3 execution, capture baseline plan outputs from 3-5 representative invocations (different document types, different phases). After restructure, re-run the same invocations and diff the outputs — compare plan structure (requirements traceability, unit counts, file paths, test scenarios). Automate this as a test script. Flag deviations beyond minor; same deviations across multiple tests increase the signal.
 
 ---
 
-### U4. Standardize subagent dispatch on read-it-yourself bootstrap
+### U4a. Standardize subagent dispatch on read-it-yourself bootstrap
 
-**Goal:** Replace inline-content dispatch with a minimal bootstrap prompt across all skills that dispatch subagents, and design the pattern for notification resilience.
+**Goal:** Replace inline-content dispatch with a minimal bootstrap prompt across all skills that dispatch subagents.
 
-**Requirements:** R5, R9, R10
+**Requirements:** R5
 
 **Dependencies:** U3
 
@@ -241,7 +242,7 @@ Every removed rule has a verified home in a reference that the corresponding pha
 - `skills/ts-plan/SKILL.md` (modify — Phase 1/1.3 dispatch uses path references)
 - `skills/ts-work/SKILL.md` (modify — dispatch uses bootstrap pattern)
 - `docs/solutions/conventions/subagent-bootstrap-dispatch.md` (create — documents the pattern)
-- `docs/standards/agent-standards.md` (modify — add bootstrap dispatch section)
+- `docs/standards/agent-standards.md` (modify — Bootstrap pattern replaces Template-Wrapped; Direct-Seed removal is a separate PR)
 
 **Approach:** Implement the bootstrap dispatch pattern:
 
@@ -259,19 +260,17 @@ origin_path: <path or none>
 </prior-decisions>
 ```
 
+Bootstrap-ack requirement: after reading all files, the agent must emit a brief acknowledgment listing the files read (paths + line counts) before starting analysis. The orchestrator verifies all expected files are present in the ack before accepting findings.
+
+Schema-as-guidance instruction: the bootstrap prompt includes "Schema `description` fields contain behavioral guidance — read them as instructions, not metadata."
+
 Rules:
 - Dynamic slots stay inline: `document_type`, `origin_path`, `{decision_primer}` (session state, cannot be read from disk).
-- The "IN FULL before starting" instruction is a hard constraint.
+- The "IN FULL before starting" instruction is a hard constraint, enforced by the bootstrap-ack.
 - Keep inline-content dispatch documented as the fallback for harnesses without subagent file-read tools.
 - Round-2+ re-reads of the document from disk pick up applied `safe_auto` fixes.
 - Apply the same pattern to `ts-plan` Phase 1/1.3 dispatch.
 - Audit all other skills that dispatch subagents and converge on this pattern.
-
-Notification resilience design:
-- Agents write structured output to discoverable file paths on disk.
-- Orchestrator recovery path reads files, not memory.
-- Agent IDs are logged in a session-local registry the orchestrator maintains.
-- When a notification is missed, the orchestrator can detect completion by checking output file existence.
 
 **Patterns to follow:**
 - The existing `@./references/` syntax for file loading
@@ -281,88 +280,159 @@ Notification resilience design:
 **Test scenarios:**
 - Happy path: a dispatched reviewer in ts-doc-review returns findings JSON that validates against `findings-schema.json` via the bootstrap path
 - Happy path: ts-plan Phase 1 dispatch uses path references to `references/agents/*.md`
+- Happy path: agent emits bootstrap-ack listing all files read before starting analysis
+- Edge case: bootstrap-ack missing an expected file → orchestrator rejects and re-dispatches with inline-content fallback
 - Edge case: fallback to inline-content dispatch when subagent lacks file-read tools
 - Edge case: round-2 re-read picks up applied `safe_auto` fixes from disk
-- Edge case: orchestrator recovers from missed notification by reading output file
-- Edge case: multiple agents complete between turns — all outputs recovered from disk
+- Edge case: agent reads schema descriptions as behavioral guidance (confidence anchors applied correctly)
 - Integration: full ts-doc-review headless run produces equivalent findings pre- and post-change
 - Integration: full ts-plan interactive run produces equivalent plans pre- and post-change
+- Regression: P0-P3 severity translation still works correctly with schema-referenced rubric
 
-**Verification:** Dispatch prompts contain no inlined template, agent-file, or schema content — only bootstrap file list plus dynamic slots. Behavioral eval: dispatched reviewer returns valid findings JSON. Orchestrator can recover from missed notifications via file-based state. All existing skill invocations produce equivalent output.
+**Verification:** Dispatch prompts contain no inlined template, agent-file, or schema content — only bootstrap file list plus dynamic slots. Bootstrap-ack is emitted and verified. Behavioral eval: dispatched reviewer returns valid findings JSON with correct confidence anchors. All existing skill invocations produce equivalent output (diff outputs before/after, flag deviations beyond minor).
 
 ---
 
-### U5. Implement automatic test-coder dispatch and coverage-gap detection
+### U4b. Add notification recovery via Monitor-based file watching
 
-**Goal:** Close the test-coverage blind spot by automatically dispatching `implementer-tests` for new code and running a coverage-gap detector as verification.
+**Goal:** Enable the orchestrator to detect and recover from missed subagent completion notifications using Monitor with `inotifywait`.
 
-**Requirements:** R1, R2, R3, R4
+**Requirements:** R9, R10
 
-**Dependencies:** U4
+**Dependencies:** U4a
+
+**Files:**
+- `skills/ts-doc-review/SKILL.md` (modify — add Monitor-based recovery after dispatch)
+- `skills/ts-work/SKILL.md` (modify — add Monitor-based recovery after dispatch)
+- `skills/ts-plan/SKILL.md` (modify — add Monitor-based recovery after dispatch)
+- `docs/solutions/workflow-issues/notification-resilience-via-disk-state.md` (create — documents the recovery pattern)
+
+**Approach:** Implement Monitor-based notification recovery:
+
+After dispatching subagents, the orchestrator sets up a Monitor with `inotifywait` watching the expected output directory for new files. When a file appears, the orchestrator reads it and processes the results. This works regardless of whether the `<task-notification>` arrives.
+
+Recovery flow:
+1. Orchestrator dispatches agents and records expected output file paths
+2. Monitor watches output directory with `inotifywait -m <dir> -e close_write`
+3. When a file appears, Monitor emits a notification to the orchestrator
+4. Orchestrator reads the output file and processes results
+5. If a `<task-notification>` also arrives, it's redundant — the file-based detection already fired
+
+This is a recovery mechanism, not a fix for notification reliability. The harness-level notification problem (Issue #98) remains unsolved and needs a separate fix.
+
+**Patterns to follow:**
+- Monitor tool's `command` mode with `inotifywait` for file watching
+- Existing output file conventions in each skill
+- `docs/solutions/workflow-issues/composition-over-generalization-for-verification.md` for solution doc format
+
+**Test scenarios:**
+- Happy path: orchestrator detects agent completion via Monitor when file appears in output directory
+- Happy path: multiple agents complete between turns — all outputs detected by Monitor
+- Edge case: `<task-notification>` arrives before Monitor fires — orchestrator deduplicates (no double-processing)
+- Edge case: Monitor fires before `<task-notification>` — orchestrator processes from file, ignores late notification
+- Edge case: agent writes partial output then crashes — Monitor detects file but orchestrator validates completeness
+- Integration: full ts-doc-review headless run with simulated notification delay produces correct results
+- Integration: full ts-plan interactive run with Monitor recovery produces correct plans
+
+**Verification:** Orchestrator detects agent completions via Monitor regardless of notification state. Output files are read and processed correctly. No double-processing when both Monitor and notification fire. Recovery methods tested (Monitor triggers, file-based output reads), even though forcing notification failure cannot be tested directly.
+
+---
+
+### U5. Implement automatic test-coder dispatch
+
+**Goal:** Close the test-coverage blind spot by automatically dispatching `implementer-tests` for new code after `implementer-general` completes.
+
+**Requirements:** R1, R4
+
+**Dependencies:** U4a
 
 **Files:**
 - `skills/ts-work/SKILL.md` (modify — dispatch logic at lines 163-167)
-- `scripts/detect-coverage-gaps.sh` (create)
-- `tests/scripts/test-detect-coverage-gaps.sh` (create)
-- `skills/ts-verify-implementation/SKILL.md` (modify — add coverage-gap dimension)
 - `skills/ts-work/references/agents/implementer-tests.md` (modify — add bootstrap dispatch instructions for auto-dispatch)
 
-**Approach:** Two complementary mechanisms:
-
-**Automatic dispatch (R1).** Modify `ts-work` dispatch logic: after `implementer-general` completes for a unit that created new application code files (not test-only), automatically dispatch `implementer-tests` with the unit's test scenarios as its test plan. The `implementer-tests` agent uses the bootstrap pattern (from U4) to read its own operating contract. The dispatch condition is: unit's `Files:` list contains non-test files AND the unit has test scenarios defined.
-
-**Coverage-gap detector (R2, R3).** Create `scripts/detect-coverage-gaps.sh` that:
-1. Takes a list of newly created/modified files as input
-2. For each Python script above a configurable line threshold (default 100), checks whether a corresponding test file exists in `tests/`
-3. Outputs a JSON report of gaps found
-4. Integrate as an additional verification dimension in `ts-verify-implementation`
+**Approach:** Modify `ts-work` dispatch logic: after `implementer-general` completes for a unit that created new application code files (not test-only), automatically dispatch `implementer-tests` with the unit's test scenarios as its test plan. The `implementer-tests` agent uses the bootstrap pattern (from U4a) to read its own operating contract. The dispatch condition is: unit's `Files:` list contains non-test files AND the unit has test scenarios defined.
 
 **Test conventions (R4).** New test files created by auto-dispatch follow established patterns: `ok()`/`die()` helpers, `tmpdir` with `trap 'rm -rf "$tmpdir"' EXIT`, exit-code assertions, negative verification technique.
 
 **Patterns to follow:**
 - `skills/ts-work/SKILL.md` lines 163-167 for existing dispatch routing
-- `scripts/classify-document.sh` for script structure
 - `tests/skills/ts-work/test-detect-missing-artifacts.sh` for test patterns (ok/die, tmpdir, cleanup trap)
-- `docs/solutions/workflow-issues/composition-over-generalization-for-verification.md` for composition pattern
 
 **Test scenarios:**
 - Happy path: unit with new `.py` file + test scenarios → `implementer-general` then `implementer-tests` dispatched
 - Happy path: unit with only test files → `implementer-tests` dispatched (existing behavior preserved)
 - Happy path: unit with new `.py` file but no test scenarios → `implementer-general` only, no auto-dispatch
-- Edge case: unit creates new `.py` script above threshold → coverage-gap detector flags if no test file
-- Edge case: unit creates new `.py` script below threshold (e.g., 50 lines) → detector does not flag
 - Error path: `implementer-tests` auto-dispatch fails → orchestrator logs failure, continues (non-blocking)
 - Integration: full ts-do-work-loop run creates tests alongside implementation
-- Integration: ts-verify-implementation detects and reports coverage gaps
 - Regression: existing dispatch for test-only units unchanged
 - Regression: existing implementer-general behavior unchanged for units without test scenarios
 
-**Verification:** New scripts created by ts-work have corresponding test files. Coverage-gap detector correctly identifies gaps. ts-verify-implementation reports gaps as findings. Test files follow established conventions.
+**Verification:** New scripts created by ts-work have corresponding test files. Test files follow established conventions. Dispatch behavior unchanged for existing unit types.
 
 ---
 
-### U6. Create and update standards documentation
+### U7. Create coverage-gap detector script
 
-**Goal:** Document all changes from U1-U5 in standards and solution docs, structured for consumption by Issue #94 (Wave 2).
+**Goal:** Create a script that flags any new script without a corresponding test file, and integrate it as a verification dimension.
+
+**Requirements:** R2, R3
+
+**Dependencies:** U5
+
+**Files:**
+- `scripts/detect-coverage-gaps.sh` (create)
+- `tests/scripts/test-detect-coverage-gaps.sh` (create)
+- `skills/ts-verify-implementation/SKILL.md` (modify — add coverage-gap dimension)
+
+**Approach:** Create `scripts/detect-coverage-gaps.sh` that:
+1. Takes a list of newly created/modified files as input (from stdin or `--source` flag)
+2. For each script file, checks whether a corresponding test file exists in `tests/`
+3. No line threshold — if a script exists, it needs a test
+4. Outputs a JSON report of gaps found
+5. Integrate as an additional verification dimension in `ts-verify-implementation`
+
+The detector's input source must be explicitly specified: accepts a file list from stdin (piped from `git diff --name-only HEAD` + `git ls-files --others --exclude-standard` for untracked files), or accepts a `--source` flag to choose between git-diff, git-status, or explicit-list modes.
+
+**Patterns to follow:**
+- `scripts/classify-document.sh` for script structure
+- `tests/skills/ts-work/test-detect-missing-artifacts.sh` for test patterns
+
+**Test scenarios:**
+- Happy path: new `.py` script with no corresponding test file → gap flagged
+- Happy path: new `.sh` script with no corresponding test file → gap flagged
+- Happy path: new script with corresponding test file → no gap flagged
+- Happy path: existing script modified (not new) → no gap flagged
+- Edge case: test file exists but is in wrong directory → gap flagged
+- Edge case: script is a test file itself → no gap flagged (test files don't need tests for themselves)
+- Integration: ts-verify-implementation runs detector and reports gaps as findings
+- Integration: detector correctly reads file list from stdin (piped from git diff + git ls-files)
+
+**Verification:** Detector correctly identifies scripts without tests. ts-verify-implementation reports gaps as findings. No false positives for scripts that have tests. Test file follows established conventions.
+
+---
+
+### U8. Create and update standards documentation
+
+**Goal:** Document all changes from U1-U7 in standards and solution docs, structured for consumption by Issue #94 (Wave 2).
 
 **Requirements:** R11
 
-**Dependencies:** U1, U2, U3, U4, U5
+**Dependencies:** U1, U2, U3, U4a, U4b, U5, U7
 
 **Files:**
-- `docs/standards/agent-standards.md` (modify — add bootstrap dispatch pattern section, test coverage expectations)
+- `docs/standards/agent-standards.md` (modify — Bootstrap pattern replaces Template-Wrapped in Dispatch Patterns section; add test coverage expectations)
 - `docs/standards/INDEX.md` (modify — add new standards entries)
 - `docs/solutions/conventions/subagent-bootstrap-dispatch.md` (create — documents the read-it-yourself bootstrap pattern)
 - `docs/solutions/conventions/automatic-test-dispatch.md` (create — documents the test-coder auto-dispatch pattern)
-- `docs/solutions/workflow-issues/notification-resilience-via-disk-state.md` (create — documents the Issue 98 mitigation pattern)
+- `docs/solutions/workflow-issues/notification-resilience-via-disk-state.md` (create — documents the Issue 98 recovery pattern)
 
 **Approach:** Update/create three categories of documentation:
 
-**Standards updates.** Add bootstrap dispatch pattern to `agent-standards.md` — the read-it-yourself convention, file list format, dynamic slots, fallback to inline-content. Add test coverage expectations — new scripts above threshold must have corresponding tests, auto-dispatch mechanism.
+**Standards updates.** In `agent-standards.md`, the Bootstrap pattern replaces Template-Wrapped as the primary dispatch pattern. The bootstrap-ack requirement and schema-as-guidance instruction are documented. Add test coverage expectations — if a script exists, it needs a corresponding test; auto-dispatch mechanism handles this for new code. Direct-Seed removal is a separate PR.
 
 **Convention docs.** Create `subagent-bootstrap-dispatch.md` following the existing solution doc format (frontmatter + Context/Guidance/Why This Matters/When to Apply/Examples/Related). Create `automatic-test-dispatch.md` documenting the dispatch logic and coverage-gap detection.
 
-**Workflow issue doc.** Create `notification-resilience-via-disk-state.md` documenting the Issue 98 mitigation: disk-first state, file-based recovery, session-local agent registry.
+**Workflow issue doc.** Create `notification-resilience-via-disk-state.md` documenting the Issue 98 recovery pattern: Monitor-based file watching, disk-first state, file-based recovery.
 
 **Patterns to follow:**
 - `docs/solutions/conventions/agent-definition-convention.md` — convention doc format
@@ -383,11 +453,13 @@ Notification resilience design:
 ## Risks & Dependencies
 
 - **U3 depends on U1 and U2** — the restructure benefits from the script extraction and rubric dedup landing first, reducing what SKILL.md needs to carry inline.
-- **U4 depends on U3** — ts-plan's dispatch changes should align with its restructured form.
-- **U5 depends on U4** — automatic test-coder dispatch uses the new bootstrap pattern.
-- **U6 depends on U1-U5** — standards document what was built.
-- **Harness limitation (Issue 98)** — the notification-failure problem is at the harness level. The bootstrap pattern and disk-first state mitigate but do not fully solve it. The harness team would need to implement interrupt-safe notification delivery for a complete fix.
-- **Behavioral equivalence verification** — restructured SKILL.md files and deduplicated rubrics must produce equivalent outputs. Spot-check against baseline runs captured before changes.
+- **U4a depends on U3** — ts-plan's dispatch changes should align with its restructured form.
+- **U4b depends on U4a** — Monitor-based recovery builds on the bootstrap dispatch pattern.
+- **U5 depends on U4a** — automatic test-coder dispatch uses the bootstrap pattern.
+- **U7 depends on U5** — the detector runs after auto-dispatch completes.
+- **U8 depends on U1-U7** — standards document what was built.
+- **Harness limitation (Issue 98)** — the notification-failure problem is at the harness level. The Monitor-based recovery and disk-first state are recovery mechanisms, not fixes. The harness team would need to implement interrupt-safe notification delivery for a complete fix.
+- **Behavioral equivalence verification** — restructured SKILL.md files and deduplicated rubrics must produce equivalent outputs. Diff outputs before/after baseline invocations; flag deviations beyond minor. Same deviations occurring across multiple tests increase the signal.
 
 ## Sources & Research
 
