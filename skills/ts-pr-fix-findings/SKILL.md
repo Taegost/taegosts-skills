@@ -230,3 +230,12 @@ gh pr comment {pr_number} --body "All review findings addressed and resolved. Re
 
 Group by severity (Critical -> High -> Moderate -> Minor -> Info)
 - Include a final verdict
+
+**If holistic verification ran (Step 6a):**
+- Add a "Verification" row to the summary showing the verdict: **PASS**, **FAIL**, or **skipped-no-plan**
+- If verification found issues, add a sub-table of verification findings with their resolution status:
+
+| # | Severity | File | Verification Finding | Resolution |
+|---|----------|------|---------------------|------------|
+
+- If the loop cap was hit (Step 6b), add a note listing unresolved verification findings that remain after the cap
