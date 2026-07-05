@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Discover session files across Claude Code, Codex, Cursor, and Pi.
+# discover-sessions.sh -- Discover session files across Claude Code, Codex, Cursor, and Pi
 #
 # Usage: discover-sessions.sh <repo-name> <days> [--cwd /abs/repo/root] [--platform claude|codex|cursor|pi]
 #

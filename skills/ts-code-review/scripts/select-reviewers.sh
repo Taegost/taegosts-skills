@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# select-reviewers.sh -- Determine which code-review agents apply based on changed files
 set -euo pipefail
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
