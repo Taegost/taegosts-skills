@@ -169,6 +169,43 @@ Each script must have:
 - A `--help` flag that prints usage information
 - Exit codes documented in the help text
 
+## 11. Shellcheck Configuration
+
+The repository uses [ShellCheck](https://www.shellcheck.net/) for static analysis of all shell scripts. Configuration lives in `.shellcheckrc` at the repo root.
+
+### Running Shellcheck
+
+Use the dedicated runner script:
+
+```bash
+scripts/run-shellcheck.sh
+```
+
+This scans `tests/`, `scripts/`, and `skills/*/scripts/` directories. The `.shellcheckrc` file sets `shell=bash` and disables checks that are false positives or intentional patterns in test code.
+
+### Disabled checks
+
+The following checks are disabled globally in `.shellcheckrc` with documented rationale:
+
+| Code | Level | Rationale |
+|------|-------|-----------|
+| SC2015 | info | `A && B \|\| C` pattern used intentionally in test assertions and `|| true` guards |
+| SC2016 | info | Single-quoted strings intentionally passed as literal arguments to grep/commands |
+| SC2140 | warning | Escaped quotes inside double-quoted strings are intentional when embedding code |
+| SC2155 | warning | Declare-and-assign-separately in test setup code where return value is not checked |
+| SC2181 | style | `$?` exit code check is idiomatic in test setup code |
+| SC2034 | warning | Variables assigned for intent clarity in test scripts |
+| SC2317 | info | Function definitions called via traps appear unreachable to static analysis |
+
+### Adding new scripts
+
+All new scripts must pass `shellcheck` cleanly. If a check fires on a genuine false positive, add a targeted disable comment in the script rather than disabling globally:
+
+```bash
+# shellcheck disable=SC2015
+cmd && do_something || true
+```
+
 ## References
 
 - [ShellCheck](https://www.shellcheck.net/) for static analysis

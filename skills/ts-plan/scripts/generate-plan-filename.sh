@@ -92,7 +92,7 @@ plans_dir="docs/plans"
 # Count existing plans for today
 max_seq=0
 if [[ -d "$plans_dir" ]]; then
-  for f in "$plans_dir"/${today}-[0-9][0-9][0-9]-*.md; do
+  for f in "$plans_dir/${today}"-[0-9][0-9][0-9]-*.md; do
     [[ -e "$f" ]] || continue
     # Extract sequence number
     basename_f="$(basename "$f")"

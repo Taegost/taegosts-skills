@@ -49,8 +49,12 @@ while IFS= read -r line; do
   if [[ "$line" == "diff --git"* ]]; then
     file=$(echo "$line" | sed 's|diff --git a/||;s| b/.*||')
     files_changed+=("$file")
-    echo "$file" | grep -qiE '(migrate|migration|alembic|flyway|liquibase|db/migrate)' && has_migrations=true || true
-    echo "$file" | grep -qiE '(test|spec|_test\.|\.test\.|\.spec\.)' && has_tests=true || true
+    if echo "$file" | grep -qiE '(migrate|migration|alembic|flyway|liquibase|db/migrate)'; then
+      has_migrations=true
+    fi
+    if echo "$file" | grep -qiE '(test|spec|_test\.|\.test\.|\.spec\.)'; then
+      has_tests=true
+    fi
   fi
   diff_line_count=$((diff_line_count + 1))
 done <<< "$diff_output"
@@ -59,7 +63,7 @@ files_json="[" first=true
 for f in "${files_changed[@]}"; do
   [[ -z "$f" ]] && continue
   [[ "$first" == "true" ]] && first=false || files_json+=","
-  files_json+="\"$(echo "$f" | sed 's/"/\\"/g')\""
+  files_json+="\"${f//\"/\\\"}\""
 done
 files_json+="]"
 

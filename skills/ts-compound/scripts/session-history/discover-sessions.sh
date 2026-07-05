@@ -98,7 +98,8 @@ discover_pi() {
     # When the caller supplies an exact repo root, probe only that encoded
     # directory so sibling repos like my-repo-old never enter the pipeline.
     if [ -n "$REPO_CWD" ]; then
-        local dir="$base/$(encode_pi_cwd "$REPO_CWD")"
+        local dir
+        dir="$base/$(encode_pi_cwd "$REPO_CWD")"
         [ -d "$dir" ] || return 0
         find "$dir" -maxdepth 1 -name "*.jsonl" -mtime "-${DAYS}" 2>/dev/null
         return 0

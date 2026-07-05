@@ -140,7 +140,7 @@ for kw in "${keywords[@]}"; do
       # Escape for JSON
       json_title=$(printf '%s' "$title" | sed 's/\\\\/\\\\\\\\/g; s/\"/\\\\\"/g')
       json_excerpt=$(printf '%s' "$excerpt" | sed 's/\\\\/\\\\\\\\/g; s/\"/\\\\\"/g; s/\t/\\t/g' | tr '\n' ' ')
-      rel_path="${file#$(pwd)/}"
+      rel_path="${file#"$(pwd)"/}"
 
       search_results+=("{\"keyword\":\"$kw\",\"path\":\"$rel_path\",\"title\":\"$json_title\",\"excerpt\":\"$json_excerpt\"}")
     fi

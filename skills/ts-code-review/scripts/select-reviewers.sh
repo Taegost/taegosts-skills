@@ -51,7 +51,7 @@ while IFS= read -r f; do
 done <<< "$files"
 
 # Deduplicate conditional
-conditional_unique=($(printf '%s\n' "${conditional[@]}" | sort -u 2>/dev/null || echo ""))
+mapfile -t conditional_unique < <(printf '%s\n' "${conditional[@]}" | sort -u 2>/dev/null)
 
 # Build JSON
 cond_json="["
