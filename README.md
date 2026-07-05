@@ -36,7 +36,7 @@ Then enable the plugin in `enabledPlugins`:
 |-------|-------------|-------------|
 | `/load-plan` | Loads a plan document for skill execution. Auto-discovers plans from branch names, PR bodies, or explicit paths. | None (self-contained) |
 | `/ts-pr-review` | Reviews a pull request and posts inline findings | `code-review` plugin (claude-plugins-official) |
-| `/ts-pr-fix-findings` | Fixes findings from a PR review and updates the PR | `/ts-debug` (included), `/load-plan` |
+| `/ts-pr-fix-findings` | Fixes findings from a PR review and updates the PR | `/ts-debug` (included), `/load-plan`, `/ts-verify-implementation` |
 | `/ts-verify-implementation` | Verifies a feature branch against its plan | None (self-contained) |
 | `/ts-coding-workflow` | Mandatory workflow for all coding tasks — plan, review, doc-review, work | `/ts-plan`, `/ts-doc-review`, `/ts-do-work-loop` |
 | `/ts-do-work-loop` | Run ts-work and ts-verify-implementation in a loop until the plan is fully satisfied | `/ts-work`, `/ts-verify-implementation`, `/ts-compound` |
@@ -98,7 +98,7 @@ Validates findings from a PR review, fixes valid issues, and updates the PR with
 
 If no argument is provided, lists open PRs and prompts you to pick one. Uses `/ts-debug` (now included in this repo).
 
-**What to expect:** The skill reviews all open conversations on the PR, validates each finding, presents proposed actions (fix / decline / needs input) for your approval, then uses `/ts-debug` to implement fixes. It ends with a summary table and verdict.
+**What to expect:** The skill reviews all open conversations on the PR, validates each finding, presents proposed actions (fix / decline / needs input) for your approval, then uses `/ts-debug` to implement fixes. When a feature plan is available, it also runs `/ts-verify-implementation` to catch regressions and scope creep. It ends with a summary table and verdict.
 
 ### `/ts-verify-implementation`
 
@@ -120,6 +120,7 @@ Some skills depend on other Claude Code plugins:
 
 - **Taegost's Skills skills** — `/ts-pr-fix-findings` uses `/ts-debug`, which is now included in this repo (extracted from EveryInc).
 - **code-review plugin** — required by `/ts-pr-review` (provides `/code-review`). Install from claude-plugins-official marketplace.
+- **ts-verify-implementation** — `/ts-pr-fix-findings` invokes it as a sub-skill when a feature plan is available, to catch regressions and scope creep after individual finding fixes.
 
 `/ts-verify-implementation` has no external plugin dependencies.
 
