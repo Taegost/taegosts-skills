@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# pr-metadata.sh -- Fetch PR metadata from GitHub API as JSON
 set -euo pipefail
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then

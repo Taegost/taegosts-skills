@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# U3: solutions-search.sh — search docs/solutions/ for matching conventions
+# solutions-search.sh -- Search docs/solutions/ for matching conventions
 # Input: keywords as arguments
 # Output: JSON array with keyword, path, title, excerpt
 # Exit codes: 0 matches found, 1 error, 2 no matches found
 # R10: validate inputs, reject shell metacharacters
 
-set -uo pipefail
+set -euo pipefail
 
 SOLUTIONS_DIR="${SOLUTIONS_DIR:-docs/solutions}"
 
@@ -129,7 +129,7 @@ for kw in "${keywords[@]}"; do
       # Shorten excerpt to 200 chars at word boundary
       if [[ ${#excerpt} -gt 200 ]]; then
         excerpt="${excerpt:0:197}"
-        last_space=$(echo "$excerpt" | grep -bo ' ' | tail -1 | cut -d: -f1)
+        last_space=$(echo "$excerpt" | grep -bo ' ' | tail -1 | cut -d: -f1 || true)
         if [[ -n "$last_space" ]]; then
           excerpt="${excerpt:0:$last_space}..."
         else
@@ -140,7 +140,7 @@ for kw in "${keywords[@]}"; do
       # Escape for JSON
       json_title=$(printf '%s' "$title" | sed 's/\\\\/\\\\\\\\/g; s/\"/\\\\\"/g')
       json_excerpt=$(printf '%s' "$excerpt" | sed 's/\\\\/\\\\\\\\/g; s/\"/\\\\\"/g; s/\t/\\t/g' | tr '\n' ' ')
-      rel_path="${file#$(pwd)/}"
+      rel_path="${file#"$(pwd)"/}"
 
       search_results+=("{\"keyword\":\"$kw\",\"path\":\"$rel_path\",\"title\":\"$json_title\",\"excerpt\":\"$json_excerpt\"}")
     fi

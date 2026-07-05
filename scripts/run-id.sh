@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# U5: run-id.sh — generate timestamp-hex run ID
+# run-id.sh -- Generate a timestamp-hex run ID
 # Output: YYYYMMDD-HHMMSS-XXXX (date-time-4hex)
 # Exit codes: 0 success, 1 error
 

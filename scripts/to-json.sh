@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# to-json.sh — Safe JSON output for bash scripts
+# to-json.sh -- Safe JSON output for bash scripts
 # Wraps jq for reliable JSON construction. No embedded Python.
 #
 # Usage:

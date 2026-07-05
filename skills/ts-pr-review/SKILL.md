@@ -135,9 +135,10 @@ Create a JSON file with the review body and inline comments. The `body` field is
 ```
 
 - `path` — file path relative to the repo root, matching the diff
-- `line` — the line number in the **new file** (right side of the diff)
-- `side` — `"RIGHT"` for added/modified lines; the Reviews API requires it to disambiguate diff sides. Omit only for context-line comments.
-- `body` — populated from the `review.json` finding fields (`title`, `why_it_matters`, `evidence`, `suggested_fix`), not from your own analysis
+- `line` — the line number in the **new file** (right side of the diff) where the comment should appear
+- `body` — the full finding text (all fields: Summary, Description, Reason, Severity, Proposed Fix, AI Prompt)
+- `side` — required for inline comments on PR diffs; set to `"RIGHT"` to comment on added/modified lines and unchanged context lines (the right side of the diff). Use `"LEFT"` for deleted lines. The GitHub Reviews API requires this field to disambiguate which side of a diff the comment applies to.
+- `event` — use `COMMENT` for findings; use `APPROVE` if all findings are Info-only; use `REQUEST_CHANGES` if any Moderate+ findings exist
 
 #### 4d. Severity rules for the review event
 

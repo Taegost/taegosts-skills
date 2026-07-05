@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# U19: generate-plan-filename.sh - generate a plan filename with auto-incrementing sequence
+# generate-plan-filename.sh -- Generate a plan filename with auto-incrementing sequence
 # Input: --type feat|fix|chore --slug <string>
 # Output: filename like 2026-06-25-002-feat-my-plan.md
 # Exit codes: 0 success, 1 error
@@ -92,7 +92,7 @@ plans_dir="docs/plans"
 # Count existing plans for today
 max_seq=0
 if [[ -d "$plans_dir" ]]; then
-  for f in "$plans_dir"/${today}-[0-9][0-9][0-9]-*.md; do
+  for f in "$plans_dir/${today}"-[0-9][0-9][0-9]-*.md; do
     [[ -e "$f" ]] || continue
     # Extract sequence number
     basename_f="$(basename "$f")"

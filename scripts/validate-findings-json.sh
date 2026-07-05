@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# validate-findings-json.sh -- Validate findings JSON has required fields
 set -euo pipefail
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then

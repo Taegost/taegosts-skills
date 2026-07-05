@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# detect-diff-scope.sh -- Compute diff scope and detect which reviewers apply
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -46,10 +47,30 @@ files_changed=() has_migrations=false has_tests=false diff_line_count=0
 [[ -z "$diff_output" ]] && diff_output=""
 while IFS= read -r line; do
   if [[ "$line" == "diff --git"* ]]; then
-    file=$(echo "$line" | sed 's|diff --git a/||;s| b/.*||')
+    # Handle git's C-style quoting for filenames with special characters
+    raw="${line#diff --git }"
+    case "$raw" in
+      '"a/'*) raw="${raw#\"a/}" ;;
+      'a/'*)  raw="${raw#a/}" ;;
+    esac
+    case "$raw" in
+      *' "b/'*) raw="${raw%%' "b/'*}" ;;
+      *' b/'*)  raw="${raw%%' b/'*}" ;;
+    esac
+    # Remove surrounding quotes if present
+    file="${raw%\"}"
+    file="${file#\"}"
+    # Unescape git C-style escape sequences (\" → ", \\ → \)
+    file="${file//\\\\/$'\x01'}"   # placeholder for backslash
+    file="${file//\\\"/\"}"         # \" → "
+    file="${file//$'\x01'/\\}"     # placeholder → backslash
     files_changed+=("$file")
-    echo "$file" | grep -qiE '(migrate|migration|alembic|flyway|liquibase|db/migrate)' && has_migrations=true || true
-    echo "$file" | grep -qiE '(test|spec|_test\.|\.test\.|\.spec\.)' && has_tests=true || true
+    if echo "$file" | grep -qiE '(migrate|migration|alembic|flyway|liquibase|db/migrate)'; then
+      has_migrations=true
+    fi
+    if echo "$file" | grep -qiE '(test|spec|_test\.|\.test\.|\.spec\.)'; then
+      has_tests=true
+    fi
   fi
   diff_line_count=$((diff_line_count + 1))
 done <<< "$diff_output"
@@ -58,7 +79,9 @@ files_json="[" first=true
 for f in "${files_changed[@]}"; do
   [[ -z "$f" ]] && continue
   [[ "$first" == "true" ]] && first=false || files_json+=","
-  files_json+="\"$(echo "$f" | sed 's/"/\\"/g')\""
+  # Escape backslashes first, then quotes, for valid JSON strings
+  escaped="${f//\\/\\\\}"
+  files_json+="\"${escaped//\"/\\\"}\""
 done
 files_json+="]"
 

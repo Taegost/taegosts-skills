@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# sync-taegosts-skills.sh — Persistent clone + sync for taegosts-skills
+# sync-taegosts-skills.sh -- Maintain a persistent clone and sync taegosts-skills
 #
 # Maintains a persistent clone at $HERMES_HOME/taegosts-skills/ and syncs
 # skills, scripts, and tests to $HERMES_HOME/skills/.
@@ -11,7 +11,7 @@
 #   sync-taegosts-skills.sh [--dry-run]
 #
 # Environment:
-#   HERMES_HOME  — base directory (default: $HOME)
+#   HERMES_HOME  -- base directory (default: $HOME)
 
 set -euo pipefail
 

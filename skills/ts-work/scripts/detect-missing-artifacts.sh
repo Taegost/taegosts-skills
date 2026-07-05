@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# U9: detect-missing-artifacts.sh - find files in reference dir but absent from plan
+# detect-missing-artifacts.sh -- Find files in reference dir but absent from plan
 # Input: --plan-files <file> --reference-dir <path>
 # Output: JSON array of {file, status} where status is "missing" or "in_plan"
 # Exit codes: 0 success, 1 error
@@ -86,6 +86,12 @@ fi
 
 if [[ ! -d "$reference_dir" ]]; then
   echo '{"ok":false,"error":"--reference-dir not found"}' >&2
+  exit 1
+fi
+
+# Verify python3 is available
+if ! command -v python3 &>/dev/null; then
+  echo '{"ok":false,"error":"python3 is required but not found in PATH"}' >&2
   exit 1
 fi
 
