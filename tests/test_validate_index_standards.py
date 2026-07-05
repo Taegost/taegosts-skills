@@ -3,13 +3,14 @@
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 import pytest
 
 SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "validate-index-standards.py"
 
 
-def run_validator(content: str, filename: str = "INDEX.md", tmp_path: Path = None):
+def run_validator(content: str, filename: str = "INDEX.md", tmp_path: Optional[Path] = None):
     """Run the validator on a temp file and return the parsed result dict."""
     if tmp_path is None:
         import tempfile
@@ -23,7 +24,7 @@ def run_validator(content: str, filename: str = "INDEX.md", tmp_path: Path = Non
 
     result = subprocess.run(
         [sys.executable, str(SCRIPT), str(path)],
-        capture_output=True, text=True
+        capture_output=True, text=True, check=False
     )
     import json
     output = json.loads(result.stderr)
@@ -39,7 +40,7 @@ class TestR7Links:
     def test_compliant_links(self, tmp_path):
         """Valid [name](uri) links should pass."""
         content = "# Test\n\n[Example](https://example.com)\n[Docs](./docs/README.md)\n"
-        result, code = run_validator(content, "test.md", tmp_path)
+        result, _ = run_validator(content, "test.md", tmp_path)
         r7_violations = [v for v in result.get("violations", []) if v["rule"] == "R7"]
         assert r7_violations == [], f"Expected no R7 violations, got {r7_violations}"
 

@@ -421,6 +421,7 @@ Convert multiple reviewer compact JSON returns into one deduplicated, confidence
 
 `confidence` is one of 5 discrete anchors (`0`, `25`, `50`, `75`, `100`) with behavioral definitions in the findings schema. Synthesis treats anchors as integers; do not coerce to floats.
 
+<!-- markdownlint-disable MD029 -->
 1. **Validate.** Check each compact return for required top-level and per-finding fields, plus value constraints. Drop malformed returns or findings. Record the drop count.
    - **Top-level required:** reviewer (string), findings (array), residual_risks (array), testing_gaps (array). Drop the entire return if any are missing or wrong type.
    - **Per-finding required:** title, severity, file, line, confidence, autofix_class, owner, requires_verification, pre_existing
@@ -460,6 +461,7 @@ When a finding qualifies:
    - **Ordering:** order groups by the highest-severity finding they contain, then by lowest stable `#`. A finding appears in at most one group; leave genuinely unrelated findings ungrouped.
 10. **Collect coverage data.** Union residual_risks and testing_gaps across reviewers.
 11. **Preserve CE local-prompt artifacts.** Keep the learnings and deployment-verification outputs alongside the merged finding set. Do not drop unstructured output just because it does not match the agent JSON schema. Schema drift from `data-migration` is already in the merged finding set.
+<!-- markdownlint-enable MD029 -->
 
 ### Stage 5b: Validation pass (optional quality gate)
 

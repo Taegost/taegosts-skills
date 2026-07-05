@@ -53,7 +53,7 @@ fi
 # Test: filenames with double quotes — exact match
 tmpdir3=$(mktemp -d)
 cd "$tmpdir3" || exit 1
-trap 'rm -rf "$tmpdir" "$tmpdir2" "$tmpdir3" "$tmpdir4" "$tmpdir5"' EXIT
+trap 'rm -rf "${tmpdir:-}" "${tmpdir2:-}" "${tmpdir3:-}" "${tmpdir4:-}" "${tmpdir5:-}"' EXIT
 git init -b main >/dev/null 2>&1
 git config user.email "test@test.com"
 git config user.name "Test"
@@ -77,7 +77,7 @@ fi
 # Test: filenames with backslashes — exact match
 tmpdir4=$(mktemp -d)
 cd "$tmpdir4" || exit 1
-trap 'rm -rf "$tmpdir" "$tmpdir2" "$tmpdir3" "$tmpdir4" "$tmpdir5"' EXIT
+trap 'rm -rf "${tmpdir:-}" "${tmpdir2:-}" "${tmpdir3:-}" "${tmpdir4:-}" "${tmpdir5:-}"' EXIT
 git init -b main >/dev/null 2>&1
 git config user.email "test@test.com"
 git config user.name "Test"
@@ -101,7 +101,7 @@ fi
 # Test: filenames with spaces — exact match
 tmpdir5=$(mktemp -d)
 cd "$tmpdir5" || exit 1
-trap 'rm -rf "$tmpdir" "$tmpdir2" "$tmpdir3" "$tmpdir4" "$tmpdir5"' EXIT
+trap 'rm -rf "${tmpdir:-}" "${tmpdir2:-}" "${tmpdir3:-}" "${tmpdir4:-}" "${tmpdir5:-}"' EXIT
 git init -b main >/dev/null 2>&1
 git config user.email "test@test.com"
 git config user.name "Test"

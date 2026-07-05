@@ -178,8 +178,6 @@ If any verification step fails, fix the issue before proceeding. Do not commit a
 - If semantic, resolution, or technical verification fails for a finding, repeat the process from step 3 for that finding. Note: resolution verification is more stringent than semantic verification — it can fail when the code changed but doesn't address the reviewer's specific concern. If the failure is due to a KTD conflict or scope boundary (unresolvable), do not loop — surface it as a known residual instead.
   - If you have looped a particular finding 10 times, then skip it with a note that you are having trouble finding a proper remediation for the finding and that the user should review the latest remediation plan
 
-### 6a. Holistic verification (conditional — requires plan)
-
 ### 6a. Holistic verification (ALWAYS executes — outcome depends on plan)
 
 **This step is NOT skippable.** It runs after Step 6 in every invocation of this skill, whether or not a plan exists. What varies is the outcome, and every outcome MUST be written to the tracker file (`docs/pull_requests/<pr#>_verification.md`) before Step 7:
