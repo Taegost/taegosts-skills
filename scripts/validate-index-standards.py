@@ -189,14 +189,15 @@ def check_r8_table(content: str) -> list[dict]:
     found_table = False
     for i, line in enumerate(lines):
         # Check for table header row
-        if '|' in line and ('Link' in line or 'link' in line.lower()):
+        if '|' in line:
+            cells = [c.strip().lower() for c in line.split('|')]
             # Check if this is a table header (followed by separator row)
             if i + 1 < len(lines):
                 next_line = lines[i + 1]
                 if re.match(r'^[\s|:-]+$', next_line):
                     # This is a table header with separator
-                    # Check for Description column
-                    if 'Description' in line or 'description' in line.lower():
+                    # Check for exact Link and Description column names
+                    if 'link' in cells and 'description' in cells:
                         found_table = True
                         break
 

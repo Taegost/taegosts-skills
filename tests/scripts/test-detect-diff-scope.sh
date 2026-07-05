@@ -121,5 +121,29 @@ else
   echo "FAIL: space filenames"; fail=$((fail + 1))
 fi
 
+# Test: filenames with both backslash and double-quote — combined special chars
+tmpdir6=$(mktemp -d)
+cd "$tmpdir6" || exit 1
+trap 'rm -rf "${tmpdir:-}" "${tmpdir2:-}" "${tmpdir3:-}" "${tmpdir4:-}" "${tmpdir5:-}" "${tmpdir6:-}"' EXIT
+git init -b main >/dev/null 2>&1
+git config user.email "test@test.com"
+git config user.name "Test"
+echo "initial" > file.txt && git add . && git commit -m "init" >/dev/null 2>&1
+git update-ref refs/remotes/origin/main HEAD
+git checkout -b feat/test >/dev/null 2>&1
+echo "content" > 'my\file"2.txt' && git add . && git commit -m "add combined special filename" >/dev/null 2>&1
+
+output=$(cd "$tmpdir6" && "$SCRIPT" --base main 2>&1)
+if echo "$output" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+expected = 'my\\\\file\"2.txt'
+assert expected in d['files_changed'], f'Expected {repr(expected)} in {d[\"files_changed\"]}'
+" 2>/dev/null; then
+  echo "PASS: filenames with backslash and quote are correctly unescaped"; pass=$((pass + 1))
+else
+  echo "FAIL: combined special character filenames"; fail=$((fail + 1))
+fi
+
 echo "Results: $pass passed, $fail failed"
 [[ $fail -eq 0 ]] && exit 0 || exit 1

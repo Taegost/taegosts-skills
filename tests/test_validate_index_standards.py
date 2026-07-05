@@ -199,7 +199,7 @@ class TestExtractLinks:
             "| Link | Description |\n"
             "|------|-------------|\n"
             "| [local](local.md) | Local |\n\n"
-            "```markdown\n[Outside](https://example.com)\n```\n"
+            "```markdown\n[Outside](../outside-scope.md)\n```\n"
         )
         result, _ = run_validator(content, "INDEX.md", tmp_path)
         # No R8 scope violations from the code-block link
