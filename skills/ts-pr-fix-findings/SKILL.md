@@ -183,7 +183,7 @@ When `ts-verify-implementation` reports FAIL or PARTIAL:
 2. **Create Kanban cards for verification findings.** Use the same format as Step 2c, tagged with `[verification-round-N]` to distinguish from original review findings.
 3. **Map to Step 3 format.** For each verification finding, translate it to Step 3's expected input: file path, line reference (if available), the verification concern as the reviewer note, and mark the source as `[verification-round-N]`.
 4. **Present dispositions to the user.** List each verification finding with its proposed action: **fix**, **decline**, or **needs input**. Do not proceed until the user confirms. The user may decline a verification finding if they judge it acceptable.
-5. **Track iteration count.** Update the `verification-loop-tracker` Kanban card with the current iteration number before each round. Read this card before starting to determine whether the cap has been reached.
+5. **Track iteration count.** If no `verification-loop-tracker` Kanban card exists, create one with iteration count 0. Then increment the count and update the card before each round. Read this card before starting to determine whether the cap has been reached.
 6. After user confirmation, re-enter the Step 3 fix-plan flow for confirmed findings.
 7. After re-planning and re-fixing, re-run Step 6a.
 8. **Cap at 2 iterations.** If verification still fails after 2 cycles, report the remaining findings to the user. Continue to Step 7 without blocking — the user can address remaining findings in a follow-up session. Do not silently loop.
