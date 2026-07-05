@@ -47,7 +47,19 @@ files_changed=() has_migrations=false has_tests=false diff_line_count=0
 [[ -z "$diff_output" ]] && diff_output=""
 while IFS= read -r line; do
   if [[ "$line" == "diff --git"* ]]; then
-    file=$(echo "$line" | sed 's|diff --git a/||;s| b/.*||')
+    # Handle git's C-style quoting for filenames with special characters
+    raw="${line#diff --git }"
+    case "$raw" in
+      '"a/'*) raw="${raw#\"a/}" ;;
+      'a/'*)  raw="${raw#a/}" ;;
+    esac
+    case "$raw" in
+      *' "b/'*) raw="${raw%%' "b/'*}" ;;
+      *' b/'*)  raw="${raw%%' b/'*}" ;;
+    esac
+    # Remove surrounding quotes if present
+    file="${raw%\"}"
+    file="${file#\"}"
     files_changed+=("$file")
     if echo "$file" | grep -qiE '(migrate|migration|alembic|flyway|liquibase|db/migrate)'; then
       has_migrations=true
@@ -63,7 +75,9 @@ files_json="[" first=true
 for f in "${files_changed[@]}"; do
   [[ -z "$f" ]] && continue
   [[ "$first" == "true" ]] && first=false || files_json+=","
-  files_json+="\"${f//\"/\\\"}\""
+  # Escape backslashes first, then quotes, for valid JSON strings
+  escaped="${f//\\/\\\\}"
+  files_json+="\"${escaped//\"/\\\"}\""
 done
 files_json+="]"
 

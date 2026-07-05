@@ -21,9 +21,10 @@ import json
 import re
 import sys
 from pathlib import Path
+from typing import Optional
 
 
-def parse_frontmatter(content: str) -> dict | None:
+def parse_frontmatter(content: str) -> Optional[dict]:
     """Extract YAML frontmatter from markdown content.
 
     Returns a dict of frontmatter fields, or None if no frontmatter found.
@@ -49,7 +50,14 @@ def extract_links(content: str) -> list[dict]:
     Returns a list of dicts with 'text', 'uri', and 'line' keys.
     """
     links = []
+    in_code_block = False
     for i, line in enumerate(content.splitlines(), 1):
+        # Track fenced code block state
+        if line.strip().startswith('```'):
+            in_code_block = not in_code_block
+            continue
+        if in_code_block:
+            continue
         # Match [text](uri) pattern, excluding image references
         for match in re.finditer(r'(?<!!)\[([^\]]*)\]\(([^)]+)\)', line):
             links.append({
@@ -79,11 +87,14 @@ def check_r7_links(content: str) -> list[dict]:
 
         seen_urls = set()  # Deduplicate violations per line
 
+        # Strip inline code spans before URL scanning to avoid false positives
+        scan_line = re.sub(r'`[^`]+`', '', line)
+
         # Check for bare URLs (not wrapped in link syntax)
         # Pattern: URL not preceded by [ or ](
-        for match in re.finditer(r'(?<!\])\((https?://[^\s)]+)\)', line):
+        for match in re.finditer(r'(?<!\])\((https?://[^\s)]+)\)', scan_line):
             # Check if this is inside a link syntax [text](url)
-            before = line[:match.start()]
+            before = scan_line[:match.start()]
             if not re.search(r'\[[^\]]*\]$', before):
                 url = match.group(1).rstrip('.,;:)')
                 if url not in seen_urls:
@@ -96,17 +107,17 @@ def check_r7_links(content: str) -> list[dict]:
                     })
 
         # Check for bare URLs at end of line or before whitespace
-        for match in re.finditer(r'(?:^|\s)(https?://[^\s]+)', line):
+        for match in re.finditer(r'(?:^|\s)(https?://[^\s]+)', scan_line):
             url = match.group(1).rstrip('.,;:)')
             if url in seen_urls:
                 continue
             # Check if this URL is already part of a link
             pos = match.start()
-            before = line[:pos]
-            after = line[pos:]
+            before = scan_line[:pos]
+            after = scan_line[pos:]
 
-            # If preceded by ]( it's part of a link
-            if re.search(r'\]\($', before):
+            # If preceded by ]( it's part of a link (handle spaces after paren)
+            if re.search(r'\]\(\s*$', before):
                 continue
             # If followed by ) it's part of a link
             if re.search(r'^[^\s]*\)', after):

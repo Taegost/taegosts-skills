@@ -50,5 +50,24 @@ else
   echo "FAIL: test detection"; fail=$((fail + 1))
 fi
 
+# Test: filenames with special characters (double quotes)
+tmpdir3=$(mktemp -d)
+cd "$tmpdir3" || exit 1
+trap 'rm -rf "$tmpdir" "$tmpdir2" "$tmpdir3"' EXIT
+git init -b main >/dev/null 2>&1
+git config user.email "test@test.com"
+git config user.name "Test"
+echo "initial" > file.txt && git add . && git commit -m "init" >/dev/null 2>&1
+git update-ref refs/remotes/origin/main HEAD
+git checkout -b feat/test >/dev/null 2>&1
+echo "content" > 'my"file.txt' && git add . && git commit -m "add quoted filename" >/dev/null 2>&1
+
+output=$(cd "$tmpdir3" && "$SCRIPT" --base main 2>&1)
+if echo "$output" | python3 -c "import sys,json; d=json.load(sys.stdin); assert any('\"' in f for f in d['files_changed']), f'No quoted filename found in {d[\"files_changed\"]}'" 2>/dev/null; then
+  echo "PASS: filenames with double quotes are correctly JSON-escaped"; pass=$((pass + 1))
+else
+  echo "FAIL: special-character filenames"; fail=$((fail + 1))
+fi
+
 echo "Results: $pass passed, $fail failed"
 [[ $fail -eq 0 ]] && exit 0 || exit 1
