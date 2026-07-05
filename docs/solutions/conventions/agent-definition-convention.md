@@ -46,7 +46,7 @@ When renaming, watch for grammar: "a persona" becomes "an agent" (not "a agent")
 
 ### Frontmatter Schema
 
-Every agent file must begin with YAML frontmatter containing exactly these fields:
+Every agent file must begin with YAML frontmatter containing the following required fields:
 
 ```yaml
 ---

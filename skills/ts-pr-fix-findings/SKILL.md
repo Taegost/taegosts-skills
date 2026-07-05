@@ -148,7 +148,7 @@ For each finding that was dispositioned as "fix," verify the fix actually resolv
 1. **Re-read the reviewer's original concern.** What specific behavior, pattern, or issue did they call out?
 2. **Check the code path the reviewer referenced.** Does the fix address the specific code the reviewer pointed at, or did it change something adjacent?
 3. **Note whether the concern is resolved.** If the fix changed code but the reviewer's specific concern still applies (e.g., they flagged a missing validation and you added a comment instead), the fix is unresolved.
-4. **Treat unresolvable fixes as unresolved.** If a fix cannot resolve the concern (e.g., the reviewer's request conflicts with a KTD or is out of scope), this must be surfaced — do not silently skip it.
+4. **Treat unresolvable fixes as unresolved — but do not loop.** If a fix cannot resolve the concern (e.g., the reviewer's request conflicts with a KTD or is out of scope), surface it to the user as a known residual and continue to Step 6a. Do not loop back to Step 3 for a fix that cannot succeed.
 
 **Technical verification (MANDATORY for each fix):**
 1. **Re-read the file** after editing. Confirm the expected change is present in the actual file content. Python `str.replace()` silently returns the unchanged string when the pattern doesn't match — a non-match looks identical to a successful edit.
@@ -159,7 +159,7 @@ For each finding that was dispositioned as "fix," verify the fix actually resolv
 
 If any verification step fails, fix the issue before proceeding. Do not commit and hope.
 
-- If semantic, resolution, or technical verification fails for a finding, repeat the process from step 3 for that finding.
+- If semantic, resolution, or technical verification fails for a finding, repeat the process from step 3 for that finding. Note: resolution verification is more stringent than semantic verification — it can fail when the code changed but doesn't address the reviewer's specific concern. If the failure is due to a KTD conflict or scope boundary (unresolvable), do not loop — surface it as a known residual instead.
   - If you have looped a particular finding 10 times, then skip it with a note that you are having trouble finding a proper remediation for the finding and that the user should review the latest remediation plan
 
 ### 6a. Holistic verification (conditional — requires plan)
@@ -168,7 +168,7 @@ If any verification step fails, fix the issue before proceeding. Do not commit a
 
 After all individual finding remediations pass Step 6 verification, run holistic verification against the full feature plan:
 
-1. Invoke `/ts-verify-implementation <plan-filename>` — pass only the plan filename (e.g., `2026-07-04-002-feat-pr-fix-findings-verification-loop-plan.md`), not the full path. The skill prepends `docs/plans/` to its argument.
+1. Extract the filename from Step 0a's plan path: use `basename <plan-path>` to strip the `docs/plans/` prefix. Then invoke `/ts-verify-implementation <plan-filename>` — pass only the filename (e.g., `2026-07-04-002-feat-pr-fix-findings-verification-loop-plan.md`), not the full path. The skill prepends `docs/plans/` to its argument.
 2. If the sub-skill fails to execute (error, timeout, or unavailable), log a warning and continue to Step 7. Do not block the PR update on verification infrastructure failures.
 3. If the sub-skill executes but returns a PARTIAL or FAIL verdict, proceed to Step 6b.
 4. If the sub-skill returns PASS, proceed to Step 7.
@@ -177,12 +177,16 @@ After all individual finding remediations pass Step 6 verification, run holistic
 
 ### 6b. Verification failure loop (conditional — runs when 6a returns PARTIAL or FAIL)
 
-When `ts-verify-implementation` reports FAIL or PARTIAL findings:
+When `ts-verify-implementation` reports FAIL or PARTIAL:
 
-1. Parse the verification output for failing dimensions (correctness, completeness, scope, standards).
-2. For each failing finding, re-enter the Step 3 fix-plan flow. Verification findings use the same disposition model as Step 2b: **fix**, **decline**, or **needs input**. The user may decline a verification finding if they judge it acceptable.
-3. After re-planning and re-fixing, re-run Step 6a.
-4. **Cap at 2 iterations.** If verification still fails after 2 cycles, report the remaining findings to the user and ask whether to continue iterating, address manually, or accept as-is. Do not silently loop.
+1. **Parse the verification summary table.** The output is a consolidated table with columns `# | Severity | File | Issue` — not grouped by dimension. Extract all FAIL/PARTIAL findings from the table.
+2. **Create Kanban cards for verification findings.** Use the same format as Step 2c, tagged with `[verification-round-N]` to distinguish from original review findings.
+3. **Map to Step 3 format.** For each verification finding, translate it to Step 3's expected input: file path, line reference (if available), the verification concern as the reviewer note, and mark the source as `[verification-round-N]`.
+4. **Present dispositions to the user.** List each verification finding with its proposed action: **fix**, **decline**, or **needs input**. Do not proceed until the user confirms. The user may decline a verification finding if they judge it acceptable.
+5. **Track iteration count.** Update the `verification-loop-tracker` Kanban card with the current iteration number before each round. Read this card before starting to determine whether the cap has been reached.
+6. After user confirmation, re-enter the Step 3 fix-plan flow for confirmed findings.
+7. After re-planning and re-fixing, re-run Step 6a.
+8. **Cap at 2 iterations.** If verification still fails after 2 cycles, report the remaining findings to the user. Continue to Step 7 without blocking — the user can address remaining findings in a follow-up session. Do not silently loop.
 
 ### 7. Update the pull request with your results
 
