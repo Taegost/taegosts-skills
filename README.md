@@ -120,7 +120,7 @@ Some skills depend on other Claude Code plugins:
 
 - **Taegost's Skills skills** — `/ts-pr-fix-findings` uses `/ts-debug`, which is now included in this repo (extracted from EveryInc).
 - **code-review plugin** — required by `/ts-pr-review` (provides `/code-review`). Install from claude-plugins-official marketplace.
-- `/ts-pr-fix-findings` invokes `/ts-verify-implementation` as a sub-skill when a feature plan is available, to catch regressions and scope creep after individual finding fixes.
+- **ts-verify-implementation** — `/ts-pr-fix-findings` invokes it as a sub-skill when a feature plan is available, to catch regressions and scope creep after individual finding fixes.
 
 `/ts-verify-implementation` has no external plugin dependencies.
 
