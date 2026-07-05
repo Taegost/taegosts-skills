@@ -80,5 +80,5 @@ ce-brainstorm → ce-plan → ce-work → ce-code-review
 
 ## Source
 
-- Upstream: https://github.com/everyinc/compound-engineering-plugin
-- Motivating plan: https://github.com/Taegost/homelab-k8s/blob/main/docs/plans/2026-06-23-006-chore-skill-improvements-from-honcho-deployment.md
+- Upstream: [compound-engineering-plugin](https://github.com/everyinc/compound-engineering-plugin)
+- Motivating plan: [skill-improvements-from-honcho-deployment](https://github.com/Taegost/homelab-k8s/blob/main/docs/plans/2026-06-23-006-chore-skill-improvements-from-honcho-deployment.md)
