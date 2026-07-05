@@ -18,6 +18,7 @@ Output: JSON to stderr with per-file results.
 
 import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -83,6 +84,10 @@ def check_r7_links(content: str) -> list[dict]:
             in_code_block = not in_code_block
             continue
         if in_code_block:
+            continue
+
+        # Skip markdown link reference definitions: [ref]: URL
+        if re.match(r'^\[[^\]]+\]:\s', line):
             continue
 
         seen_urls = set()  # Deduplicate violations per line
@@ -182,12 +187,12 @@ def check_r8_table(content: str) -> list[dict]:
 
     # Look for a table with Link and Description columns
     found_table = False
-    for i, line in enumerate(lines, 1):
+    for i, line in enumerate(lines):
         # Check for table header row
         if '|' in line and ('Link' in line or 'link' in line.lower()):
             # Check if this is a table header (followed by separator row)
-            if i < len(lines):
-                next_line = lines[i]  # 0-indexed, so lines[i] is the next line
+            if i + 1 < len(lines):
+                next_line = lines[i + 1]
                 if re.match(r'^[\s|:-]+$', next_line):
                     # This is a table header with separator
                     # Check for Description column
@@ -232,9 +237,12 @@ def check_r8_scope(content: str, filepath: Path) -> list[dict]:
         if uri.startswith(('data:', 'javascript:')):
             continue
 
-        # Resolve the target path relative to the file's directory
+        # Resolve the target path relative to the file's directory.
+        # Use normpath to collapse .. without following symlinks.
+        # Then check if the normalized path stays within scope.
         try:
-            target = (file_dir / uri).resolve()
+            raw_target = file_dir / uri
+            target = Path(os.path.normpath(raw_target))
         except (ValueError, OSError):
             violations.append({
                 'rule': 'R8',
@@ -247,9 +255,11 @@ def check_r8_scope(content: str, filepath: Path) -> list[dict]:
         # Check if target is within the allowed scope
         # Allowed: same directory or one subdirectory deep
         try:
-            rel_to_file = target.relative_to(file_dir.resolve())
+            # Use the file's own directory (not resolved) as scope root
+            scope_root = Path(os.path.normpath(file_dir))
+            rel_to_file = target.relative_to(scope_root)
         except ValueError:
-            # Target is outside the file's directory
+            # If target escapes scope via normpath, flag it
             if not is_routing:
                 violations.append({
                     'rule': 'R8',
@@ -258,6 +268,22 @@ def check_r8_scope(content: str, filepath: Path) -> list[dict]:
                     'fix': 'Only docs/ROUTING.md may reference files outside its parent folder'
                 })
             continue
+
+        # Also check for symlinks that point outside scope
+        try:
+            if raw_target.is_symlink():
+                resolved = raw_target.resolve()
+                if not resolved.is_relative_to(scope_root.resolve()):
+                    if not is_routing:
+                        violations.append({
+                            'rule': 'R8',
+                            'line': link['line'],
+                            'message': f'Symlink target is outside parent folder: {uri}',
+                            'fix': 'Only docs/ROUTING.md may reference files outside its parent folder'
+                        })
+                    continue
+        except (ValueError, OSError):
+            pass
 
         # Check depth: allowed up to 1 subfolder deep
         parts = rel_to_file.parts

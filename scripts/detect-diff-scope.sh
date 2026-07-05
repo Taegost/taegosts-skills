@@ -60,6 +60,10 @@ while IFS= read -r line; do
     # Remove surrounding quotes if present
     file="${raw%\"}"
     file="${file#\"}"
+    # Unescape git C-style escape sequences (\" → ", \\ → \)
+    file="${file//\\\\/$'\x01'}"   # placeholder for backslash
+    file="${file//\\\"/\"}"         # \" → "
+    file="${file//$'\x01'/\\}"     # placeholder → backslash
     files_changed+=("$file")
     if echo "$file" | grep -qiE '(migrate|migration|alembic|flyway|liquibase|db/migrate)'; then
       has_migrations=true

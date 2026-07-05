@@ -206,6 +206,80 @@ class TestExtractLinks:
         assert r8_scope == [], f"Code block links should not trigger scope violations, got {r8_scope}"
 
 
+# ── Link reference definitions ──
+
+class TestLinkReferenceDefinitions:
+    """Verify R7 skips markdown link reference definitions."""
+
+    def test_link_reference_definition_not_flagged(self, tmp_path):
+        """[ref]: URL syntax should NOT be flagged as bare URLs."""
+        content = "# Test\n\n[example]: https://example.com\n\n[example] link\n"
+        result, _ = run_validator(content, "test.md", tmp_path)
+        r7_violations = [v for v in result.get("violations", []) if v["rule"] == "R7"]
+        assert r7_violations == [], f"Link reference definitions should not be flagged, got {r7_violations}"
+
+    def test_link_reference_with_title(self, tmp_path):
+        """[ref]: URL \"title\" syntax should NOT be flagged."""
+        content = "# Test\n\n[ref]: https://example.com \"Example\"\n\nText.\n"
+        result, _ = run_validator(content, "test.md", tmp_path)
+        r7_violations = [v for v in result.get("violations", []) if v["rule"] == "R7"]
+        assert r7_violations == [], f"Link reference with title should not be flagged, got {r7_violations}"
+
+
+# ── R8 table edge cases ──
+
+class TestR8TableEdgeCases:
+    """Verify check_r8_table handles edge cases correctly."""
+
+    def test_header_as_last_line(self, tmp_path):
+        """Table header as the last line should fail (no separator row)."""
+        content = "---\ntags: [index]\ndescription: Test\n---\n\n| Link | Description |\n"
+        result, _ = run_validator(content, "INDEX.md", tmp_path)
+        r8_violations = [v for v in result.get("violations", []) if v["rule"] == "R8"]
+        table_violations = [v for v in r8_violations if "table" in v["message"].lower() or "link" in v["message"].lower()]
+        assert table_violations != [], "Header without separator should fail R8"
+
+    def test_table_with_only_link_column(self, tmp_path):
+        """Table with only Link column (no Description) should fail."""
+        content = (
+            "---\ntags: [index]\ndescription: Test\n---\n\n"
+            "| Link |\n"
+            "|------|\n"
+            "| [x](x.md) |\n"
+        )
+        result, _ = run_validator(content, "INDEX.md", tmp_path)
+        r8_violations = [v for v in result.get("violations", []) if v["rule"] == "R8"]
+        table_violations = [v for v in r8_violations if "table" in v["message"].lower() or "link" in v["message"].lower()]
+        assert table_violations != [], "Table without Description column should fail R8"
+
+
+# ── R8 scope with symlinks ──
+
+class TestR8ScopeStrict:
+    """Verify R8 scope check uses strict path comparison."""
+
+    def test_symlink_outside_scope_flagged(self, tmp_path):
+        """Symlink pointing outside parent folder should be flagged."""
+        subdir = tmp_path / "subdir"
+        subdir.mkdir()
+        outside = tmp_path / "outside.md"
+        outside.write_text("# Outside\n")
+        # Create a symlink inside subdir pointing outside
+        symlink = subdir / "link.md"
+        symlink.symlink_to(outside)
+        content = (
+            "---\ntags: [index]\ndescription: Test\n---\n\n"
+            "| Link | Description |\n"
+            "|------|-------------|\n"
+            "| [outside](link.md) | Symlinked outside |\n"
+        )
+        result, _ = run_validator(content, "INDEX.md", subdir)
+        # The symlink target is outside the subdir, so it should be flagged
+        # (unless .resolve() follows the symlink and finds it "inside")
+        r8_scope = [v for v in result.get("violations", []) if v["rule"] == "R8" and ("outside" in v["message"].lower() or "scope" in v["message"].lower())]
+        assert r8_scope != [], f"Symlink outside scope should be flagged, got {r8_scope}"
+
+
 # ── Python version compatibility ──
 
 class TestSyntaxCompatibility:
