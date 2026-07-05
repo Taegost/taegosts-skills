@@ -168,7 +168,7 @@ If any verification step fails, fix the issue before proceeding. Do not commit a
 
 After all individual finding remediations pass Step 6 verification, run holistic verification against the full feature plan:
 
-1. Extract the filename from Step 0a's plan path: use `basename <plan-path>` to strip the `docs/plans/` prefix. Then invoke `/ts-verify-implementation <plan-filename>` — pass only the filename (e.g., `2026-07-04-002-feat-pr-fix-findings-verification-loop-plan.md`), not the full path. The skill prepends `docs/plans/` to its argument.
+1. Invoke `/ts-verify-implementation <plan-path>` — pass the full plan path from Step 0a (e.g., `docs/plans/2026-07-04-002-feat-pr-fix-findings-verification-loop-plan.md`). The skill delegates path resolution to `load-plan`, which handles explicit paths, PR body scanning, and branch name extraction.
 2. If the sub-skill fails to execute (error, timeout, or unavailable), log a warning and continue to Step 7. Do not block the PR update on verification infrastructure failures.
 3. If the sub-skill executes but returns a PARTIAL or FAIL verdict, proceed to Step 6b.
 4. If the sub-skill returns PASS, proceed to Step 7.
