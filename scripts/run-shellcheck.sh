@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Run shellcheck on all test scripts
-# Usage: scripts/run-shellcheck.sh
+# run-shellcheck.sh -- Run shellcheck on all test scripts to catch shell safety issues
 set -uo pipefail
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then

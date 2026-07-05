@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# U15: detect-file-status.sh - determine if a file is committed, on disk (gitignored), or missing
+# detect-file-status.sh -- Determine if a file is committed, on disk, or missing
 # Input: file path (relative to repo root)
 # Output: JSON with {path, status: "committed"|"on_disk_gitignored"|"on_disk_untracked"|"missing"}
 # Exit codes: 0 success, 1 error, 2 file missing

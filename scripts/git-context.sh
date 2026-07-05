@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# U1: git-context.sh — unified git state snapshot as JSON
-# Calls U2 (default-branch.sh) internally for default_branch resolution
+# git-context.sh -- Produce a unified git state snapshot as JSON
+# Calls default-branch.sh internally for default_branch resolution
 # Output: JSON with current_branch, default_branch, is_detached, dirty_files,
 #         untracked_files, staged_files, recent_commits, has_unpushed, repo_root
 # Exit codes: 0 success, 1 error

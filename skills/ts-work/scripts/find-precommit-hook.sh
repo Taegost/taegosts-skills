@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# U10: find-precommit-hook.sh - find pre-commit hooks and referenced scripts
+# find-precommit-hook.sh -- Find pre-commit hooks and referenced scripts
 # Output: JSON with {hook_path, scripts[]}
 # Exit codes: 0 found hook, 1 error, 2 no hook found
 

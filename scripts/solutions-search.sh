@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# U3: solutions-search.sh — search docs/solutions/ for matching conventions
+# solutions-search.sh -- Search docs/solutions/ for matching conventions
 # Input: keywords as arguments
 # Output: JSON array with keyword, path, title, excerpt
 # Exit codes: 0 matches found, 1 error, 2 no matches found

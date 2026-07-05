@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# U2: default-branch.sh — resolve default branch with cascading fallbacks
+# default-branch.sh -- Resolve the default branch using cascading fallbacks
 # Logic: symbolic-ref → origin/main → origin/master → gh repo view
 # Output: Branch name on stdout (e.g., main)
 # Exit codes: 0 success, 1 error

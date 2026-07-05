@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# U9: detect-missing-artifacts.sh - find files in reference dir but absent from plan
+# detect-missing-artifacts.sh -- Find files in reference dir but absent from plan
 # Input: --plan-files <file> --reference-dir <path>
 # Output: JSON array of {file, status} where status is "missing" or "in_plan"
 # Exit codes: 0 success, 1 error
