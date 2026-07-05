@@ -89,6 +89,12 @@ if [[ ! -d "$reference_dir" ]]; then
   exit 1
 fi
 
+# Verify python3 is available
+if ! command -v python3 &>/dev/null; then
+  echo '{"ok":false,"error":"python3 is required but not found in PATH"}' >&2
+  exit 1
+fi
+
 # Use python for reliable JSON output
 python3 - "$plan_files" "$reference_dir" << 'PYEOF'
 import json

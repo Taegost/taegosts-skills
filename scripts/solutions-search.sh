@@ -5,7 +5,7 @@
 # Exit codes: 0 matches found, 1 error, 2 no matches found
 # R10: validate inputs, reject shell metacharacters
 
-set -uo pipefail
+set -euo pipefail
 
 SOLUTIONS_DIR="${SOLUTIONS_DIR:-docs/solutions}"
 

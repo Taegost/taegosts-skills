@@ -5,7 +5,7 @@
 #         untracked_files, staged_files, recent_commits, has_unpushed, repo_root
 # Exit codes: 0 success, 1 error
 
-set -uo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
