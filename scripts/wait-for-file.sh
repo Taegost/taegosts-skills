@@ -13,11 +13,6 @@ FILE_PATH="${1:?Usage: wait-for-file.sh <file_path> [timeout_seconds] [poll_inte
 TIMEOUT="${2:-180}"
 INTERVAL="${3:-10}"
 
-if [[ -z "$FILE_PATH" ]]; then
-  echo "Error: file_path is required" >&2
-  exit 2
-fi
-
 ELAPSED=0
 while [[ $ELAPSED -lt $TIMEOUT ]]; do
   if [[ -f "$FILE_PATH" ]]; then

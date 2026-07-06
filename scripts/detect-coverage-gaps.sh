@@ -8,11 +8,6 @@
 # Output: JSON report of gaps found (or empty if no gaps).
 set -euo pipefail
 
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
-  echo "Error: not in a git repository" >&2
-  exit 2
-}
-
 # Escape special characters for JSON string values
 json_escape() {
   printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
@@ -23,7 +18,13 @@ if [[ -z "$BASE_BRANCH" ]]; then
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   # shellcheck source=scripts/git-default-branch.sh
   source "$SCRIPT_DIR/git-default-branch.sh"
+  # git-default-branch.sh sets REPO_ROOT and DEFAULT_BRANCH
   BASE_BRANCH="$DEFAULT_BRANCH"
+else
+  REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+    echo "Error: not in a git repository" >&2
+    exit 2
+  }
 fi
 
 # Get all changed files (diff + untracked)
@@ -95,7 +96,7 @@ while IFS= read -r file; do
     {
       \"file\": \"$(json_escape "$file")\",
       \"basename\": \"$(json_escape "$basename_no_ext")\",
-      \"suggested_test\": \"tests/test-$(json_escape "$basename_no_ext").sh\"
+      \"suggested_test\": \"tests/test-$(json_escape "$basename_no_ext").$ext\"
     }"
   fi
 done <<< "$CHANGED_FILES"
