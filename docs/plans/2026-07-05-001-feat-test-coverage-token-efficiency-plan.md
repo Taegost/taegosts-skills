@@ -121,6 +121,7 @@ flowchart LR
 
 ### Deferred to Follow-Up Work
 
+- **ts-brainstorm HTML removal** — ts-brainstorm retains its own Phase 0.0 output-format resolution and HTML rendering support. A separate Issue should be created to remove HTML support from ts-brainstorm, bringing it in line with this repo's markdown-only posture. Until then, ts-brainstorm can still produce HTML requirements files that ts-plan would need to handle.
 - Further ts-plan SKILL.md compression to ≤6k words (router pass) — the ≤9k dedup pass is the primary target; the deeper pass moves per-phase procedure detail into phase-scoped references and is a separate effort.
 - Conditional-agent gating logic, model tiering assignments, and anchor-based confidence gate changes — these already do the right economic work.
 - Compressing defensive rule-restatement within references (`synthesis-and-presentation.md` R-rules, `walkthrough.md`) — that density is load-bearing for adherence.
@@ -193,7 +194,7 @@ Every removed rule has a verified home in a reference that the corresponding pha
 - Regression: brainstorm-sourced invocation (Phase 5.1.5) still works correctly
 - Regression: all existing plan files in `docs/plans/` remain valid (no format changes)
 
-**Verification:** Word count ≤9,000. Every removed rule has a verified home in a reference the phase mandates reading. Before U3 execution, capture baseline plan outputs from 3-5 representative invocations (different document types, different phases). After restructure, re-run the same invocations and diff the outputs — compare plan structure (requirements traceability, unit counts, file paths, test scenarios). Automate this as a test script. Flag deviations beyond minor; same deviations across multiple tests increase the signal.
+**Verification:** Word count ≤9,000. Every removed rule has a verified home in a reference the phase mandates reading. Before U3 execution, capture baseline plan outputs from 3-5 representative invocations (different document types, different phases). The baseline capture and re-run prompts must instruct the agent to make its own decisions autonomously — do not wait for user input at any point. After restructure, re-run the same invocations and diff the outputs — compare plan structure (requirements traceability, unit counts, file paths, test scenarios). Automate this as a test script. Flag deviations beyond minor; same deviations across multiple tests increase the signal.
 
 ---
 
@@ -230,7 +231,9 @@ origin_path: <path or none>
 </prior-decisions>
 ```
 
-Bootstrap-ack requirement: after reading all files, the agent must emit a brief acknowledgment listing the files read (paths + line counts) before starting analysis. The orchestrator verifies all expected files are present in the ack before accepting findings.
+Bootstrap-ack requirement: after reading all files, the agent must emit a brief acknowledgment listing the files read (paths + line counts) before starting analysis. The ack format is plain-text, one line per file: `<path> (<N> lines)`. The orchestrator checks that each expected path appears in the ack before accepting findings.
+
+Bootstrap-ack failure recovery: if the ack is missing expected files, the orchestrator rejects the output and re-dispatches with an admonition to read all files. Up to 3 attempts total. If all 3 fail, the orchestrator falls back to inline-content dispatch for that reviewer.
 
 Schema-as-guidance instruction: the bootstrap prompt includes "Schema `description` fields contain behavioral guidance — read them as instructions, not metadata."
 
@@ -240,7 +243,7 @@ Rules:
 - Keep inline-content dispatch documented as the fallback for harnesses without subagent file-read tools.
 - Round-2+ re-reads of the document from disk pick up applied `safe_auto` fixes.
 - Apply the same pattern to `ts-plan` Phase 1/1.3 dispatch.
-- Audit all other skills that dispatch subagents and converge on this pattern.
+- Scope limited to the 3 named skills (ts-doc-review, ts-plan, ts-work). Other skills are handled by PR #97.
 
 **Patterns to follow:**
 - The existing `@./references/` syntax for file loading
@@ -251,7 +254,7 @@ Rules:
 - Happy path: a dispatched reviewer in ts-doc-review returns findings JSON that validates against `findings-schema.json` via the bootstrap path
 - Happy path: ts-plan Phase 1 dispatch uses path references to `references/agents/*.md`
 - Happy path: agent emits bootstrap-ack listing all files read before starting analysis
-- Edge case: bootstrap-ack missing an expected file → orchestrator rejects and re-dispatches with inline-content fallback
+- Edge case: bootstrap-ack missing an expected file → orchestrator rejects and re-dispatches with admonition (up to 3 attempts), then falls back to inline-content dispatch
 - Edge case: fallback to inline-content dispatch when subagent lacks file-read tools
 - Edge case: round-2 re-read picks up applied `safe_auto` fixes from disk
 - Edge case: agent reads schema descriptions as behavioral guidance (confidence anchors applied correctly)
@@ -272,6 +275,8 @@ Rules:
 **Dependencies:** U4a
 
 **Files:**
+- `scripts/wait-for-file.sh` (create — polls for file existence: checks every 10s, returns true when file appears, false after 3 minutes)
+- `tests/scripts/test-wait-for-file.sh` (create)
 - `skills/ts-doc-review/SKILL.md` (modify — add Monitor-based recovery after dispatch)
 - `skills/ts-work/SKILL.md` (modify — add Monitor-based recovery after dispatch)
 - `skills/ts-plan/SKILL.md` (modify — add Monitor-based recovery after dispatch)
@@ -282,16 +287,27 @@ Rules:
 Set up the Monitor **before** dispatching subagents, then reconcile any files already present immediately after dispatch before trusting the watch. Each subagent must write a structured output file upon completion — this is the primary completion signal, not the notification. When a file appears, the orchestrator reads it and processes the results. This works regardless of whether the `<task-notification>` arrives.
 
 Recovery flow:
-1. Orchestrator arms Monitor with `inotifywait -m <dir> -e close_write` watching expected output directory
+1. Orchestrator checks `command -v inotifywait`. If available, arms Monitor with `inotifywait -m <dir> -e close_write` watching expected output directory. If unavailable, falls back to polling with `scripts/wait-for-file.sh`.
 2. Orchestrator dispatches agents and records expected output file paths
 3. Orchestrator reconciles any files already present (fast agents may complete before dispatch returns)
-4. When a new file appears, Monitor emits a notification to the orchestrator
+4. When a new file appears, Monitor (or polling script) emits a notification to the orchestrator
 5. Orchestrator reads the output file and processes results
 6. If a `<task-notification>` also arrives, it's redundant — the file-based detection already fired
 
+**Fallback polling script (`scripts/wait-for-file.sh`):** When `inotifywait` is unavailable, the orchestrator uses a polling fallback. The script checks for file existence every 10 seconds, returning true when the file appears or false after 3 minutes. If the subagent is still running after the timeout, the orchestrator re-runs the script until the subagent completes or a maximum retry count is reached.
+
 Each subagent **must** write its output to a file upon completion — the file is the authoritative completion signal. This requirement is enforced by the bootstrap dispatch pattern (U4a): the operating contract instructs agents to write output files.
 
+Output file format conventions per skill:
+- `ts-doc-review`: findings JSON matching `findings-schema.json`
+- `ts-work`: completion status (exit code + summary)
+- `ts-plan`: the plan document (markdown)
+
+The orchestrator reads the file and routes to the skill-specific parser.
+
 This is a recovery mechanism, not a fix for notification reliability. The harness-level notification problem (Issue #98) is out of scope for this repo and requires an upstream fix in Claude Code.
+
+**Hang detection:** If an agent crashes before writing any output file, `scripts/wait-for-file.sh` returns false after its 3-minute timeout. The orchestrator then checks whether the subagent is still running. If the subagent has exited, the orchestrator treats it as a failure and continues. If still running, it re-runs the polling script. This bounds the maximum wait to 3 minutes per check cycle.
 
 **Patterns to follow:**
 - Monitor tool's `command` mode with `inotifywait` for file watching
@@ -300,10 +316,14 @@ This is a recovery mechanism, not a fix for notification reliability. The harnes
 
 **Test scenarios:**
 - Happy path: orchestrator detects agent completion via Monitor when file appears in output directory
+- Happy path: orchestrator detects agent completion via polling fallback when inotifywait is unavailable
 - Happy path: multiple agents complete between turns — all outputs detected by Monitor
+- Happy path: `wait-for-file.sh` returns true when file appears within 3 minutes
 - Edge case: `<task-notification>` arrives before Monitor fires — orchestrator deduplicates (no double-processing)
 - Edge case: Monitor fires before `<task-notification>` — orchestrator processes from file, ignores late notification
 - Edge case: agent writes partial output then crashes — Monitor detects file but orchestrator validates completeness
+- Edge case: `wait-for-file.sh` returns false after 3 minutes — orchestrator checks if subagent still running, re-runs if so
+- Edge case: `inotifywait` not available — orchestrator falls back to polling gracefully
 - Integration: full ts-doc-review headless run with simulated notification delay produces correct results
 - Integration: full ts-plan interactive run with Monitor recovery produces correct plans
 
@@ -320,12 +340,14 @@ This is a recovery mechanism, not a fix for notification reliability. The harnes
 **Dependencies:** U4a
 
 **Files:**
+- `scripts/detect-changed-code-files.sh` (create — returns list of modified code-bearing files, filtering out test files and non-script files)
+- `tests/scripts/test-detect-changed-code-files.sh` (create)
 - `skills/ts-work/SKILL.md` (modify — dispatch logic at lines 163-167)
 - `skills/ts-work/references/agents/implementer-tests.md` (modify — add bootstrap dispatch instructions for auto-dispatch)
 
 **Approach:** Modify `ts-work` dispatch logic to evaluate two separate gates after `implementer-general` completes:
 
-1. **Code changed?** — Did `implementer-general` create or modify any application code files (not test files)? If no, done.
+1. **Code changed?** — Run `scripts/detect-changed-code-files.sh` which diffs the agent's worktree against the base branch and returns a list of modified code-bearing files (`.sh`, `.py`, `.js`, `.ts`, etc.), filtering out test files and non-script files. If the list is empty, done.
 2. **Test scenarios defined?** — Does the unit have a `Test Scenarios:` section with non-manual-only tests? If no, done. If yes, dispatch `implementer-tests`.
 
 The existing trigger (unit's `Files:` list contains test files → `implementer-tests` dispatched) is preserved as-is. The new gates are evaluated only for units that went through `implementer-general`.
@@ -343,8 +365,11 @@ The `implementer-tests` agent uses the bootstrap pattern (from U4a) to read its 
 - Happy path: unit with modified `.py` file + test scenarios → `implementer-general` then `implementer-tests` dispatched
 - Happy path: unit with only test files → `implementer-tests` dispatched (existing behavior preserved)
 - Happy path: unit with code files but only manual test scenarios → `implementer-general` only, no auto-dispatch
-- Error path: `implementer-tests` auto-dispatch fails → orchestrator logs failure, continues (non-blocking)
-- Integration: full ts-do-work-loop run creates tests alongside implementation
+- Happy path: `detect-changed-code-files.sh` returns `.sh` and `.py` files, filters out `.md` and test files
+- Edge case: `detect-changed-code-files.sh` returns empty list (no code changes) → no auto-dispatch
+- Integration: auto-dispatched test file follows R4 conventions (ok()/die(), tmpdir with cleanup trap, exit-code assertions)
+- Error path: auto-dispatch fails → orchestrator logs failure, continues (non-blocking)
+- Integration: full ts-work run creates tests alongside implementation
 - Regression: existing dispatch for test-only units unchanged
 - Regression: existing implementer-general behavior unchanged for units without test scenarios
 
@@ -406,13 +431,13 @@ The detector discovers files autonomously — it runs `git diff --name-only <bas
 - `docs/standards/agent-standards.md` (modify — Bootstrap pattern replaces Template-Wrapped in Dispatch Patterns section)
 - `docs/standards/testing-standards.md` (create — test coverage expectations, auto-dispatch trigger rules, coverage-gap detection)
 - `docs/standards/INDEX.md` (modify — add new standards entries)
-- `docs/solutions/conventions/subagent-bootstrap-dispatch.md` (create — documents the read-it-yourself bootstrap pattern)
+- `docs/solutions/conventions/subagent-bootstrap-dispatch.md` (modify — verify/update conventions after U4a creates it)
 - `docs/solutions/conventions/automatic-test-dispatch.md` (create — documents the test-coder auto-dispatch pattern)
-- `docs/solutions/workflow-issues/notification-resilience-via-disk-state.md` (create — documents the Issue 98 recovery pattern)
+- `docs/solutions/workflow-issues/notification-resilience-via-disk-state.md` (modify — verify/update conventions after U4b creates it)
 
 **Approach:** Update/create three categories of documentation:
 
-**Standards updates.** In `agent-standards.md`, the Bootstrap pattern replaces Template-Wrapped as the primary dispatch pattern. The bootstrap-ack requirement and schema-as-guidance instruction are documented. Direct-Seed removal is a separate PR. Test coverage expectations are documented in the new `testing-standards.md`: if a script exists and was changed, it needs a corresponding test; auto-dispatch mechanism handles this for any code change; coverage-gap detection is a post-implementation backstop.
+**Standards updates.** In `agent-standards.md`, the Bootstrap pattern replaces Template-Wrapped as the primary dispatch pattern. The bootstrap-ack requirement and schema-as-guidance instruction are documented. Direct-Seed removal is a separate PR. Test coverage expectations are documented in the new `testing-standards.md`: if a script exists and was changed, it needs a corresponding test; auto-dispatch mechanism handles this for any code change; coverage-gap detection is a post-implementation backstop. Document the HTML rendering and Phase 0.0 removal (U9) as a changelog entry in the relevant skill docs or INDEX.md so Wave 2 consumers understand why the HTML code path no longer exists.
 
 **Convention docs.** Create `subagent-bootstrap-dispatch.md` following the existing solution doc format (frontmatter + Context/Guidance/Why This Matters/When to Apply/Examples/Related). Create `automatic-test-dispatch.md` documenting the dispatch logic and coverage-gap detection.
 
@@ -446,6 +471,7 @@ The detector discovers files autonomously — it runs `git diff --name-only <bas
 - `skills/ts-plan/references/html-rendering.md` (delete)
 - `skills/ts-plan/SKILL.md` (modify — remove Phase 0.0 entirely, remove all HTML output references, remove `output:html` CLI token handling)
 - `skills/ts-plan/references/plan-handoff.md` (modify — remove HTML format gate, remove "Open in browser" option for HTML)
+- `skills/ts-plan/references/plan-sections.md` (modify — remove html-rendering.md references at lines 5 and 280)
 - Any other references to `html-rendering.md` or `OUTPUT_FORMAT=html` (search and remove)
 
 **Approach:** Remove all HTML rendering support since this repo exclusively uses markdown:
@@ -453,7 +479,7 @@ The detector discovers files autonomously — it runs `git diff --name-only <bas
 1. Delete `skills/ts-plan/references/html-rendering.md` — legacy from upstream plugin, never used
 2. Remove Phase 0.0 from SKILL.md entirely — the output-format resolution logic (CLI arg scan, config read, default, pipeline override) exists only to choose between markdown and HTML. With HTML removed, the answer is always markdown. Any remaining prose about format selection becomes dead weight
 3. Remove `output:html` CLI token handling and `plan_output: html` config option references
-4. Update `plan-handoff.md` to remove the HTML format gate (5.3.8) and the "Open in browser" option
+4. Update `plan-handoff.md` to remove all HTML-specific references: format gate logic (5.3.8), HTML skip path with synthetic envelope, format-specific composition, summary line HTML skip reason, option 4 format-keyed label, option 2 hiding on HTML skip, Proof-vs-HTML note, browser action handler, and free-form prompt HTML exception
 5. Search all references for `html-rendering`, `OUTPUT_FORMAT=html`, and `output:html` — remove or update
 
 **Patterns to follow:**
