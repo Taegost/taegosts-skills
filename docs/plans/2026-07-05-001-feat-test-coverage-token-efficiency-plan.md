@@ -33,7 +33,7 @@ Three independent design gaps combine to create friction in the skill workflow:
 
 - R5. Subagent dispatch uses a read-it-yourself bootstrap pattern: the orchestrator passes only file paths and dynamic slots inline (~150-300 tokens per dispatch), not template/agent/schema content.
 - R6. `ts-plan/SKILL.md` word count is reduced to ≤9,000 words by deduplicating against references that phases already mandate reading.
-- R7. Deterministic output-format resolution logic is extracted from Phase 0.0 prose to `scripts/resolve-output-format.sh`.
+- R7. Phase 0.0 output-format resolution logic is removed from `ts-plan/SKILL.md` entirely. This repo always uses markdown — the format selection prose is dead weight.
 - R8. The confidence rubric (behavioral anchors 0/25/50/75/100) exists in exactly one authoritative location (`findings-schema.json` confidence property description), referenced by the subagent template and synthesis docs instead of restated inline.
 
 **Notification resilience (Issue 98)**
@@ -130,42 +130,6 @@ flowchart LR
 
 ## Implementation Units
 
-### U1. Create `scripts/resolve-output-format.sh`
-
-**Goal:** Extract the deterministic Phase 0.0 output-format resolution logic from `ts-plan/SKILL.md` prose into a reusable script.
-
-**Requirements:** R7
-
-**Dependencies:** None
-
-**Files:**
-- `scripts/resolve-output-format.sh` (create)
-- `tests/scripts/test-resolve-output-format.sh` (create)
-- `skills/ts-plan/SKILL.md` (modify — replace Phase 0.0 prose with script invocation)
-
-**Approach:** Implement the full precedence chain: CLI `output:` token scan and strip, config read with YAML-comment awareness (`# plan_output: html` must not match as active), default (`md`), pipeline override. Script emits `OUTPUT_FORMAT=<md|html>` and `ARGS_REMAINDER=<...>` to stdout. Use `set -euo pipefail`. Follow the existing script patterns (`scripts/classify-document.sh`, `scripts/locate-plan.py`).
-
-**Patterns to follow:**
-- `scripts/classify-document.sh` — shell script structure, JSON output via `to-json.sh`
-- `scripts/locate-plan.py` — deterministic parsing with clear precedence chain
-- `tests/skills/ts-work/test-detect-missing-artifacts.sh` — test structure with `ok()`/`die()` helpers
-
-**Test scenarios:**
-- Happy path: bare `output:md` token → `OUTPUT_FORMAT=md`, token stripped from remainder
-- Happy path: `output:html` token → `OUTPUT_FORMAT=html`
-- Edge case: `output:` alone (no value) → falls through to config/default, token stripped
-- Edge case: `output:pdf` (unknown value) → falls through with note, token stripped
-- Config precedence: active `plan_output: html` in config → `OUTPUT_FORMAT=html`
-- Config precedence: commented `# plan_output: html` in config → ignored, falls through to default
-- Default: no CLI arg, no config → `OUTPUT_FORMAT=md`
-- Pipeline override: when `DISABLE_MODEL_INVOCATION` is set → force `OUTPUT_FORMAT=md`
-- Passthrough: conventional commit prefix `feat:` not consumed as output token
-- Integration: non-output `<word>:<word>` tokens preserved in remainder
-
-**Verification:** Script passes all test scenarios. `ts-plan` SKILL.md Phase 0.0 prose is replaced with script invocation reference. Diff outputs from baseline invocations before/after — flag deviations beyond minor.
-
----
-
 ### U2. Deduplicate confidence rubric to single location
 
 **Goal:** Reference the existing behavioral anchor definitions in `findings-schema.json`'s confidence property description instead of restating them in the subagent template, eliminating ~800 words of redundancy per dispatch.
@@ -202,7 +166,7 @@ flowchart LR
 
 **Requirements:** R6
 
-**Dependencies:** U1, U2
+**Dependencies:** U2
 
 **Files:**
 - `skills/ts-plan/SKILL.md` (modify — deduplicate inline prose)
@@ -432,11 +396,11 @@ The detector discovers files autonomously — it runs `git diff` and `git ls-fil
 
 ### U8. Create and update standards documentation
 
-**Goal:** Document all changes from U1-U7 in standards and solution docs, structured for consumption by Issue #94 (Wave 2).
+**Goal:** Document all changes from U2-U7 and U9 in standards and solution docs, structured for consumption by Issue #94 (Wave 2).
 
 **Requirements:** R11
 
-**Dependencies:** U1, U2, U3, U4a, U4b, U5, U7
+**Dependencies:** U2, U3, U4a, U4b, U5, U7, U9
 
 **Files:**
 - `docs/standards/agent-standards.md` (modify — Bootstrap pattern replaces Template-Wrapped in Dispatch Patterns section)
@@ -474,9 +438,9 @@ The detector discovers files autonomously — it runs `git diff` and `git ls-fil
 
 **Goal:** Eliminate legacy HTML rendering support and the Phase 0.0 output-format resolution logic. This repo always uses markdown — the HTML path is dead code borrowed from the upstream plugin.
 
-**Requirements:** R6 (contributes to SKILL.md word count reduction)
+**Requirements:** R6, R7
 
-**Dependencies:** U1 (resolve-output-format.sh becomes unnecessary once Phase 0.0 is removed)
+**Dependencies:** None
 
 **Files:**
 - `skills/ts-plan/references/html-rendering.md` (delete)
@@ -496,10 +460,11 @@ The detector discovers files autonomously — it runs `git diff` and `git ls-fil
 - The existing reference cleanup in U3 for deduplication against SKILL.md
 
 **Test scenarios:**
-- Happy path: ts-plan invocation with no `output:` arg → defaults to markdown, no format resolution prose emitted
-- Happy path: ts-plan invocation with `output:md` → accepted (no-op), no format resolution prose emitted
-- Edge case: ts-plan invocation with `output:html` → ignored with note (HTML support removed)
-- Edge case: ts-plan invocation with `output:` alone → no-op, falls through to default
+- Happy path: ts-plan invocation with no `output:` arg → works as markdown (no format resolution needed)
+- Happy path: ts-plan invocation with `output:md` → token silently stripped from arguments, continues as markdown
+- Edge case: ts-plan invocation with `output:html` → token silently stripped, continues as markdown (HTML support removed)
+- Edge case: ts-plan invocation with `output:` alone (no value) → token silently stripped, continues as markdown
+- Edge case: ts-plan invocation with `output:pdf` (unknown value) → token silently stripped, continues as markdown
 - Regression: all existing plan files in `docs/plans/` remain valid (no format changes)
 - Regression: ts-plan produces equivalent plans before and after removal
 - Regression: plan-handoff menu renders correctly with 4 options (no HTML option)
@@ -510,13 +475,12 @@ The detector discovers files autonomously — it runs `git diff` and `git ls-fil
 
 ## Risks & Dependencies
 
-- **U3 depends on U1 and U2** — the restructure benefits from the script extraction and rubric dedup landing first, reducing what SKILL.md needs to carry inline.
+- **U3 depends on U2** — the restructure benefits from the rubric dedup landing first, reducing what SKILL.md needs to carry inline.
 - **U4a depends on U3** — ts-plan's dispatch changes should align with its restructured form.
 - **U4b depends on U4a** — Monitor-based recovery builds on the bootstrap dispatch pattern.
 - **U5 depends on U4a** — automatic test-coder dispatch uses the bootstrap pattern.
 - **U7 depends on U5** — the detector runs after auto-dispatch completes.
-- **U8 depends on U1-U7, U9** — standards document what was built, including the HTML/Phase 0.0 removal.
-- **U9 depends on U1** — resolve-output-format.sh extraction should land before Phase 0.0 removal, to preserve the logic if ever needed for reference.
+- **U8 depends on U2-U7, U9** — standards document what was built, including the HTML/Phase 0.0 removal.
 - **Harness limitation (Issue 98)** — the notification-failure problem is out of scope for this repo and requires an upstream fix in Claude Code. The Monitor-based recovery and disk-first state in U4b are recovery mechanisms, not fixes. A GitHub issue should be created to track the upstream dependency.
 - **Behavioral equivalence verification** — restructured SKILL.md files and deduplicated rubrics must produce equivalent outputs. Diff outputs before/after baseline invocations; flag deviations beyond minor. Same deviations occurring across multiple tests increase the signal.
 
