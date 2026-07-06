@@ -1,8 +1,8 @@
 # Plan Sections
 
 This reference describes what makes a great implementation plan. It does NOT
-prescribe how the plan looks on the page — rendering is handled by the
-format-specific references (`markdown-rendering.md`, `html-rendering.md`).
+prescribe how the plan looks on the page — rendering is handled by
+`references/markdown-rendering.md`.
 
 ## The outcome
 
@@ -273,14 +273,7 @@ These apply regardless of rendering format.
 
 ## Rendering
 
-The format-specific references describe how to render these sections in each
-output format:
-
-- **Markdown rendering:** `references/markdown-rendering.md`
-- **HTML rendering:** `references/html-rendering.md`
+Rendering is handled by `references/markdown-rendering.md`.
 
 This reference (`plan-sections.md`) is about WHAT the plan contains;
-rendering references are about HOW each format presents it. The plan is
-written in one format — markdown OR HTML, never both — based on the
-resolved output mode. The section catalog is the same regardless of
-format.
+the rendering reference is about HOW markdown presents it.

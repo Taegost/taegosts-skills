@@ -161,25 +161,28 @@ Add activated conditional agents:
 
 Dispatch generic subagents using **bounded parallelism** with the platform's subagent primitive (e.g., `Agent` in Claude Code, `spawn_agent` in Codex) where available; otherwise run the work inline or serially. Omit the `mode` parameter so the user's configured permission settings apply. Respect the current harness's active-subagent limit: queue selected reviewers, dispatch only as many as the harness accepts, and fill freed slots as reviewers complete. Treat active-agent/thread/concurrency-limit spawn errors as backpressure, not reviewer failure: leave the reviewer queued and retry after a slot frees. Record a reviewer as failed only after a successful dispatch times out/fails, or when dispatch fails for a non-capacity reason.
 
-For each selected reviewer, read the matching skill-local prompt asset at `references/agents/<reviewer-name>.md` and pass its full content as `{agent_file}`. Do not dispatch standalone agents by type/name and do not rely on platform-level custom-agent registration.
+**Bootstrap dispatch.** Each subagent receives a minimal bootstrap prompt (~150-300 tokens) listing file paths it must read from disk before starting. This reduces orchestrator dispatch output from ~10k tokens to ~150-300 tokens per reviewer. See `references/subagent-template.md` for the bootstrap prompt shape and fallback (inline-content dispatch for harnesses without file-read tools).
+
+For each selected reviewer, send the bootstrap prompt with these variables:
+
+| Variable | Value |
+|----------|-------|
+| `{reviewer_name}` | Agent name (e.g., `coherence-reviewer`) — used to construct file paths |
+| `{document_type}` | "requirements" or "plan" from Phase 1 classification |
+| `{document_path}` | Path to the document |
+| `{origin_path}` | Value of the document's `origin:` frontmatter field if present, or `none` if absent |
+| `{decision_primer}` | Cumulative prior-round decisions (see "Decision primer" below) |
+| `{document_content}` | Full text of the document |
+
+The agent reads its own `references/agents/{reviewer_name}.md` (role prompt) and `references/findings-schema.json` (output schema) from disk. Schema `description` fields contain behavioral guidance — agents must read them as instructions, not metadata.
+
+**Bootstrap-ack verification.** After the agent emits its acknowledgment (file paths + line counts), verify each expected path appears. If ack is missing files, reject and re-dispatch with admonition (up to 3 attempts). If all 3 fail, fall back to inline-content dispatch for that reviewer.
 
 **Model tiering lives here, not in prompt assets.** Agent files have frontmatter for identity metadata (`name`, `description`, `tools`, `effort`) but do not carry model tiering information. Apply these dispatch-time preferences when the platform exposes a known model override; otherwise omit the override and inherit the parent model rather than guessing a platform-specific model name:
 
 - `coherence-reviewer`, `documentation-reviewer`: cheapest capable extraction/reasoning tier.
 - `design-lens-reviewer`, `security-lens-reviewer`, `scope-guardian-reviewer`, `test-documentation-reviewer`: platform mid-tier model.
 - `feasibility-reviewer`, `product-lens-reviewer`, `adversarial-document-reviewer`: inherit the parent model unless the harness has an established high-capability review tier.
-
-Each subagent receives the prompt built from the subagent template included below with these variables filled:
-
-| Variable | Value |
-|----------|-------|
-| `{agent_file}` | Full content of the selected local prompt asset from `references/agents/` |
-| `{schema}` | Content of the findings schema included below |
-| `{document_type}` | "requirements" or "plan" from Phase 1 classification |
-| `{document_path}` | Path to the document |
-| `{origin_path}` | Value of the document's `origin:` frontmatter field if present, or the literal string `none` if absent. Agents that adapt on origin (product-lens, adversarial, scope-guardian) read this slot to gate technique suppression — they do NOT re-parse frontmatter themselves. Extract this once during Phase 1 reading. |
-| `{document_content}` | Full text of the document |
-| `{decision_primer}` | Cumulative prior-round decisions in the current session, or an empty `<prior-decisions>` block on round 1. See "Decision primer" below. |
 
 Pass each subagent the **full document** — do not split into sections.
 
@@ -221,6 +224,8 @@ Accumulate across all rounds in the current session. Skip, Defer, and Acknowledg
 Cross-session persistence is out of scope. A new invocation of ts-doc-review on the same document starts with a fresh round 1 and no carried primer, even if prior sessions deferred findings into the document's Open Questions section.
 
 **Error handling:** If a subagent fails or times out, proceed with findings from subagents that completed. Note the failed reviewer in the Coverage section. Do not block the entire review on a single reviewer failure.
+
+**Notification recovery.** When agents run in the background, completion notifications may be missed (~40-50% failure rate). Each agent writes its findings to disk as its primary completion signal. The orchestrator can detect completion by checking file existence via Monitor-based file watching (`inotifywait -m <dir> -e close_write`) or polling fallback (`scripts/wait-for-file.sh`). See `docs/solutions/workflow-issues/notification-resilience-via-disk-state.md` for the full recovery pattern.
 
 **Dispatch limit:** Even at maximum (7 agents), use bounded parallel dispatch. If the harness cap is lower than the selected team size, queue the remainder and launch them as active reviewers complete.
 

@@ -1,0 +1,83 @@
+Baseline capture: 2026-07-06T01:49:52Z
+Repo: /home/taegost/_ws/taegosts-skills
+
+=== Word Counts ===
+skills/ts-plan/SKILL.md: 12592 words
+skills/ts-doc-review/references/subagent-template.md: 3842 words
+skills/ts-doc-review/references/synthesis-and-presentation.md: 6539 words
+skills/ts-doc-review/references/findings-schema.json: 585 words
+skills/ts-doc-review/SKILL.md: 2546 words
+skills/ts-work/SKILL.md: 5047 words
+skills/ts-verify-implementation/SKILL.md: 746 words
+
+=== File Hashes (SHA-256) ===
+fd05b7cc04fe381db56a257e416bbe00711a2b46ebc3cd665cb05a041204ffe3  skills/ts-plan/SKILL.md
+650d1e8d8727cf3fe478e5f7c4c92e294564ad9dd6d1cd57c11f3ebff0e40989  skills/ts-plan/references/html-rendering.md
+201b6a5ce5a16f0ebad69420d686b50ed27b47f535c927c39421db368208fbcc  skills/ts-plan/references/plan-handoff.md
+6e06a5157bcc561b5ecf197594b7e81dc2a65d4c2c15e6d30ef7d2ed4df97f80  skills/ts-plan/references/plan-sections.md
+41665559d6474fe518b01b7da4e1ab7fb9a4c204b381dd5f7b4486b8d25982c7  skills/ts-plan/references/synthesis-summary.md
+5c524f16c41ab8bd1a7d5d875ba394340fe53ae8d18da1fee083ebc63018c13f  skills/ts-plan/references/deepening-workflow.md
+edd8130fdaf38dffe5d7c969801f7129bbc0585bd3374a222aa60228a94249c0  skills/ts-plan/references/approach-altitude.md
+8c63beb9422bd8806903e0afdfdcd8d5a6ef99dae731a210eca77efefd747b99  skills/ts-doc-review/SKILL.md
+93941721e3c26279f7db07e53f9c1cb4051343d70c4b95019d27382536e39e18  skills/ts-doc-review/references/subagent-template.md
+6badaf571cf6ad3637aa6c5efc6c644fc727b4c60057f75509cad930b203497f  skills/ts-doc-review/references/synthesis-and-presentation.md
+6a9feb351e1cc91e9862173907e6e9306628775359668e518b971234b553779c  skills/ts-doc-review/references/findings-schema.json
+c580c521e561439baab2608b42dd499b211e21204637d408ca9b9b593a366a55  skills/ts-work/SKILL.md
+ddd61572ee7b77d0c84c6d4fc8dffcf0b759303bcdbfdb2037362fc63706ffb8  skills/ts-work/references/agents/implementer-tests.md
+8be1fec60763a72f7eaf84479d64873d97c03356b705d11cd821cba8cee58477  skills/ts-work/references/agents/implementer-general.md
+ea64987aa81797bf3cb55cc7fe17da43a6b83433cc4167822257019e4d184e7e  skills/ts-verify-implementation/SKILL.md
+64736557ae15d4550a2f3af72a5035e55d5db0da08e4018d0759bcd39339a8ac  docs/standards/agent-standards.md
+f44e2e57c6d4d73e380d278eafcb0b22fd243ef5b6e42e124b492be5ef56b48f  docs/standards/INDEX.md
+
+=== ts-plan/SKILL.md Section Structure ===
+7:# Create Technical Plan
+17:## Interaction Method
+23:## Feature Description
+33:## Core Principles
+44:## Plan Quality Bar
+58:## Workflow
+60:### Phase 0: Resume, Source, and Scope
+62:#### 0.0 Resolve Output Mode
+87:#### 0.1 Resume Existing Plan Work When Appropriate
+112:#### 0.1a Recognize Approach-Altitude Requests
+131:#### 0.1b Classify Task Domain
+141:#### 0.2 Find Upstream Requirements Document
+152:#### 0.3 Use the Source Document as Primary Input
+171:#### 0.4 Planning Bootstrap (No Requirements Doc or Unclear Input)
+208:#### 0.5 Classify Outstanding Questions Before Planning
+222:#### 0.6 Assess Plan Depth
+232:#### 0.7 Solo-Mode Scoping Synthesis
+281:### Phase 1: Gather Context
+287:#### 1.1 Local Research (Always Runs)
+324:#### 1.1b Detect Execution Posture Signals
+337:#### 1.2 Decide on External Research
+387:#### 1.3 External Research (Conditional)
+399:#### 1.4 Consolidate Research
+415:#### 1.4b Reclassify Depth When Research Reveals External Contract Surfaces
+427:#### 1.5 Flow and Edge-Case Analysis (Conditional)
+438:### Phase 2: Resolve Planning Questions
+453:### Phase 3: Structure the Plan
+455:#### 3.1 Title and File Naming
+466:#### 3.2 Stakeholder and Impact Awareness
+470:#### 3.3 Break Work into Implementation Units
+487:#### 3.4 High-Level Technical Design
+497:#### 3.4b Output Structure (Optional)
+511:#### 3.5 Define Each Implementation Unit
+542:#### 3.6 Keep Planning-Time and Implementation-Time Unknowns Separate
+552:#### 3.7 Anti-Expansion: Tangential Cleanup and Scope Creep Go to Deferred
+558:### Phase 4: Write the Plan
+564:#### 4.1 Plan Depth Guidance
+582:#### 4.1b Optional Deep Plan Extensions
+598:#### 4.2 Section Contract and Rendering
+609:#### 4.3 Planning Rules
+621:### Phase 5: Final Review, Write File, and Handoff
+623:#### 5.1 Review Before Writing
+651:#### 5.1.5 Brainstorm-Sourced Scoping Synthesis
+703:#### 5.2 Write Plan File
+731:#### 5.3 Confidence Check and Deepening
+748:##### 5.3.1 Classify Plan Depth and Topic Risk
+764:##### 5.3.2 Gate: Decide Whether to Deepen
+774:##### 5.3.3–5.3.7 Deepening Execution
+778:##### 5.3.8–5.4 Document Review, Final Checks, and Post-Generation Options
+
+Baseline capture complete. Files written to: /home/taegost/_ws/taegosts-skills/tests/baselines

@@ -1,7 +1,7 @@
 ---
 name: ts-plan
 description: "Create structured plans for multi-step work, including software and non-software tasks. Use when asked to plan, break down implementation, plan from requirements, or deepen an existing plan; prefer ts-brainstorm for exploratory framing."
-argument-hint: "[optional: feature description, requirements doc path, plan path to deepen, or any task to plan] [output:html]"
+argument-hint: "[optional: feature description, requirements doc path, plan path to deepen, or any task to plan]"
 ---
 
 # Create Technical Plan
@@ -59,30 +59,9 @@ A plan is ready when an implementer can start confidently without needing the pl
 
 ### Phase 0: Resume, Source, and Scope
 
-#### 0.0 Resolve Output Mode
+**Format:** This repo always uses markdown. Read `references/markdown-rendering.md` for format principles.
 
-Determine `OUTPUT_FORMAT` before any other phase fires. Output mode is **exclusive** — the plan is written as either markdown (`.md`) OR HTML (`.html`), never both. Precedence: CLI arg > config > default (`md`), with a hard pipeline-mode override.
-
-**Read config.** The repo root is pre-resolved at skill load:
-!`git rev-parse --show-toplevel 2>/dev/null || true`
-
-If the line above is an absolute path, use it as `<repo-root>`. If it is empty or still shows a backtick command string (a non-Claude harness that did not run the pre-resolution), resolve `<repo-root>` at runtime by running `git rev-parse --show-toplevel` with the shell tool. Then read `<repo-root>/.taegosts-skills/config.local.yaml` with the native file-read tool. If the root cannot be resolved (not a git repo) or the file does not exist, fall through to the defaults below.
-
-Resolution steps:
-
-1. **CLI arg.** Scan `$ARGUMENTS` for a token starting with the literal prefix `output:`. If found, strip it from arguments before treating the remainder as the feature description, and match its value case-insensitively against `md` and `html`.
-   - `output:` alone (no value) → no-op, fall through to step 2.
-   - `output:<unknown>` (e.g., `output:pdf`) → drop the token, fall through to step 2, and remember to emit a one-line note above the post-generation menu after final resolution: `Ignored unknown output: value '<value>' — using <resolved_format> instead.` where `<resolved_format>` is the value `OUTPUT_FORMAT` actually resolved to after steps 2-4. Do not hardcode `md` in the note — that misleads users when config has set HTML.
-2. **Config.** If step 1 did not resolve and the config file read above has an **active (non-commented)** `plan_output:` key whose value matches `md` or `html` (case-insensitive), use it. Missing, invalid, or commented values fall through silently. Critical: lines starting with `#` are YAML comments and must be ignored — the shipped config template includes commented examples like `# plan_output: html` to document the option, and matching those as active settings would silently force HTML mode on every run without the user having opted in.
-3. **Default.** Otherwise `OUTPUT_FORMAT=md`.
-4. **Pipeline override.** When invoked from LFG or any `disable-model-invocation` context, force `OUTPUT_FORMAT=md` regardless of steps 1-3. `ts-work` and other automated downstream consumers parse markdown reliably; HTML in pipeline runs is unnecessary friction.
-
-**Token-parsing convention:** only literal-prefix flag tokens (`output:`, `mode:`, `delegate:` where applicable) are consumed and stripped. Other `<word>:<word>` tokens — including conventional commit prefixes like `feat:`, `fix:`, `chore:` that may appear inside a feature description — pass through verbatim.
-
-**Load the format-rendering reference based on the resolved value.** Section content is the same in either format; presentation differs. Both references are paired with `references/plan-sections.md`, which describes what the plan contains regardless of format.
-
-- When `OUTPUT_FORMAT=md`, read `references/markdown-rendering.md` for format principles.
-- When `OUTPUT_FORMAT=html`, read `references/html-rendering.md` for format principles.
+**Token-parsing convention:** only literal-prefix flag tokens (`mode:`, `delegate:` where applicable) are consumed and stripped. Other `<word>:<word>` tokens — including conventional commit prefixes like `feat:`, `fix:`, `chore:` that may appear inside a feature description — pass through verbatim. If an `output:` token is present, strip it silently (legacy; no format selection logic remains).
 
 #### 0.1 Resume Existing Plan Work When Appropriate
 
@@ -96,10 +75,8 @@ If the user references an existing plan file or there is an obvious recent match
 Words like "strengthen", "confidence", "gaps", and "rigor" are NOT sufficient on their own to trigger deepening. These words appear in normal editing requests ("strengthen that section about the diagram", "there are gaps in the test scenarios") and should not cause a holistic deepening pass. Only treat them as deepening intent when the request clearly targets the plan as a whole and does not name a specific section or content area to change — and even then, prefer to confirm with the user before entering the deepening flow.
 
 Once the plan is identified and appears complete (all major sections present, implementation units defined):
-- **Routing is keyed on file extension first, then frontmatter.** HTML plans (`.html`) are always software plans — the html-rendering invariant forbids YAML frontmatter, so frontmatter absence is not a non-software signal for HTML. Treat the visible-header metadata (title, date) as the frontmatter equivalent.
-  - **`.html` plan:** short-circuit to Phase 5.3 (Confidence Check and Deepening) in **interactive mode**. Never route to `references/universal-planning.md` based on missing YAML.
-  - **`.md` plan WITH YAML frontmatter:** short-circuit to Phase 5.3 in **interactive mode**.
-  - **`.md` plan WITHOUT YAML frontmatter** (non-software plans use a simple `# Title` heading with `Created:` date instead): route to `references/universal-planning.md` for editing or deepening instead of Phase 5.3. Non-software plans do not use the software confidence check.
+- **`.md` plan WITH YAML frontmatter:** short-circuit to Phase 5.3 (Confidence Check and Deepening) in **interactive mode**.
+- **`.md` plan WITHOUT YAML frontmatter** (non-software plans use a simple `# Title` heading with `Created:` date instead): route to `references/universal-planning.md` for editing or deepening instead of Phase 5.3. Non-software plans do not use the software confidence check.
 
 The Phase 5.3 short-circuit avoids re-running the full planning workflow and gives the user control over which findings are integrated.
 
@@ -107,24 +84,13 @@ Normal editing requests (e.g., "update the test scenarios", "add a new implement
 
 If the plan already has a `deepened: YYYY-MM-DD` frontmatter field and there is no explicit user request to re-deepen, the fast path still applies the same confidence-gap evaluation — it does not force deepening.
 
-**Resume preserves the existing artifact's format, except pipeline mode.** When resuming an existing plan, the resume run writes back in whatever format the existing artifact uses — markdown if the existing file is `.md`, HTML if it is `.html` — so a resume doesn't silently change the artifact shape. Explicit `output:` arguments on this run override (e.g., resuming an `.html` plan with `output:md` switches the artifact to markdown). Pipeline mode (LFG, any `disable-model-invocation` context) always wins per Phase 0.0: even when resuming an existing `.html` plan, pipeline runs force `OUTPUT_FORMAT=md` so downstream automation receives the markdown shape it expects. The resume rewrites the markdown file at the parallel path (`<plan-basename>.md`) and the original `.html` is left in place untouched.
+**Resume writes back as markdown.** When resuming an existing plan, the resume run writes the updated plan as markdown (`.md`).
 
 #### 0.1a Recognize Approach-Altitude Requests
 
-Some requests are better answered one level up: produce a grounded **approach-plan** — a plan for *how the deliverable will be made* — and hold there, rather than zero-shotting the deliverable. This runs **after** Phase 0.1's resume and deepen fast paths (so "deepen the plan" and resume short-circuit first) and **before** Phase 0.1b's domain split (so the capability is domain-general — it applies to software and knowledge-work alike).
+**Explicit trigger (always honored).** When the user asks for "plan for a plan", "plan the approach", "plan how you'll do X", or "don't do it yet -- just plan how you'd approach it" — enter approach altitude and hold. Key on language asking for *the approach to producing something*, not the something.
 
-Two entries, with very different gating:
-
-**Explicit (always honored, ungated).** When the user asks for the approach itself — "plan for a plan", "plan the approach", "plan how you'll do X", "don't do it yet -- just plan how you'd approach it" — enter approach altitude and hold at the approach. Do NOT begin the deliverable. Key on language that asks for *the approach to producing something*, not the something. This is a distinct signal from "deepen"/"strengthen" (the Phase 0.1 deepening fast path) and from a normal plan request.
-
-**Proactive (rare, conservative).** When the user gives a plain request with no approach-language, offer an approach-plan **only when both of these are clearly high**:
-
-- **Method uncertainty** — the *core* approach is genuinely unsettled: competing methodologies that would yield *different deliverables*, unclear how disparate sources or constraints combine, or an outcome stated only at the value level ("something I can actually use"). This is **not** satisfied by a task whose core method is obvious but whose *rollout, sequencing, scope, or ordering* has routine variants (big-bang vs. incremental, batch order, phased vs. one-shot) — those are ordinary plan decisions the Phase 0.7 scoping synthesis already surfaces as call-outs, not method-uncertainty. A large or mechanical change (a 40-endpoint migration, a wide rename, a framework bump) is typically **costly but method-obvious**; cost alone never fires the offer.
-- **Cost of getting it wrong** — the deliverable is expensive or slow to produce and a wrong approach wastes real effort (heavy inputs to process, a long synthesis, a large or risky change).
-
-If either is low, **stay silent and plan/do normally.** When borderline, stay silent. Assess this from request shape and input metadata only — do not read the inputs yet (recon happens after the offer is accepted). When the offer does fire, it is a **single dismissible line** naming the specific signal (e.g., "Three heavy sources are about to get synthesized and you might want them weighted differently -- want my approach first, or should I just go?") — never a blocking question, never a ceremony. Because the explicit path above is always available, a missed offer is cheap; the failure mode to avoid is the **new-hammer nag** — opening turns with "want me to plan the approach first?" when the method is obvious.
-
-**Stay disjoint from the other approach surfaces (R16).** An investigative or analytical request with no approach-language and not-both-signals-high is NOT an approach-altitude request — it must pass through this gate untouched to Phase 0.1b, where answer-seeking's plan-of-attack handles it; the gate's earlier position must not intercept it. "Deepen the plan" and resume are already short-circuited by Phase 0.1. The Phase 0.7 / 5.1.5 scoping synthesis and the Phase 5.3 deepening pass operate on a deliverable already committed to; approach altitude operates *before* that commitment. Full distinctions: `references/approach-altitude.md`.
+**Proactive gate (rare).** Offer an approach-plan only when both **method uncertainty** (core approach genuinely unsettled) AND **cost of getting it wrong** (expensive deliverable, wrong approach wastes real effort) are clearly high. If either is low, stay silent. When the offer fires, it's a single dismissible line — never a blocking question.
 
 On entry (explicit, or an accepted offer), read `references/approach-altitude.md` and follow it. Otherwise continue to Phase 0.1b unchanged.
 
@@ -190,18 +156,7 @@ If the bootstrap uncovers major unresolved product questions:
 
 If the bootstrap reveals that a different workflow would serve the user better:
 
-- **Bug-shaped prompt** (user describes broken behavior — "fix the bug where X", error message, regression, "doesn't work"). Surface `ts-debug` as a route-out option alongside continuing with `ts-plan` whenever the bug surface is reachable (in cwd OR named repo found at another local path). Stay in `ts-plan` silently when the named code can't be found anywhere local — paper-planning is the only useful output for unreachable surfaces.
-
-  **When the bug is at another local path (not cwd):**
-  - Announce the target explicitly **before** any cross-repo investigation: which path will be read AND where plan outputs will land (default: target repo's `docs/plans/`, not cwd's).
-  - Default: proceed from the target repo for both investigation and plan-write. The user can interrupt to redirect (switch context, paper-plan, abandon, etc.). No location menu — the announcement makes the cross-repo nature visible, and the user can speak up if they want something unusual.
-  - **After** announcing and proceeding, fire the standard ts-debug routing menu (continue with `ts-plan` vs switch to `ts-debug`) — same shape as the in-cwd case. Cross-repo location and ts-debug skill routing are orthogonal decisions; do not merge them into a single question.
-
-  Reading code at another path is fine in principle — that's just file access. The harm to avoid is silent operation on the wrong repo, especially writing the plan doc somewhere it won't be discovered (a busyblock plan landing in `cli-printing-press/docs/plans/` is a discoverability disaster). The announcement requirement makes the target visible; defaulting to the target repo for both investigation and outputs respects the user's stated intent (they named that repo); the orthogonal ts-debug menu keeps the skill-choice question clean.
-
-  The accessibility classification is conservative and may under-suggest in monorepos, dependency bugs, or after renames. Users can always invoke `/ts-debug` manually.
-
-  **Headless mode**: skip the ts-debug suggestion menu entirely; default to continuing with `/ts-plan` (the user's explicit invocation). There is no synchronous user to resolve a route-out choice, and auto-routing to ts-debug would change the skill mid-flight without authorization.
+- **Bug-shaped prompt** (broken behavior, error message, regression). Surface `ts-debug` as a route-out option when the bug surface is reachable (in cwd or named local repo). Stay in `ts-plan` silently when unreachable. For cross-repo bugs, announce the target path before investigation and default to the target repo for both investigation and outputs. Fire the ts-debug routing menu after announcing. **Headless mode**: skip the menu; default to continuing with `ts-plan`.
 
 - **Clear task ready to execute** (known root cause, obvious fix, no architectural decisions) — suggest `ts-work` as a faster alternative alongside continuing with planning. The user decides.
 
@@ -231,56 +186,21 @@ If depth is unclear, ask one targeted question and then continue.
 
 #### 0.7 Solo-Mode Scoping Synthesis
 
-Surface call-outs to the user — the specific forks in scope or approach where user input materially changes the plan — so scope can be corrected **before Phase 1 research is spent**. Sub-agent dispatch (repo-research-analyst, learnings-researcher, etc.) is the expensive next step this phase guards against wasted effort on.
+Surface call-outs to the user — the specific forks in scope or approach where user input materially changes the plan — so scope can be corrected **before Phase 1 research is spent**.
 
-Fires **only in solo invocation** — when Phase 0.2 found no upstream brainstorm doc AND Phase 0.4 stayed in ts-plan (did not route to ts-debug, ts-work, or universal-planning) AND Phase 0.5 cleared (no unresolved blockers) AND not on Phase 0.1 fast paths (resume normal, deepen-intent). Each guard is an explicit conditional. Skip Phase 0.7 entirely when any guard fails — brainstorm-sourced invocations defer to Phase 5.1.5 instead.
+Fires **only in solo invocation** — when Phase 0.2 found no upstream brainstorm doc AND Phase 0.4 stayed in ts-plan AND Phase 0.5 cleared (no unresolved blockers) AND not on Phase 0.1 fast paths. Skip entirely when any guard fails — brainstorm-sourced invocations defer to Phase 5.1.5 instead.
 
-**Read `references/synthesis-summary.md` before composing the scoping synthesis.** It carries the affirmability test, keep-test criteria, detail test, summary shape budgets, granularity rules, anti-patterns, revision-vs-confirmation discipline, doc-shape routing, soft-cut behavior, self-redirect support, the worked PII compression example, and full headless-mode routing — all required for a well-shaped synthesis.
+**Read `references/synthesis-summary.md` before composing.** It carries the affirmability test, keep-test criteria, detail test, summary shape budgets, granularity rules, anti-patterns, doc-shape routing, soft-cut behavior, headless-mode routing, and worked examples — all required for a well-shaped synthesis.
 
-**Required gate output — do not skip; silent proceeding is not allowed.** Compose an internal three-bucket scope draft (Stated / Inferred / Out of scope — internal thinking that feeds plan-body routing at Phase 5.2, not the chat output below). Derive call-outs (specific forks where user input materially changes the plan), then emit one of the two literal templates below in chat before continuing to Phase 1.
+**Required gate output — silent proceeding is not allowed.** Compose an internal three-bucket scope draft (Stated / Inferred / Out of scope), derive call-outs, then emit the appropriate template (confirmation for Standard/Deep or any tier with call-outs; auto-proceed for Lightweight with zero call-outs) before continuing to Phase 1. Synthesis is pre-plan-write — do not claim PR count, commit shape, effort estimates, IU boundaries, or file paths.
 
-**Synthesis is pre-plan-write.** The agent does NOT yet know how plan-write will sequence the work. Do not claim PR count ("one PR"), commit/branch shape, effort or time estimates, Implementation Unit boundaries, or exact file paths in the synthesis. The synthesis surfaces decisions knowable at THIS point — for the solo variant, that's the user's request plus the Phase 0.4 bootstrap dialogue plus the agent's own internal three-bucket draft. Phase 1 research has not happened yet and there is no upstream brainstorm; do not claim grounding from either. Plan-write produces the rest. This rule holds even when the agent has formed plan-write opinions earlier in the session — those stay internal until plan-write.
-
-**Summary shape:** the summary is a **scope claim** — what the plan will target, what it will not — at affirm-or-redirect level. NOT an enumeration of Implementation Units. Form is prose, bullets, or mix; tier budgets are **ceilings, not targets** (Lightweight 1-3 lines; Standard up to 3-5 lines or 2-4 bullets; Deep up to 4-6 lines or 3-6 bullets). 1-2 lines per bullet, conversational not documentary. Less is correct when there isn't more to say. See reference for keep test, detail test, and source-vocabulary discipline.
-
-**Do NOT enumerate the touch surface.** Sentences like "The touch surface is...", "This plan touches...", "The implementation reaches into..." are plan-pitch leaks. File paths, module names, directory introductions, and per-file change descriptions belong in the plan body (Implementation Units at Phase 5.2), not the synthesis. The synthesis names *what* the plan targets, not *where* the code lives.
-
-**Pre-emit scans.** Before emitting the synthesis, scan the output:
-- Bare ID references (`AE\d+`, `R\d+`, `F\d+`, `A\d+`, `U\d+`) → replace with plain names.
-- File paths (`path/like.md`, `path/like.py`, etc.) → cut unless the path IS the topic of an explicit fork in the call-outs.
-
-**Tier guard on auto-proceed:** the auto-proceed path (announce without waiting for confirmation) fires only when plan depth is **Lightweight AND zero call-outs survive**. Standard and Deep plans always fire the confirmation gate, even with zero call-outs — substance earns the checkpoint, not interaction history.
-
-**Confirmation template (Standard/Deep regardless of call-out count, or any tier with one or more call-outs surviving):**
-
-````text
-Based on your request and our brief discussion, here's the scope I'm proposing to plan against:
-
-[scope claim — what the plan will target, what it will not; affirm-or-redirect level; NOT an enumeration of Implementation Units]
-
-**Call outs:** (omit this header when zero forks survived the keep test)
-- [decision-level fork in 1-2 lines: name the choice and optional one-clause trade-off in parens. NO multi-sentence rationale, NO "my default is X" pitch]
-
-Confirm and I'll proceed to research, drawing on this scope. (You can also redirect to /ts-brainstorm if this is bigger than you initially thought — I'll stop here and load it for you.)
-````
-
-Wait for user confirmation before continuing to Phase 1.
-
-**Auto-proceed template (Lightweight with zero call-outs only):**
-
-````text
-Planning: [1-3 line scope claim]
-
-No open decisions to weigh in on — proceeding to research. Interrupt if I have the scope wrong.
-````
-
-Then continue to Phase 1 without a blocking question.
-
-**Headless mode**: internal draft is composed but stage 2 (chat-time call-outs) is skipped — no synchronous user to confirm to. Continue to Phase 1 research as normal. At plan-write time (Phase 5.2), Inferred bets from the internal draft route to a `## Assumptions` section in the plan instead of Key Technical Decisions. See `references/synthesis-summary.md` Headless mode for the full routing.
+**Headless mode**: internal draft composed, stage 2 (chat-time call-outs) skipped. Inferred bets route to `## Assumptions` in the plan. See reference for full routing.
 
 ### Phase 1: Gather Context
 
-All specialist research and deepening prompts used in this phase are skill-local prompt assets under `references/agents/`. When dispatching one, read the matching file and seed a generic subagent with that prompt content plus the task-specific context below. Do not dispatch standalone agents by type/name.
+All specialist research and deepening prompts used in this phase are skill-local prompt assets under `references/agents/`. When dispatching one, pass the agent a bootstrap prompt with the file path (`references/agents/<name>.md`) plus the task-specific context below. The agent reads its own prompt from disk. Fallback: if the harness lacks file-read tools, read the file and inline its content. Do not dispatch standalone agents by type/name.
+
+**Notification recovery.** When agents run in the background, completion notifications may be missed. Each agent writes its output to disk as its primary completion signal. The orchestrator can detect completion via Monitor-based file watching or polling fallback (`scripts/wait-for-file.sh`). See `docs/solutions/workflow-issues/notification-resilience-via-disk-state.md`.
 
 Model tiering lives in this caller, not in prompt assets. Local prompt files have no frontmatter. Use the platform's mid-tier model for external/organizational research prompts such as `slack-researcher` and `web-researcher` when the current harness exposes a known override; otherwise omit the override and inherit. Use inherited model for high-judgment architecture, migration, and planning-deepening prompts unless the harness has an established cheaper capable tier.
 
@@ -363,21 +283,11 @@ The `repo-research-analyst` local prompt output includes a structured Technology
 - If the scan detected deployment infrastructure (Docker, K8s, serverless), note it in the planning context passed to downstream agents so they can account for deployment constraints
 - If the scan detected a monorepo and scoped to a specific service, pass that service's tech context to downstream research agents -- not the aggregate of all services. If the scan surfaced the workspace map without scoping, use the feature description to identify the relevant service before proceeding with research
 
-**Always lean toward external research when:**
-- The topic is high-risk: security, payments, privacy, external APIs, migrations, compliance
-- The codebase lacks relevant local patterns -- fewer than 3 direct examples of the pattern this plan needs
-- Local patterns exist for an adjacent domain but not the exact one -- e.g., the codebase has HTTP clients but not webhook receivers, or has background jobs but not event-driven pub/sub. Adjacent patterns suggest the team is comfortable with the technology layer but may not know domain-specific pitfalls. When this signal is present, frame the external research query around the domain gap specifically, not the general technology
-- The user is exploring unfamiliar territory
-- The technology scan found the relevant layer absent or thin in the codebase
-- The plan's recommendations depend on a genuinely external, **unsettled** option set — which library, provider, or approach to adopt, or what competitors and prior art do — **even when local implementation patterns are strong** (intent: landscape). Bound this implicit landscape trigger by three gates: (a) the option set genuinely lives outside the repo, (b) the decision materially shapes the plan (a KTD, dependency, or architecture choice — not an incidental detail), and (c) no settled local or team choice already exists. Improvement verbs alone never satisfy this.
+**Always lean toward external research when:** high-risk topic (security, payments, privacy, external APIs, migrations, compliance); fewer than 3 direct local examples; adjacent-domain-only patterns (e.g., HTTP clients but not webhook receivers — frame research around the domain gap); user exploring unfamiliar territory; technology scan found the layer absent/thin; or the plan depends on an unsettled external option set (landscape intent) even when local patterns are strong — bounded by three gates: (a) option set lives outside the repo, (b) decision materially shapes the plan, (c) no settled local/team choice exists.
 
-**Skip external research when** (only when Stage 1 found no explicit request — an explicit request is never skipped):
-- The codebase already shows a strong local pattern -- multiple direct examples (not adjacent-domain), recently touched, following current conventions
-- The user already knows the intended shape
-- Additional external context would add little practical value
-- The technology scan found the relevant layer well-established with existing examples to follow
+**Skip external research when** (only when no explicit request — an explicit request is never skipped): strong local pattern (multiple direct examples, recently touched, current conventions); user already knows the shape; technology scan found the layer well-established.
 
-When an explicit request *did* fire but a settled local or team choice already exists, **narrow the research rather than skipping it** — research the current pitfalls, docs, and practices for the chosen library/pattern instead of re-surveying the whole option set.
+When an explicit request fired but a settled local choice exists, **narrow the research** — research pitfalls/docs/practices for the chosen library, don't re-survey the option set.
 
 Announce the decision and the intent briefly before continuing. Examples:
 - "Your codebase has solid patterns for this. Proceeding without external research."
@@ -496,17 +406,7 @@ Plan diagrams render authoritative content alongside the prose — they are not 
 
 #### 3.4b Output Structure (Optional)
 
-For greenfield plans that create a new directory structure (new plugin, service, package, or module), include an `## Output Structure` section with a file tree showing the expected layout. This gives reviewers the overall shape before diving into per-unit details.
-
-**When to include it:**
-- The plan creates 3+ new files in a new directory hierarchy
-- The directory layout itself is a meaningful design decision
-
-**When to skip it:**
-- The plan only modifies existing files
-- The plan creates 1-2 files in an existing directory — the per-unit file lists are sufficient
-
-The tree is a scope declaration showing the expected output shape. It is not a constraint — the implementer may adjust the structure if implementation reveals a better layout. The per-unit `**Files:**` sections remain authoritative for what each unit creates or modifies.
+For greenfield plans creating a new directory structure, include an `## Output Structure` section with a file tree. Include when 3+ new files form a new hierarchy; skip when only modifying existing files or creating 1-2 files in an existing directory. The tree is a scope declaration, not a constraint — per-unit `**Files:**` sections remain authoritative.
 
 #### 3.5 Define Each Implementation Unit
 
@@ -520,8 +420,8 @@ For each unit, include:
 - **Dependencies** - what must exist first (cite by U-ID, e.g., "U1, U3")
 - **Files** - repo-relative file paths to create, modify, or test (never absolute paths)
 - **Approach** - key decisions, data flow, component boundaries, or integration notes
-- **Execution note** - optional, only when the unit benefits from a non-default execution posture such as test-first or characterization-first
-- **Technical design** - optional pseudo-code or diagram when the unit's approach is non-obvious and prose alone would leave it ambiguous. Frame explicitly as directional guidance, not implementation specification
+- **Execution note** - optional, only for non-default posture (test-first, characterization-first)
+- **Technical design** - optional pseudo-code or diagram when the approach is non-obvious; directional guidance, not implementation spec
 - **Patterns to follow** - existing code or conventions to mirror
 - **Test scenarios** - enumerate the specific test cases the implementer should write, right-sized to the unit's complexity and risk. Consider each category below and include scenarios from every category that applies to this unit. A simple config change may need one scenario; a payment flow may need a dozen. The quality signal is specificity — each scenario should name the input, action, and expected outcome so the implementer doesn't have to invent coverage. For units with no behavioral change (pure config, scaffolding, styling), use `Test expectation: none -- [reason]` instead of leaving the field blank. **AE-link convention:** when a test scenario directly enforces an origin Acceptance Example, prefix it with `Covers AE<N>.` (or `Covers F<N> / AE<N>.`). This is sparse-by-design — most test scenarios are finer-grained than AEs and do not link. Do not force AE links onto tests that only cover lower-level implementation details.
   - **Happy path behaviors** - core functionality with expected inputs and outputs
@@ -581,26 +481,16 @@ Use one planning philosophy across all depths. Change the amount of detail, not 
 
 #### 4.1b Optional Deep Plan Extensions
 
-For sufficiently large, risky, or cross-cutting work, add the sections that genuinely help:
-- **Alternative Approaches Considered**
-- **Success Metrics**
-- **Dependencies / Prerequisites**
-- **Risk Analysis & Mitigation**
-- **Phased Delivery**
-- **Documentation Plan**
-- **Operational / Rollout Notes**
-- **Future Considerations** only when they materially affect current design
+For sufficiently large, risky, or cross-cutting work, add sections that genuinely help (not boilerplate): Alternative Approaches Considered, Success Metrics, Dependencies/Prerequisites, Risk Analysis & Mitigation, Phased Delivery, Documentation Plan, Operational/Rollout Notes, Future Considerations (only when they materially affect current design).
 
-Do not add these as boilerplate. Include them only when they improve execution quality or stakeholder alignment.
-
-**Alternatives Considered — what to vary.** When this section is included, alternatives must differ on *how* the work is built: architecture, sequencing, boundaries, integration pattern, rollout strategy. Tiny implementation variants (which hash function, which serialization format) belong in Key Technical Decisions, not Alternatives. Product-shape alternatives (different actors, different core outcome, different positioning) belong in `ts-brainstorm`, not here — surface them back upstream rather than re-litigating product questions during planning.
+**Alternatives Considered** must differ on *how* the work is built (architecture, sequencing, boundaries, rollout strategy). Tiny implementation variants belong in KTDs. Product-shape alternatives belong in `ts-brainstorm`.
 
 #### 4.2 Section Contract and Rendering
 
 Compose the plan using two paired references:
 
 - `references/plan-sections.md` — the section contract. Describes what the plan contains: the outcome the plan must enable for downstream consumers, the hard floor (Summary, Problem Frame, Requirements, KTDs, Implementation Units), the include-when-material catalog (HTD, Scope Boundaries, Open Questions, System-Wide Impact, Risks & Dependencies, Acceptance Examples, Documentation/Operational Notes, Sources & Research), the agency-driven escape hatch (introduce new sections when content warrants), and the ID/content rules.
-- The format-rendering reference loaded at Phase 0.0 (`markdown-rendering.md` OR `html-rendering.md`) — how to present the sections in the resolved output format.
+- `references/markdown-rendering.md` — how to present the sections in markdown.
 
 The section catalog is the same regardless of format. Format-specific principles (table-vs-prose by content shape, ID prefix format, diagram rendering, etc.) live in the rendering reference.
 
@@ -650,55 +540,15 @@ If the plan originated from a requirements document, re-read that document and v
 
 #### 5.1.5 Brainstorm-Sourced Scoping Synthesis
 
-Surface plan-time call-outs to the user before Phase 5.2 commits the plan to disk — the latest cheap moment to catch plan-time scope errors. The brainstorm already validated WHAT to build; this phase surfaces HOW the plan will execute on the forks that matter.
+Surface plan-time call-outs before Phase 5.2 commits the plan to disk. The brainstorm validated WHAT to build; this phase surfaces HOW the plan will execute on the forks that matter.
 
-Fires **only when the plan was sourced from an upstream brainstorm doc** (Phase 0.2 found a `*-requirements.md` or `*-requirements.html` match) AND not on Phase 0.1 fast paths (resume normal, deepen-intent). Skip Phase 5.1.5 in solo invocation — solo plans handled their synthesis in Phase 0.7.
+Fires **only when the plan was sourced from an upstream brainstorm doc** (Phase 0.2 found a match) AND not on Phase 0.1 fast paths. Skip in solo invocation — solo plans handled their synthesis in Phase 0.7.
 
-**Read `references/synthesis-summary.md` before composing the scoping synthesis.** It carries the affirmability test, keep-test criteria, detail test, summary shape budgets, granularity rules, anti-patterns, revision-vs-confirmation discipline, doc-body reading rules, doc-shape routing, soft-cut behavior, self-redirect support, the worked PII compression example, and full headless-mode routing — all required for a well-shaped synthesis.
+**Read `references/synthesis-summary.md` before composing.** It carries the affirmability test, keep-test criteria, detail test, summary shape budgets, granularity rules, anti-patterns, doc-shape routing, soft-cut behavior, headless-mode routing, and worked examples — all required for a well-shaped synthesis.
 
-**Required gate output — do not skip; silent proceeding is not allowed.** Compose an internal three-bucket scope draft (Stated / Inferred / Out of scope — internal thinking that feeds plan-body routing at Phase 5.2, not the chat output below). Derive call-outs (specific forks where user input materially changes the plan), then emit one of the two literal templates below in chat before continuing to Phase 5.2.
+**Required gate output — silent proceeding is not allowed.** Compose an internal three-bucket scope draft (Stated / Inferred / Out of scope), derive call-outs, then emit the appropriate template (confirmation for Standard/Deep or any tier with call-outs; auto-proceed for Lightweight with zero call-outs) before continuing to Phase 5.2. Synthesis is pre-plan-write — do not claim PR count, commit shape, effort estimates, IU boundaries, or file paths.
 
-**Synthesis is pre-plan-write.** The agent does NOT yet know how plan-write will sequence the work. Do not claim PR count ("one PR"), commit/branch shape, effort or time estimates, Implementation Unit boundaries, or exact file paths in the synthesis. The synthesis surfaces decisions knowable at THIS point (brainstorm + research + agent posture); plan-write produces the rest. This rule holds even when the agent has formed plan-write opinions earlier in the session — those stay internal until plan-write.
-
-**Summary shape: two paragraphs.**
-
-1. **Brainstorm-scope restatement** (1-2 sentences, prose). Restates the brainstorm's scope as orientation, in the brainstorm's own vocabulary. NOT an enumeration of Implementation Units, restated constraints, or listed acceptance examples — the user wrote those.
-2. **Plan-specific scoping decisions** (prose, or bullets when multi-faceted). Scope-level commitments the agent made that the brainstorm did not: full brainstorm coverage vs. narrowed subset; adjacent refactors pulled in vs. held out; test scope at scenario level. Each item must be affirmable by the user without reading code. Form follows substance; tier budgets are **ceilings, not targets** (Lightweight 1-3 lines; Standard up to 3-5 lines or 2-4 bullets; Deep up to 4-6 lines or 3-6 bullets). 1-2 lines per bullet. Less is correct when there isn't more to say. See reference for keep test, detail test, and source-vocabulary discipline.
-
-**Do NOT enumerate the touch surface.** Sentences like "The touch surface is...", "This plan touches...", "The implementation reaches into...", "Files modified include..." are plan-pitch leaks. File paths, module names, directory introductions, and per-file change descriptions belong in the plan body (Implementation Units at Phase 5.2), not the synthesis. The synthesis names *what* the plan targets, not *where* the code lives.
-
-**Pre-emit scans.** Before emitting the synthesis, scan the output:
-- Bare ID references (`AE\d+`, `R\d+`, `F\d+`, `A\d+`, `U\d+`) → replace with plain names.
-- File paths (`path/like.md`, `path/like.py`, etc.) → cut unless the path IS the topic of an explicit fork in the call-outs.
-
-**Tier guard on auto-proceed:** the auto-proceed path (announce without waiting for confirmation) fires only when plan depth is **Lightweight AND zero call-outs survive**. Standard and Deep plans always fire the confirmation gate, even with zero call-outs — substance earns the checkpoint, not interaction history.
-
-**Confirmation template (Standard/Deep regardless of call-out count, or any tier with one or more call-outs surviving):**
-
-````text
-The brainstorm scopes [1-2 sentence restatement in the brainstorm's vocabulary as orientation; NOT an enumeration of Implementation Units, constraints, or acceptance examples].
-
-This plan [plan-specific scoping decisions: full-brainstorm coverage vs. narrowed subset; adjacent refactors in or out; test scope at scenario level. NOT PR count, sequencing, IU lists, or file paths].
-
-**Call outs:** (omit this header when zero forks survived the keep test)
-- [plan-time fork in 1-2 lines: name the choice and optional one-clause trade-off in parens. NO multi-sentence rationale, NO "my default is X" pitch]
-
-Confirm and I'll write the plan next, drawing on the brainstorm, research, and this synthesis.
-````
-
-Wait for user confirmation before continuing to Phase 5.2.
-
-**Auto-proceed template (Lightweight with zero call-outs only):**
-
-````text
-Planning [brief brainstorm-scope restatement] — [plan-specific shape in one clause].
-
-No open decisions to weigh in on — proceeding to plan-write. Interrupt if I have the scope wrong.
-````
-
-Then continue to Phase 5.2 without a blocking question.
-
-**Headless mode**: internal draft is composed but stage 2 (chat-time call-outs) is skipped — no synchronous user to confirm to. Proceed to Phase 5.2 plan-write. Inferred bets from the internal draft route to a `## Assumptions` section in the plan instead of Key Technical Decisions. See `references/synthesis-summary.md` Headless mode for the full routing.
+**Headless mode**: internal draft composed, stage 2 skipped. Inferred bets route to `## Assumptions` in the plan. See reference for full routing.
 
 #### 5.2 Write Plan File
 
@@ -707,16 +557,14 @@ Then continue to Phase 5.2 without a blocking question.
 Use the Write tool to save the complete plan to the resolved format's extension:
 
 ```text
-docs/plans/YYYY-MM-DD-NNN-<type>-<descriptive-name>-plan.<md|html>
+docs/plans/YYYY-MM-DD-NNN-<type>-<descriptive-name>-plan.md
 ```
 
-Extension follows `OUTPUT_FORMAT` from Phase 0.0 — `.md` when markdown, `.html` when HTML. Sequence number `NNN` is derived from existing plan files in `docs/plans/` regardless of extension (count both `.md` and `.html`) to ensure unique daily ordering.
+Extension is always `.md`. Sequence number `NNN` is derived from existing plan files in `docs/plans/` to ensure unique daily ordering.
 
-Compose the plan using the content from `references/plan-sections.md` and the format-specific principles from the rendering reference loaded at Phase 0.0 (`markdown-rendering.md` OR `html-rendering.md`).
+Compose the plan using the content from `references/plan-sections.md` and the format principles from `references/markdown-rendering.md`.
 
 **Write tight.** A section being material is not license to pad it. Hold every kept section to the prose-economy discipline in `references/plan-sections.md`: one idea per sentence, a requirement or unit is intent plus at most one qualifier, defer forks to Open Questions rather than specifying both arms, resolve superseded text in place rather than stacking strata. Before declaring the plan written, run the named test there — could the implementer find a contradiction in each section in one pass?
-
-**HTML composition timing.** When `OUTPUT_FORMAT=html`, Phase 5.3 deepening runs before this write completes its final form, but `ts-doc-review` is skipped in HTML mode (its mutation mechanics are markdown-only today — see Phase 5.3.8 format gate in `references/plan-handoff.md`). The HTML artifact reflects deepening synthesis but not doc-review autofixes; this is a known gap until ts-doc-review gains HTML-aware mutation.
 
 Confirm (use absolute path so the reference is clickable in modern terminals):
 
@@ -724,7 +572,7 @@ Confirm (use absolute path so the reference is clickable in modern terminals):
 Plan written to <absolute path to plan>
 ```
 
-**Pipeline mode:** If invoked from an automated workflow such as LFG or any `disable-model-invocation` context, skip interactive questions. Make the needed choices automatically and proceed to writing the plan. Pipeline mode forces `OUTPUT_FORMAT=md` at Phase 0.0.
+**Pipeline mode:** If invoked from an automated workflow such as LFG or any `disable-model-invocation` context, skip interactive questions. Make the needed choices automatically and proceed to writing the plan.
 
 **CONCEPTS.md gap-fill (only if the file already exists):** If the plan body uses a domain term whose definition is missing from `CONCEPTS.md`, add the entry. **Domain entities, named processes, and status concepts with project-specific meaning only** — not file paths, class names, function signatures, or implementation decisions. `CONCEPTS.md` is a glossary, not a spec or catch-all. Follow the format set by existing entries. Apply silently. Skip entirely if `CONCEPTS.md` does not exist — creation is owned by ts-compound and ts-compound-refresh.
 
@@ -732,64 +580,28 @@ Plan written to <absolute path to plan>
 
 After writing the plan file, automatically evaluate whether the plan needs strengthening.
 
-**Two deepening modes:**
+**Two modes:** Auto mode (default during plan generation — findings synthesized directly) and Interactive mode (re-deepen fast path in Phase 0.1 — findings presented for per-item review). `ts-doc-review` checks coherence/feasibility/scope; this check strengthens rationale, sequencing, risk treatment, and grounding. Pipeline mode always runs auto mode.
 
-- **Auto mode** (default during plan generation): Runs without asking the user for approval. The user sees what is being strengthened but does not need to make a decision. Sub-agent findings are synthesized directly into the plan.
-- **Interactive mode** (activated by the re-deepen fast path in Phase 0.1): The user explicitly asked to deepen an existing plan. Sub-agent findings are presented individually for review before integration. The user can accept, reject, or discuss each agent's findings. Only accepted findings are synthesized into the plan.
+**Classify plan depth** (Lightweight/Standard/Deep) and build a risk profile (auth, payments, migrations, external APIs, privacy, cross-interface parity, rollout concerns).
 
-Interactive mode exists because on-demand deepening is a different user posture — the user already has a plan they are invested in and wants to be surgical about what changes. This applies whether the plan was generated by this skill, written by hand, or produced by another tool.
+**Gate: decide whether to deepen.** Lightweight plans usually skip unless high-risk. Standard plans benefit when sections look thin. Deep/high-risk plans benefit from a targeted second pass. Two overrides always proceed to scoring: thin local grounding (Phase 1.2 triggered external research) and load-bearing external research (Phase 1.4 marked it load-bearing). If neither override applies and the plan appears sufficiently grounded, report "Confidence check passed" and **load `references/plan-handoff.md` now**.
 
-`ts-doc-review` and this confidence check are different:
-- Use the `ts-doc-review` skill when the document needs clarity, simplification, completeness, or scope control
-- This confidence check strengthens rationale, sequencing, risk treatment, and system-wide thinking when the plan is structurally sound but still needs stronger grounding
-
-**Pipeline mode:** This phase always runs in auto mode in pipeline/disable-model-invocation contexts. No user interaction needed.
-
-##### 5.3.1 Classify Plan Depth and Topic Risk
-
-Determine the plan depth from the document:
-- **Lightweight** - small, bounded, low ambiguity, usually 2-4 implementation units
-- **Standard** - moderate complexity, some technical decisions, usually 3-6 units
-- **Deep** - cross-cutting, high-risk, or strategically important work, usually 4-8 units or phased delivery
-
-Build a risk profile. Treat these as high-risk signals:
-- Authentication, authorization, or security-sensitive behavior
-- Payments, billing, or financial flows
-- Data migrations, backfills, or persistent data changes
-- External APIs or third-party integrations
-- Privacy, compliance, or user data handling
-- Cross-interface parity or multi-surface behavior
-- Significant rollout, monitoring, or operational concerns
-
-##### 5.3.2 Gate: Decide Whether to Deepen
-
-- **Lightweight** plans usually do not need deepening unless they are high-risk
-- **Standard** plans often benefit when one or more important sections still look thin
-- **Deep** or high-risk plans often benefit from a targeted second pass
-- **Thin local grounding override:** If Phase 1.2 triggered external research because local patterns were thin (fewer than 3 direct examples or adjacent-domain match), always proceed to scoring regardless of how grounded the plan appears. When the plan was built on unfamiliar territory, claims about system behavior are more likely to be assumptions than verified facts. The scoring pass is cheap — if the plan is genuinely solid, scoring finds nothing and exits quickly
-- **Load-bearing external research override:** If Phase 1.4 marked external research as load-bearing (it materially shaped a KTD, Alternative, Scope boundary, or Risk), always proceed to scoring — **even when local implementation patterns are strong**. A landscape or prior-art finding can shape recommendations the local codebase cannot verify, and the thin-grounding override above would miss it. This enters the scoring pass only; it does not force deepening
-
-If the plan already appears sufficiently grounded and neither the thin-grounding nor the load-bearing-external-research override applies, report "Confidence check passed — no sections need strengthening", then **load `references/plan-handoff.md` now and execute 5.3.8 → 5.3.9 → 5.4 in sequence**. Document review is mandatory for markdown plans — do not skip it because the confidence check passed. The two tools catch different classes of issues. For HTML plans (`OUTPUT_FORMAT=html`), the plan-handoff 5.3.8 format gate skips ts-doc-review since its mutation mechanics are markdown-only today; the menu summary surfaces that limitation explicitly.
-
-##### 5.3.3–5.3.7 Deepening Execution
-
-When deepening is warranted, read `references/deepening-workflow.md` for confidence scoring checklists, section-to-agent dispatch mapping, execution mode selection, research execution, interactive finding review, and plan synthesis instructions. Execute steps 5.3.3 through 5.3.7 from that file, then return here for 5.3.8.
+When deepening is warranted, read `references/deepening-workflow.md` for the full execution procedure (5.3.3–5.3.7), then return here for 5.3.8.
 
 ##### 5.3.8–5.4 Document Review, Final Checks, and Post-Generation Options
 
-**STOP. Load `references/plan-handoff.md` now before continuing.** It carries the full instructions for 5.3.8 (document review), 5.3.9 (final checks and cleanup), and 5.4 (post-generation handoff, including the Publish to Proof flow and Issue Creation branching). **This load is non-optional** — without it, the agent renders the post-generation menu, captures the user's selection, and stops without firing the routed action. Document review at 5.3.8 runs unconditionally for `OUTPUT_FORMAT=md` regardless of whether the confidence check already ran; for `OUTPUT_FORMAT=html`, plan-handoff's 5.3.8 format gate skips ts-doc-review because its mutation mechanics are markdown-only today. The default mode for markdown is headless (`mode:headless`) — `safe_auto` fixes apply silently, remaining findings surface contextually above the menu, and a deeper interactive review is opt-in via free-form prompt.
+**STOP. Load `references/plan-handoff.md` now before continuing.** It carries the full instructions for 5.3.8 (document review), 5.3.9 (final checks and cleanup), and 5.4 (post-generation handoff, including the Publish to Proof flow and Issue Creation branching). **This load is non-optional** — without it, the agent renders the post-generation menu, captures the user's selection, and stops without firing the routed action. Document review at 5.3.8 runs unconditionally regardless of whether the confidence check already ran. The default mode is headless (`mode:headless`) — `safe_auto` fixes apply silently, remaining findings surface contextually above the menu, and a deeper interactive review is opt-in via free-form prompt.
 
-After document review and final checks, print a one-line summary of the headless review state above the menu (e.g., `Doc review applied 3 fixes. 2 decisions, 1 proposed fix, 4 FYI observations remain (1 at P1).`; for HTML plans where 5.3.8 was skipped, print `Doc review skipped — ts-doc-review is markdown-only today; the HTML plan was not reviewed.`), then present the menu. The menu has 5 options when actionable findings remain (`proposed_fixes_count + decisions_count > 0`) and 4 options otherwise — including the FYI-only case AND the HTML-skip case (`skipped_reason: output_format_html`), both of which hide option 2 because ts-doc-review's walkthrough is gated to actionable markdown findings and would have nothing valid to walk through. See `references/plan-handoff.md` for the full rule. Render the 5-option menu as a numbered list in chat — a legitimate option-overflow case, since all five are distinct, required destinations that cannot be trimmed without losing real user choice — with the hint "Pick a number or describe what you want." On platforms whose blocking question tool has no option cap (Codex `request_user_input`, Pi `ask_user`), use the platform's blocking tool; when that tool is unavailable or errors (e.g., Codex edit modes where `request_user_input` is not exposed), fall back to the same numbered-list-in-chat rendering with the "Pick a number or describe what you want." hint. The 4-option case routes through the platform's blocking tool normally (`AskUserQuestion` in Claude Code — call `ToolSearch` with `select:AskUserQuestion` first if its schema isn't loaded), with the same numbered-list-in-chat fallback when no blocking tool is available or the call errors. Never silently skip the question.
+After document review and final checks, print a one-line summary of the headless review state above the menu (e.g., `Doc review applied 3 fixes. 2 decisions, 1 proposed fix, 4 FYI observations remain (1 at P1).`), then present the menu. The menu has 5 options when actionable findings remain (`proposed_fixes_count + decisions_count > 0`) and 4 options otherwise (the FYI-only case hides option 2 because ts-doc-review's walkthrough is gated to actionable findings and would have nothing valid to walk through). See `references/plan-handoff.md` for the full rule. Render the 5-option menu as a numbered list in chat — a legitimate option-overflow case, since all five are distinct, required destinations that cannot be trimmed without losing real user choice — with the hint "Pick a number or describe what you want." On platforms whose blocking question tool has no option cap (Codex `request_user_input`, Pi `ask_user`), use the platform's blocking tool; when that tool is unavailable or errors (e.g., Codex edit modes where `request_user_input` is not exposed), fall back to the same numbered-list-in-chat rendering with the "Pick a number or describe what you want." hint. The 4-option case routes through the platform's blocking tool normally (`AskUserQuestion` in Claude Code — call `ToolSearch` with `select:AskUserQuestion` first if its schema isn't loaded), with the same numbered-list-in-chat fallback when no blocking tool is available or the call errors. Never silently skip the question.
 
 **Question:** "Plan ready at `<absolute path to plan>`. What would you like to do next?" (use absolute path so the reference is clickable in modern terminals)
 
-**Options.** Option 4's label matches the artifact's format. Under exclusive output mode, exactly one of "Publish to Proof" or "Open in browser" applies per run — `OUTPUT_FORMAT=md` shows Proof; `OUTPUT_FORMAT=html` shows browser. Proof operates on markdown and cannot ingest HTML; the browser option opens the local `.html` file. Render the option matching the format produced this run.
+**Options:**
 
 1. **Start `/ts-work`** (recommended) - Begin implementing this plan in the current session
 2. **Run deeper doc review** - Walk through the remaining findings interactively (full ts-doc-review walkthrough)
 3. **Create Issue** - Create a tracked issue from this plan in your configured issue tracker (e.g., GitHub Issues, Linear, Jira)
-4. **Publish to Proof — shareable link** - Publish the plan to Every's Proof editor and get a shareable link to read, comment on, or share with others. One-way: the local plan file stays canonical. **Render only when `OUTPUT_FORMAT=md`.**
-4. **Open in browser** - Open the HTML plan file locally for review and sharing. **Render only when `OUTPUT_FORMAT=html`.**
+4. **Publish to Proof — shareable link** - Publish the plan to Every's Proof editor and get a shareable link to read, comment on, or share with others. One-way: the local plan file stays canonical.
 5. **Done for now** - Pause; the plan file is saved and can be resumed later
 
 **Routing.** Act on the user's selection — do not just announce it. Elaborate sub-flows (Issue Creation tracker detection) live in `references/plan-handoff.md`.
@@ -798,11 +610,10 @@ After document review and final checks, print a one-line summary of the headless
 - **Run deeper doc review** — Re-invoke the `ts-doc-review` skill on the plan path **without** `mode:headless` so the interactive routing question and walkthrough fire. After it returns, re-render this menu with refreshed counts so the user can pick a next-stage action.
 - **Create Issue** — Detect the project tracker from the project instructions already in your context and create the issue from the plan file as described under "Issue Creation" in `references/plan-handoff.md`. Create the issue through whatever interface the tracker actually exposes — `gh` for GitHub when it's installed and authenticated, otherwise GitHub's connector/MCP tool or API; for Linear, a connector/MCP tool, documented API/GraphQL, or a documented CLI (no guaranteed `linear` CLI). Do not treat a missing binary, env var, or unloaded MCP tool as proof the tracker is unavailable. After creation, display the issue URL and ask whether to proceed to `/ts-work` via the platform's blocking question tool.
 - **Publish to Proof — shareable link** — Load the `ts-proof` skill to publish the plan: create a shared Proof doc from the plan file (title = plan title; identity `ai:taegosts-skills` / `Taegost's Skills`), surface the share URL to the user, then return to this menu. One-way publish — the local plan file stays canonical, nothing syncs back. If the upload fails, see the graceful-fallback note in `references/plan-handoff.md`.
-- **Open in browser** — Display the absolute path to the `.html` plan file so the user can open it locally. Where the platform exposes a browser-opening primitive (e.g., `open` on macOS, `xdg-open` on Linux, `start` on Windows), the agent may use it; otherwise print the absolute path and let the user open it. Do not invoke `ts-work` from this option — the user picked HTML for review/sharing, not handoff.
 - **Done for now** — Display a brief confirmation that the plan file is saved and end the turn. Do not start follow-up work without an explicit further user prompt.
 
 If the user types free-form prompts targeting the findings (e.g., "review", "walk through", "deep review"), route as if they picked `Run deeper doc review` — fire the skill rather than looping back to the menu. For other free-text revisions, accept the input and loop back to this menu after applying the revision.
 
 **Completion check:** This skill is not complete until the post-generation menu above has been presented, the user has selected an action, and the inline routing for that selection has been executed. Presenting the menu and stopping at the user's selection is not completion — fire the routed action.
 
-**Pipeline mode exception:** In LFG or any `disable-model-invocation` context, skip the interactive menu and return control to the caller after the plan file is written, confidence check has run, and `ts-doc-review` has run in headless mode (per `references/plan-handoff.md`). Pipeline mode forces `OUTPUT_FORMAT=md` at Phase 0.0, so the 5.3.8 format gate never selects the HTML skip path in pipeline runs.
+**Pipeline mode exception:** In LFG or any `disable-model-invocation` context, skip the interactive menu and return control to the caller after the plan file is written, confidence check has run, and `ts-doc-review` has run in headless mode (per `references/plan-handoff.md`).

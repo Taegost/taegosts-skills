@@ -107,7 +107,17 @@ Each subagent receives:
 - The structured KTD list
 - Re-verification context (if re-verifying a prior round's findings)
 
-### 5. Consolidate results
+### 5. Run coverage-gap detection
+
+Run the coverage-gap detector to flag changed scripts without corresponding test files:
+
+```bash
+scripts/detect-coverage-gaps.sh "$base_branch"
+```
+
+The detector autonomously discovers changed files via `git diff` and checks whether each changed script has a corresponding test file in `tests/`. No line threshold — if a script was changed, it needs a test. Add any gaps found as findings in the results (severity: Major).
+
+### 6. Consolidate results
 
 Each subagent outputs a verdict (PASS / FAIL / PARTIAL) followed by a bulleted list of findings with file and line references. Consolidate into a single summary table:
 

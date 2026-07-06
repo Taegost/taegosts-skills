@@ -166,7 +166,13 @@ Determine how to proceed based on what was provided in `<input_document>`.
    - Otherwise → use `implementer-general` from `references/agents/implementer-general.md` (this is the default; it covers application code, scripts, production config, infrastructure, and any mixed unit)
    - If the unit has an `Execution note` indicating test-first → dispatch `implementer-tests` first, then `implementer-general`
 
-   Read the selected agent file from `references/agents/` and include its full content in the subagent prompt along with the unit context.
+   **Auto-dispatch for test coverage.** After `implementer-general` completes, evaluate two gates to decide whether to auto-dispatch `implementer-tests`:
+   1. **Code changed?** — Run `scripts/detect-changed-code-files.sh` to check if any code-bearing files were modified. If the list is empty, done.
+   2. **Test scenarios defined?** — Does the unit have a `Test Scenarios:` section with non-manual-only tests? If no, done. If yes, dispatch `implementer-tests` to create or update corresponding test files.
+
+   The existing trigger (unit's `Files:` list contains test files → `implementer-tests` dispatched) is preserved. The new gates are evaluated only for units that went through `implementer-general`. Auto-dispatch follows R4 conventions: `ok()`/`die()` helpers, `tmpdir` with cleanup trap, exit-code assertions.
+
+   **Bootstrap dispatch.** Pass the agent a minimal bootstrap prompt listing file paths to read from disk (the agent file at `references/agents/<type>.md` plus the unit context). The agent reads its own operating contract. This reduces orchestrator dispatch output. See `references/agents/implementer-general.md` and `references/agents/implementer-tests.md` for bootstrap prompt shapes. Fallback: if the harness lacks subagent file-read tools, read the agent file and include its full content inline (legacy pattern).
 
    **Parallel Safety Check** — required before choosing parallel dispatch:
 
@@ -193,6 +199,8 @@ Determine how to proceed based on what was provided in `<input_document>`.
    - With worktree isolation active, omit these constraints — subagents may stage, commit, and run their unit's tests within their own worktree branch.
 
    **Permission mode:** Omit the `mode` parameter when dispatching subagents so the user's configured permission settings apply. Do not pass `mode: "auto"` — it overrides user-level settings like `bypassPermissions`.
+
+   **Notification recovery.** When agents run in the background, completion notifications may be missed. Each agent writes its output to disk as its primary completion signal. The orchestrator can detect completion via Monitor-based file watching or polling fallback (`scripts/wait-for-file.sh`). See `docs/solutions/workflow-issues/notification-resilience-via-disk-state.md`.
 
    **After each subagent completes (serial mode):**
    1. Review the subagent's diff — verify changes match the unit's scope and `Files:` list
