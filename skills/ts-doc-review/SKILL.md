@@ -161,7 +161,7 @@ Add activated conditional agents:
 
 Dispatch generic subagents using **bounded parallelism** with the platform's subagent primitive (e.g., `Agent` in Claude Code, `spawn_agent` in Codex) where available; otherwise run the work inline or serially. Omit the `mode` parameter so the user's configured permission settings apply. Respect the current harness's active-subagent limit: queue selected reviewers, dispatch only as many as the harness accepts, and fill freed slots as reviewers complete. Treat active-agent/thread/concurrency-limit spawn errors as backpressure, not reviewer failure: leave the reviewer queued and retry after a slot frees. Record a reviewer as failed only after a successful dispatch times out/fails, or when dispatch fails for a non-capacity reason.
 
-**Bootstrap dispatch.** Each subagent receives a minimal bootstrap prompt (~150-300 tokens) listing file paths it must read from disk before starting. This reduces orchestrator dispatch output from ~10k tokens to ~150-300 tokens per reviewer. See `references/subagent-template.md` for the bootstrap prompt shape and fallback (inline-content dispatch for harnesses without file-read tools).
+**Bootstrap dispatch.** Each subagent receives a minimal bootstrap prompt. See `references/subagent-template.md` for the bootstrap prompt shape and fallback.
 
 For each selected reviewer, send the bootstrap prompt with these variables:
 

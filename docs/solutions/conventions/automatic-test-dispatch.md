@@ -26,11 +26,13 @@ When `ts-work` implements a plan that changes scripts, no tests are created or u
 
 ### Auto-dispatch gates
 
-After `implementer-general` completes for a unit, evaluate two gates:
+Auto-dispatch fires when any of these conditions are met:
 
-1. **Code changed?** — Run `scripts/detect-changed-code-files.sh` which diffs the agent's worktree against the base branch and returns a list of modified code-bearing files (`.sh`, `.py`, `.js`, `.ts`, etc.), filtering out test files and non-script files. If the list is empty, done.
+1. **Code changed by implementer-general** — Run `scripts/detect-changed-code-files.sh` which diffs the agent's worktree against the base branch and returns a list of modified code-bearing files (`.sh`, `.py`, `.js`, `.ts`, etc.), filtering out test files and non-script files. If non-empty AND the unit has a `Test Scenarios:` section with non-manual-only tests, dispatch `implementer-tests`.
 
-2. **Test scenarios defined?** — Does the unit have a `Test Scenarios:` section with non-manual-only tests? If no, done. If yes, dispatch `implementer-tests`.
+2. **Test scenarios defined** — Does the unit have a `Test Scenarios:` section with non-manual-only tests? If yes AND code was changed, dispatch `implementer-tests`.
+
+3. **ts-work modifies code-bearing files** — When `ts-work` (via `implementer-general`) modifies any code-bearing files in a unit that has test scenarios, dispatch `implementer-tests` regardless of whether the plan explicitly listed test files.
 
 ### Existing trigger preserved
 

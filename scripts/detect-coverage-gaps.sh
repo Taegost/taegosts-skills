@@ -15,14 +15,10 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
 
 BASE_BRANCH="${1:-}"
 if [[ -z "$BASE_BRANCH" ]]; then
-  if git rev-parse --verify origin/main >/dev/null 2>&1; then
-    BASE_BRANCH="origin/main"
-  elif git rev-parse --verify origin/master >/dev/null 2>&1; then
-    BASE_BRANCH="origin/master"
-  else
-    echo "Error: cannot determine default branch" >&2
-    exit 2
-  fi
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  # shellcheck source=scripts/git-default-branch.sh
+  source "$SCRIPT_DIR/git-default-branch.sh"
+  BASE_BRANCH="$DEFAULT_BRANCH"
 fi
 
 # Get all changed files (diff + untracked)
