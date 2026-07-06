@@ -2,6 +2,7 @@
 title: "feat: Test coverage for changed scripts + token efficiency in ts-plan and ts-doc-review"
 type: feat
 date: 2026-07-05
+status: completed
 ---
 
 # Test Coverage for New Scripts + Token Efficiency
