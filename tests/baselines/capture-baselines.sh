@@ -11,6 +11,10 @@ echo "Baseline capture: $TIMESTAMP"
 echo "Repo: $REPO_ROOT"
 echo ""
 
+# Reset snapshot files to prevent duplicate rows on re-run
+: > "$BASELINE_DIR/word-counts.txt"
+: > "$BASELINE_DIR/file-hashes.txt"
+
 # --- Word counts ---
 echo "=== Word Counts ==="
 for f in \

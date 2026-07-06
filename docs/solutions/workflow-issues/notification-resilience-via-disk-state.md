@@ -57,7 +57,7 @@ scripts/wait-for-file.sh <file_path> [timeout_seconds] [poll_interval_seconds]
 
 Default timeout: 180s (3 minutes). Default poll interval: 10s. Returns 0 when file appears, 1 after timeout.
 
-If the subagent is still running after timeout, re-run the script until the subagent completes or a maximum retry count is reached.
+If the subagent is still running after timeout, re-run the script up to a maximum of 5 retries (15 minutes total) or until the subagent completes, whichever comes first.
 
 ### Hang detection
 

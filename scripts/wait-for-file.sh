@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# wait-for-file.sh — Poll for file existence.
+# wait-for-file.sh -- Poll for file existence.
 # Usage: wait-for-file.sh <file_path> [timeout_seconds] [poll_interval_seconds]
 #
 # Returns 0 when file appears, 1 after timeout.

@@ -29,12 +29,13 @@ If a script exists and was changed, it needs a corresponding test file. No line 
 
 ## Auto-dispatch mechanism
 
-When `ts-work` dispatches `implementer-general` for a unit that modifies code, it evaluates two gates to decide whether to auto-dispatch `implementer-tests`:
+When `ts-work` dispatches `implementer-general` for a unit that modifies code, it evaluates three gates to decide whether to auto-dispatch `implementer-tests`. If any gate passes, `implementer-tests` is dispatched:
 
 1. **Code changed?** — `scripts/detect-changed-code-files.sh` checks if any code-bearing files were modified.
 2. **Test scenarios defined?** — Does the unit have a `Test Scenarios:` section with non-manual-only tests?
+3. **Test files in unit's Files list?** — Does the unit's `Files:` list contain test files? (This is the existing trigger, preserved as a hard constraint.)
 
-If both gates pass, `implementer-tests` is dispatched to create or update corresponding test files. This closes the blind spot where `implementer-general` doesn't touch tests.
+If any gate passes, `implementer-tests` is dispatched to create or update corresponding test files. This closes the blind spot where `implementer-general` doesn't touch tests.
 
 ## Coverage-gap detection
 

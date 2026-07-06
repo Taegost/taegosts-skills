@@ -21,7 +21,8 @@ git init -q
 git config user.email "test@test.com"
 git config user.name "Test"
 
-# Initial commit
+# Initial commit on main branch
+git checkout -b main -q 2>/dev/null || true
 echo "# readme" > README.md
 git add README.md
 git commit -q -m "initial"
@@ -70,8 +71,29 @@ else
   die "no gaps for non-script files (output=$output)"
 fi
 
+# Given: a MODIFIED tracked script file (git diff path, not untracked)
+# Then: gap is flagged via the git diff code path
+rm -f CHANGELOG.md
+# Create a feature branch so we can diff against main
+git checkout -b feature -q
+echo '#!/bin/bash' > tracked.sh
+git add tracked.sh
+git commit -q -m "add tracked script"
+echo '# modified' >> tracked.sh
+output=$(python3 -c "import json, sys; d=json.loads(sys.argv[1]); print(d['count'])" "$("$SCRIPT" main 2>&1)")
+if [[ "$output" == "1" ]]; then
+  ok "flags modified tracked script via git diff path"
+else
+  die "flags modified tracked script via git diff path (output=$output)"
+fi
+
 # Given: a test file itself changed
 # Then: no gap (test files don't need tests for themselves)
+# Clean up: remove modified file, then switch back to main
+rm -f tracked.sh
+git checkout main -q 2>/dev/null || git checkout master -q
+rm -rf tests
+mkdir -p tests
 echo "assert True" > tests/test_foo.py
 output=$(python3 -c "import json, sys; d=json.loads(sys.argv[1]); print(d['count'])" "$("$SCRIPT" main 2>&1)")
 if [[ "$output" == "0" ]]; then

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# detect-changed-code-files.sh — Return list of modified code-bearing files.
+# detect-changed-code-files.sh -- Return list of modified code-bearing files.
 # Filters out test files, non-script files (.md, .yaml, .json, .txt).
 # Usage: detect-changed-code-files.sh [base_branch]
 #
@@ -16,6 +16,7 @@ if [[ -z "$BASE_BRANCH" ]]; then
 fi
 
 # Get changed files from git diff (staged + unstaged + untracked)
+# Base branch diff may fail if ref doesn't exist (e.g., shallow clone) — continue with other sources
 {
   git diff --name-only "$BASE_BRANCH" 2>/dev/null || true
   git diff --name-only --cached 2>/dev/null || true

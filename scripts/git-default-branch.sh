@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# git-default-branch.sh — Resolve repo root and default branch.
+# git-default-branch.sh -- Resolve repo root and default branch.
 # Usage: source git-default-branch.sh
 #
 # Sets REPO_ROOT and DEFAULT_BRANCH variables.

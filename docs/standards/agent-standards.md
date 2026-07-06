@@ -97,7 +97,7 @@ Read these files IN FULL before starting:
 4. <document_path> (document under review)
 ```
 
-**Bootstrap-ack:** The agent emits a brief acknowledgment (file paths + line counts) before starting analysis. The orchestrator verifies all expected files appear in the ack. Missing files trigger re-dispatch (up to 3 attempts), then fallback to inline-content dispatch.
+**Bootstrap-ack:** The agent emits a brief acknowledgment (file paths + line counts) before starting analysis. The orchestrator verifies all expected files appear in the ack and that each reported line count matches the on-disk file length. Missing files or mismatched counts trigger re-dispatch (up to 3 attempts), then fallback to inline-content dispatch.
 
 **Schema-as-guidance:** Schema `description` fields contain behavioral guidance — agents must read them as instructions, not metadata.
 

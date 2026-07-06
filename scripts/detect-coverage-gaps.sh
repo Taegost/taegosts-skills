@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# detect-coverage-gaps.sh — Flag changed scripts without corresponding test files.
+# detect-coverage-gaps.sh -- Flag changed scripts without corresponding test files.
 # Usage: detect-coverage-gaps.sh [base_branch]
 #
 # Discovers changed files autonomously via git diff + git ls-files.
@@ -11,6 +11,11 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
   echo "Error: not in a git repository" >&2
   exit 2
+}
+
+# Escape special characters for JSON string values
+json_escape() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
 }
 
 BASE_BRANCH="${1:-}"
@@ -88,9 +93,9 @@ while IFS= read -r file; do
     fi
     GAPS="$GAPS
     {
-      \"file\": \"$file\",
-      \"basename\": \"$basename_no_ext\",
-      \"suggested_test\": \"tests/test-${basename_no_ext}.sh\"
+      \"file\": \"$(json_escape "$file")\",
+      \"basename\": \"$(json_escape "$basename_no_ext")\",
+      \"suggested_test\": \"tests/test-$(json_escape "$basename_no_ext").sh\"
     }"
   fi
 done <<< "$CHANGED_FILES"
