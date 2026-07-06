@@ -9,8 +9,9 @@
 set -euo pipefail
 
 # Escape special characters for JSON string values
+# Handles: backslash, double-quote, newline, tab, carriage return
 json_escape() {
-  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\t/\\t/g' | tr '\n' ' ' | tr '\r' ' '
 }
 
 BASE_BRANCH="${1:-}"

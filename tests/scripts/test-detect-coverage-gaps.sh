@@ -102,6 +102,44 @@ else
   die "no gap for test files themselves (output=$output)"
 fi
 
+# Integration: verify JSON output matches expected schema
+# Given: a changed script without a test
+# Then: output is valid JSON with correct structure (gaps array, count, file/basename/suggested_test fields)
+rm -rf tests
+echo '#!/bin/bash' > new-script.sh
+git checkout -b schema-test -q
+git add new-script.sh
+git commit -q -m "add new script"
+echo '# modified' >> new-script.sh
+json_output=$("$SCRIPT" main 2>&1)
+schema_ok=$(python3 -c "
+import json, sys
+try:
+    d = json.loads(sys.argv[1])
+    assert 'gaps' in d, 'missing gaps key'
+    assert 'count' in d, 'missing count key'
+    assert isinstance(d['gaps'], list), 'gaps not a list'
+    assert isinstance(d['count'], int), 'count not an int'
+    if d['count'] > 0:
+        g = d['gaps'][0]
+        assert 'file' in g, 'missing file in gap'
+        assert 'basename' in g, 'missing basename in gap'
+        assert 'suggested_test' in g, 'missing suggested_test in gap'
+        # Verify suggested_test uses the actual extension
+        assert g['suggested_test'].endswith('.sh'), f'expected .sh extension, got {g[\"suggested_test\"]}'
+    print('ok')
+except Exception as e:
+    print(f'FAIL: {e}', file=sys.stderr)
+    sys.exit(1)
+" "$json_output" 2>&1) && rc=0 || rc=$?
+rm -f new-script.sh
+git checkout main -q 2>/dev/null || git checkout master -q
+if [[ $rc -eq 0 ]] && [[ "$schema_ok" == "ok" ]]; then
+  ok "JSON output matches expected schema"
+else
+  die "JSON output matches expected schema (rc=$rc, output=$schema_ok)"
+fi
+
 echo ""
 echo "Results: $pass passed, $fail failed"
 [[ $fail -eq 0 ]] && exit 0 || exit 1
