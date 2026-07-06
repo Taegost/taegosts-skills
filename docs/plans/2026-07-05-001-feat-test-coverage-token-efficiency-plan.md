@@ -14,7 +14,7 @@ Close the test-coverage blind spot where changed scripts ship without automated 
 
 Three independent design gaps combine to create friction in the skill workflow:
 
-**Test coverage gap (Issue 102).** When `ts-do-work-loop` implements a plan that changes scripts (e.g., `validate-index-standards.py` — 384 lines), no tests are created or updated. The `implementer-general` agent explicitly refuses to touch tests. The `implementer-tests` agent only writes tests for scenarios already documented in the plan's `Files:` list. There is no mechanism to detect that a changed script should have tests when the plan didn't list them. PR #99's Finding #2 ("Zero test coverage for a 384-line validator") required creating 17 pytest tests as a post-hoc fix.
+**Test coverage gap (Issue 102).** When `ts-work` implements a plan that changes scripts (e.g., `validate-index-standards.py` — 384 lines), no tests are created or updated. The `implementer-general` agent explicitly refuses to touch tests. The `implementer-tests` agent only writes tests for scenarios already documented in the plan's `Files:` list. There is no mechanism to detect that a changed script should have tests when the plan didn't list them. PR #99's Finding #2 ("Zero test coverage for a 384-line validator") required creating 17 pytest tests as a post-hoc fix.
 
 **Token inefficiency (Issue 103).** `ts-plan/SKILL.md` is 12,592 words loaded every invocation. `ts-doc-review` re-emits the full subagent template (~25KB) per dispatched reviewer. Confidence rubric is restated in two places (subagent template and synthesis doc). Deterministic parsing logic lives as prose instead of scripts.
 
@@ -70,7 +70,7 @@ flowchart TB
     end
 
     subgraph After["Proposed: Bootstrap Dispatch"]
-        O2[Orchestrator] -->|reads nothing| D2[Compose ~200 token bootstrap]
+        O2[Orchestrator] -->|reads file paths only| D2[Compose ~200 token bootstrap]
         D2 -->|sends file paths + dynamic slots| A2[Subagent]
         A2 -->|reads own files from disk| R2[Results]
         A2 -->|writes output file| F[Disk: output file]
@@ -98,7 +98,7 @@ flowchart LR
 ```mermaid
 flowchart LR
     IV[ts-verify-implementation] --> CG[Coverage-gap detector]
-    CG --> GD[Discover changed files<br>via git diff/ls-files]
+    CG --> GD[Discover changed files<br>via git diff base_branch]
     GD --> Gaps{Gaps found?}
     Gaps -->|yes| Report[Report as findings]
     Gaps -->|no| Pass[Verification passes]
@@ -366,13 +366,13 @@ The `implementer-tests` agent uses the bootstrap pattern (from U4a) to read its 
 - `skills/ts-verify-implementation/SKILL.md` (modify — add coverage-gap dimension)
 
 **Approach:** Create `scripts/detect-coverage-gaps.sh` that:
-1. Locates changed files itself using `git diff --name-only HEAD` + `git ls-files --others --exclude-standard` (no external file list required)
+1. Locates changed files itself using `git diff --name-only <base_branch>` (diff against the base branch, not HEAD) + `git ls-files --others --exclude-standard` (no external file list required)
 2. For **any** changed script file (new or modified), checks whether a corresponding test file exists in `tests/`
 3. No line threshold — if a script exists and was changed, it needs a test
 4. Outputs a JSON report of gaps found
 5. Integrate as an additional verification dimension in `ts-verify-implementation`
 
-The detector discovers files autonomously — it runs `git diff` and `git ls-files` internally. No stdin pipe, no `--source` flag, no file list from the caller. This reduces token usage (no file list to pass) and improves reliability (no risk of incomplete lists). Triggers on any code change, not just new files.
+The detector discovers files autonomously — it runs `git diff --name-only <base_branch>` and `git ls-files --others --exclude-standard` internally, using the same base branch resolution logic as `ts-verify-implementation`. No stdin pipe, no `--source` flag, no file list from the caller. This reduces token usage (no file list to pass) and improves reliability (no risk of incomplete lists). Triggers on any code change, not just new files.
 
 **Patterns to follow:**
 - `scripts/classify-document.sh` for script structure
@@ -480,7 +480,7 @@ The detector discovers files autonomously — it runs `git diff` and `git ls-fil
 - **U4b depends on U4a** — Monitor-based recovery builds on the bootstrap dispatch pattern.
 - **U5 depends on U4a** — automatic test-coder dispatch uses the bootstrap pattern.
 - **U7 depends on U5** — the detector runs after auto-dispatch completes.
-- **U8 depends on U2-U7, U9** — standards document what was built, including the HTML/Phase 0.0 removal.
+- **U8 depends on U2, U3, U4a, U4b, U5, U7, and U9** — standards document what was built, including the HTML/Phase 0.0 removal.
 - **Harness limitation (Issue 98)** — the notification-failure problem is out of scope for this repo and requires an upstream fix in Claude Code. The Monitor-based recovery and disk-first state in U4b are recovery mechanisms, not fixes. A GitHub issue should be created to track the upstream dependency.
 - **Behavioral equivalence verification** — restructured SKILL.md files and deduplicated rubrics must produce equivalent outputs. Diff outputs before/after baseline invocations; flag deviations beyond minor. Same deviations occurring across multiple tests increase the signal.
 
