@@ -1,5 +1,5 @@
 ---
-title: "feat: Test coverage for new scripts + token efficiency in ts-plan and ts-doc-review"
+title: "feat: Test coverage for changed scripts + token efficiency in ts-plan and ts-doc-review"
 type: feat
 date: 2026-07-05
 ---
@@ -8,13 +8,13 @@ date: 2026-07-05
 
 ## Summary
 
-Close the test-coverage blind spot where new scripts ship without automated tests (Issue 102), reduce token consumption in ts-plan and ts-doc-review by standardizing subagent dispatch and restructuring skill files (Issue 103), and add notification recovery via Monitor-based file watching (Issue 98). All changes produce standards documentation for Issue #94 (Wave 2) as a downstream consumer.
+Close the test-coverage blind spot where changed scripts ship without automated tests (Issue 102), reduce token consumption in ts-plan and ts-doc-review by standardizing subagent dispatch and restructuring skill files (Issue 103), remove legacy HTML rendering support and Phase 0.0 output-format resolution, and add notification recovery via Monitor-based file watching (Issue 98). All changes produce standards documentation for Issue #94 (Wave 2) as a downstream consumer.
 
 ## Problem Frame
 
 Three independent design gaps combine to create friction in the skill workflow:
 
-**Test coverage gap (Issue 102).** When `ts-do-work-loop` implements a plan that creates new scripts (e.g., `validate-index-standards.py` — 384 lines), no tests are created. The `implementer-general` agent explicitly refuses to touch tests. The `implementer-tests` agent only writes tests for scenarios already documented in the plan's `Files:` list. There is no mechanism to detect that a new script should have tests when the plan didn't list them. PR #99's Finding #2 ("Zero test coverage for a 384-line validator") required creating 17 pytest tests as a post-hoc fix.
+**Test coverage gap (Issue 102).** When `ts-do-work-loop` implements a plan that changes scripts (e.g., `validate-index-standards.py` — 384 lines), no tests are created or updated. The `implementer-general` agent explicitly refuses to touch tests. The `implementer-tests` agent only writes tests for scenarios already documented in the plan's `Files:` list. There is no mechanism to detect that a changed script should have tests when the plan didn't list them. PR #99's Finding #2 ("Zero test coverage for a 384-line validator") required creating 17 pytest tests as a post-hoc fix.
 
 **Token inefficiency (Issue 103).** `ts-plan/SKILL.md` is 12,592 words loaded every invocation. `ts-doc-review` re-emits the full subagent template (~25KB) per dispatched reviewer. Confidence rubric is restated in two places (subagent template and synthesis doc). Deterministic parsing logic lives as prose instead of scripts.
 
@@ -24,8 +24,8 @@ Three independent design gaps combine to create friction in the skill workflow:
 
 **Test coverage (Issue 102)**
 
-- R1. When an implementation unit creates new application code (not test files), `ts-work` dispatches `implementer-tests` after `implementer-general` to create corresponding test files using the unit's test scenarios as the test plan.
-- R2. A coverage-gap detector script flags any new script that has no corresponding test file in `tests/`. If a script exists, it needs a test — no line threshold.
+- R1. When an implementation unit changes application code (not test files), `ts-work` dispatches `implementer-tests` after `implementer-general` to create or update corresponding test files using the unit's test scenarios as the test plan. This applies to any code change — new files, modifications, or refactors.
+- R2. A coverage-gap detector script flags any changed script that has no corresponding test file in `tests/`. The detector discovers changed files autonomously via git. If a script was changed, it needs a test — no line threshold.
 - R3. `ts-verify-implementation` runs the coverage-gap detector as an additional verification dimension.
 - R4. Test files created by the automatic dispatch follow the established conventions: `ok()`/`die()` helpers, `tmpdir` with cleanup trap, exit-code assertions (per test suite hardening plan).
 
@@ -49,7 +49,7 @@ Three independent design gaps combine to create friction in the skill workflow:
 
 KTD-1. **Bootstrap dispatch over inline-content dispatch.** The orchestrator passes a minimal bootstrap prompt (~150-300 tokens) listing file paths the subagent must read in full before starting: operating contract, role prompt, schema, and target document. Dynamic slots (`document_type`, `origin_path`, decision primer) stay inline. The inline-content pattern remains documented as a fallback for harnesses without subagent file-read tools. The bootstrap prompt includes two additional instructions: (1) a bootstrap-ack requirement — the agent must emit a brief list of files read (paths + line counts) before starting analysis, so the orchestrator can verify all expected files were read; (2) a schema-as-guidance instruction — "Schema `description` fields contain behavioral guidance — read them as instructions, not metadata." *Rationale:* Orchestrator dispatch output drops from ~10k tokens per reviewer to ~150-300. The bootstrap-ack catches lazy partial reads (the known failure mode). The schema-as-guidance instruction ensures agents process rubric descriptions as behavioral rules.
 
-KTD-2. **Coverage-gap detection as post-implementation verification, not plan-time mandate.** The detector runs in `ts-verify-implementation` after implementation completes, checking whether any new script has a corresponding test file. No line threshold — if a script exists, it needs a test. The detector does not require plans to pre-list test files. *Rationale:* Plans already define test scenarios; the gap is that `implementer-general` doesn't create the files. A post-implementation check catches the gap regardless of plan quality, and doesn't require every plan to be perfect. Test planning is an important step of an implementation plan — the detector is the backstop, not the primary mechanism.
+KTD-2. **Coverage-gap detection as post-implementation verification, not plan-time mandate.** The detector runs in `ts-verify-implementation` after implementation completes, checking whether any changed script has a corresponding test file. No line threshold — if a script was changed, it needs a test. The detector does not require plans to pre-list test files. *Rationale:* Plans already define test scenarios; the gap is that `implementer-general` doesn't create the files. A post-implementation check catches the gap regardless of plan quality, and doesn't require every plan to be perfect. Test planning is an important step of an implementation plan — the detector is the backstop, not the primary mechanism.
 
 KTD-3. **Confidence rubric anchored in schema descriptions.** The behavioral anchor definitions (0/25/50/75/100) already exist in the `confidence` property's `description` field in `references/findings-schema.json`. The subagent template references the schema's description rather than restating the anchors inline. The P0-P3 severity translation, evidence-must-be-array, and anchors-0/25-suppress-silently rules stay inline in the template (cheap and load-bearing). The synthesis-and-presentation doc's third restatement is replaced with a pointer to the schema. *Rationale:* ~800 words of redundancy removed per dispatch. Single source of truth prevents the two-way drift risk between template and synthesis doc.
 
@@ -85,9 +85,11 @@ flowchart LR
     IU[Implementation Unit] --> IG{Files contain<br>test files only?}
     IG -->|yes| IT[implementer-tests]
     IG -->|no| IG2[implementer-general]
-    IG2 --> NF{New code<br>files created?}
-    NF -->|yes| IT2[implementer-tests<br>auto-dispatch]
-    NF -->|no| Done[Complete]
+    IG2 --> CC{Code changed?}
+    CC -->|no| Done[Complete]
+    CC -->|yes| TS{Test scenarios<br>defined?}
+    TS -->|no| Done
+    TS -->|yes| IT2[implementer-tests<br>auto-dispatch]
     IT2 --> Done
 ```
 
@@ -96,7 +98,8 @@ flowchart LR
 ```mermaid
 flowchart LR
     IV[ts-verify-implementation] --> CG[Coverage-gap detector]
-    CG --> Gaps{Gaps found?}
+    CG --> GD[Discover changed files<br>via git diff/ls-files]
+    GD --> Gaps{Gaps found?}
     Gaps -->|yes| Report[Report as findings]
     Gaps -->|no| Pass[Verification passes]
 ```
@@ -112,13 +115,15 @@ flowchart LR
 
 ## Scope Boundaries
 
+### Out of Scope (upstream)
+
+- **Harness-level notification fix (Issue #98 root cause)** — requires an upstream fix in Claude Code's harness. The Monitor-based recovery in U4b is a mitigation, not a solution. A GitHub issue should be created to track this upstream dependency.
+
 ### Deferred to Follow-Up Work
 
-- Harness-level notification fix (Issue #98 root cause) — the Monitor-based recovery in U4b is a mitigation, not a solution. The harness team needs to implement interrupt-safe notification delivery for a complete fix.
 - Further ts-plan SKILL.md compression to ≤6k words (router pass) — the ≤9k dedup pass is the primary target; the deeper pass moves per-phase procedure detail into phase-scoped references and is a separate effort.
 - Conditional-agent gating logic, model tiering assignments, and anchor-based confidence gate changes — these already do the right economic work.
 - Compressing defensive rule-restatement within references (`synthesis-and-presentation.md` R-rules, `walkthrough.md`) — that density is load-bearing for adherence.
-- `html-rendering.md` size — already gated to HTML mode; the markdown default keeps it cheap.
 - Cross-session primer persistence and reviewer selection criteria changes.
 - Changes to what findings surface or how they route.
 - Issue #94 (Wave 2) implementation — this plan only produces the standards documents Wave 2 needs.
@@ -247,7 +252,8 @@ Every removed rule has a verified home in a reference that the corresponding pha
 **Approach:** Implement the bootstrap dispatch pattern:
 
 Target shape (~150-300 tokens per dispatch):
-```
+
+```text
 Read these files IN FULL before starting. Do not begin analysis until all four are read:
 1. references/subagent-template.md (your operating contract)
 2. references/agents/<reviewer-name>.md (your role)
@@ -307,18 +313,21 @@ Rules:
 - `skills/ts-plan/SKILL.md` (modify — add Monitor-based recovery after dispatch)
 - `docs/solutions/workflow-issues/notification-resilience-via-disk-state.md` (create — documents the recovery pattern)
 
-**Approach:** Implement Monitor-based notification recovery:
+**Approach:** Implement Monitor-based notification recovery with disk-first state:
 
-After dispatching subagents, the orchestrator sets up a Monitor with `inotifywait` watching the expected output directory for new files. When a file appears, the orchestrator reads it and processes the results. This works regardless of whether the `<task-notification>` arrives.
+Set up the Monitor **before** dispatching subagents, then reconcile any files already present immediately after dispatch before trusting the watch. Each subagent must write a structured output file upon completion — this is the primary completion signal, not the notification. When a file appears, the orchestrator reads it and processes the results. This works regardless of whether the `<task-notification>` arrives.
 
 Recovery flow:
-1. Orchestrator dispatches agents and records expected output file paths
-2. Monitor watches output directory with `inotifywait -m <dir> -e close_write`
-3. When a file appears, Monitor emits a notification to the orchestrator
-4. Orchestrator reads the output file and processes results
-5. If a `<task-notification>` also arrives, it's redundant — the file-based detection already fired
+1. Orchestrator arms Monitor with `inotifywait -m <dir> -e close_write` watching expected output directory
+2. Orchestrator dispatches agents and records expected output file paths
+3. Orchestrator reconciles any files already present (fast agents may complete before dispatch returns)
+4. When a new file appears, Monitor emits a notification to the orchestrator
+5. Orchestrator reads the output file and processes results
+6. If a `<task-notification>` also arrives, it's redundant — the file-based detection already fired
 
-This is a recovery mechanism, not a fix for notification reliability. The harness-level notification problem (Issue #98) remains unsolved and needs a separate fix.
+Each subagent **must** write its output to a file upon completion — the file is the authoritative completion signal. This requirement is enforced by the bootstrap dispatch pattern (U4a): the operating contract instructs agents to write output files.
+
+This is a recovery mechanism, not a fix for notification reliability. The harness-level notification problem (Issue #98) is out of scope for this repo and requires an upstream fix in Claude Code.
 
 **Patterns to follow:**
 - Monitor tool's `command` mode with `inotifywait` for file watching
@@ -340,7 +349,7 @@ This is a recovery mechanism, not a fix for notification reliability. The harnes
 
 ### U5. Implement automatic test-coder dispatch
 
-**Goal:** Close the test-coverage blind spot by automatically dispatching `implementer-tests` for new code after `implementer-general` completes.
+**Goal:** Close the test-coverage blind spot by automatically dispatching `implementer-tests` whenever code changes occur, not just for new code.
 
 **Requirements:** R1, R4
 
@@ -350,7 +359,14 @@ This is a recovery mechanism, not a fix for notification reliability. The harnes
 - `skills/ts-work/SKILL.md` (modify — dispatch logic at lines 163-167)
 - `skills/ts-work/references/agents/implementer-tests.md` (modify — add bootstrap dispatch instructions for auto-dispatch)
 
-**Approach:** Modify `ts-work` dispatch logic: after `implementer-general` completes for a unit that created new application code files (not test-only), automatically dispatch `implementer-tests` with the unit's test scenarios as its test plan. The `implementer-tests` agent uses the bootstrap pattern (from U4a) to read its own operating contract. The dispatch condition is: unit's `Files:` list contains non-test files AND the unit has test scenarios defined.
+**Approach:** Modify `ts-work` dispatch logic to evaluate two separate gates after `implementer-general` completes:
+
+1. **Code changed?** — Did `implementer-general` create or modify any application code files (not test files)? If no, done.
+2. **Test scenarios defined?** — Does the unit have a `Test Scenarios:` section with non-manual-only tests? If no, done. If yes, dispatch `implementer-tests`.
+
+The existing trigger (unit's `Files:` list contains test files → `implementer-tests` dispatched) is preserved as-is. The new gates are evaluated only for units that went through `implementer-general`.
+
+The `implementer-tests` agent uses the bootstrap pattern (from U4a) to read its own operating contract.
 
 **Test conventions (R4).** New test files created by auto-dispatch follow established patterns: `ok()`/`die()` helpers, `tmpdir` with `trap 'rm -rf "$tmpdir"' EXIT`, exit-code assertions, negative verification technique.
 
@@ -360,20 +376,21 @@ This is a recovery mechanism, not a fix for notification reliability. The harnes
 
 **Test scenarios:**
 - Happy path: unit with new `.py` file + test scenarios → `implementer-general` then `implementer-tests` dispatched
+- Happy path: unit with modified `.py` file + test scenarios → `implementer-general` then `implementer-tests` dispatched
 - Happy path: unit with only test files → `implementer-tests` dispatched (existing behavior preserved)
-- Happy path: unit with new `.py` file but no test scenarios → `implementer-general` only, no auto-dispatch
+- Happy path: unit with code files but only manual test scenarios → `implementer-general` only, no auto-dispatch
 - Error path: `implementer-tests` auto-dispatch fails → orchestrator logs failure, continues (non-blocking)
 - Integration: full ts-do-work-loop run creates tests alongside implementation
 - Regression: existing dispatch for test-only units unchanged
 - Regression: existing implementer-general behavior unchanged for units without test scenarios
 
-**Verification:** New scripts created by ts-work have corresponding test files. Test files follow established conventions. Dispatch behavior unchanged for existing unit types.
+**Verification:** Modified scripts have updated test files. New scripts have corresponding test files. Test files follow established conventions. Dispatch behavior unchanged for existing unit types.
 
 ---
 
 ### U7. Create coverage-gap detector script
 
-**Goal:** Create a script that flags any new script without a corresponding test file, and integrate it as a verification dimension.
+**Goal:** Create a script that flags any changed script without a corresponding test file, and integrate it as a verification dimension.
 
 **Requirements:** R2, R3
 
@@ -385,13 +402,13 @@ This is a recovery mechanism, not a fix for notification reliability. The harnes
 - `skills/ts-verify-implementation/SKILL.md` (modify — add coverage-gap dimension)
 
 **Approach:** Create `scripts/detect-coverage-gaps.sh` that:
-1. Takes a list of newly created/modified files as input (from stdin or `--source` flag)
-2. For each script file, checks whether a corresponding test file exists in `tests/`
-3. No line threshold — if a script exists, it needs a test
+1. Locates changed files itself using `git diff --name-only HEAD` + `git ls-files --others --exclude-standard` (no external file list required)
+2. For **any** changed script file (new or modified), checks whether a corresponding test file exists in `tests/`
+3. No line threshold — if a script exists and was changed, it needs a test
 4. Outputs a JSON report of gaps found
 5. Integrate as an additional verification dimension in `ts-verify-implementation`
 
-The detector's input source must be explicitly specified: accepts a file list from stdin (piped from `git diff --name-only HEAD` + `git ls-files --others --exclude-standard` for untracked files), or accepts a `--source` flag to choose between git-diff, git-status, or explicit-list modes.
+The detector discovers files autonomously — it runs `git diff` and `git ls-files` internally. No stdin pipe, no `--source` flag, no file list from the caller. This reduces token usage (no file list to pass) and improves reliability (no risk of incomplete lists). Triggers on any code change, not just new files.
 
 **Patterns to follow:**
 - `scripts/classify-document.sh` for script structure
@@ -400,12 +417,14 @@ The detector's input source must be explicitly specified: accepts a file list fr
 **Test scenarios:**
 - Happy path: new `.py` script with no corresponding test file → gap flagged
 - Happy path: new `.sh` script with no corresponding test file → gap flagged
-- Happy path: new script with corresponding test file → no gap flagged
-- Happy path: existing script modified (not new) → no gap flagged
+- Happy path: script with corresponding test file → no gap flagged
+- Happy path: modified `.py` script with no corresponding test file → gap flagged
+- Happy path: modified script with existing test → no gap flagged
 - Edge case: test file exists but is in wrong directory → gap flagged
 - Edge case: script is a test file itself → no gap flagged (test files don't need tests for themselves)
+- Edge case: only non-script files changed (`.md`, `.yaml`) → no gaps flagged
 - Integration: ts-verify-implementation runs detector and reports gaps as findings
-- Integration: detector correctly reads file list from stdin (piped from git diff + git ls-files)
+- Integration: detector autonomously discovers changed files via git (no external file list)
 
 **Verification:** Detector correctly identifies scripts without tests. ts-verify-implementation reports gaps as findings. No false positives for scripts that have tests. Test file follows established conventions.
 
@@ -420,7 +439,8 @@ The detector's input source must be explicitly specified: accepts a file list fr
 **Dependencies:** U1, U2, U3, U4a, U4b, U5, U7
 
 **Files:**
-- `docs/standards/agent-standards.md` (modify — Bootstrap pattern replaces Template-Wrapped in Dispatch Patterns section; add test coverage expectations)
+- `docs/standards/agent-standards.md` (modify — Bootstrap pattern replaces Template-Wrapped in Dispatch Patterns section)
+- `docs/standards/testing-standards.md` (create — test coverage expectations, auto-dispatch trigger rules, coverage-gap detection)
 - `docs/standards/INDEX.md` (modify — add new standards entries)
 - `docs/solutions/conventions/subagent-bootstrap-dispatch.md` (create — documents the read-it-yourself bootstrap pattern)
 - `docs/solutions/conventions/automatic-test-dispatch.md` (create — documents the test-coder auto-dispatch pattern)
@@ -428,7 +448,7 @@ The detector's input source must be explicitly specified: accepts a file list fr
 
 **Approach:** Update/create three categories of documentation:
 
-**Standards updates.** In `agent-standards.md`, the Bootstrap pattern replaces Template-Wrapped as the primary dispatch pattern. The bootstrap-ack requirement and schema-as-guidance instruction are documented. Add test coverage expectations — if a script exists, it needs a corresponding test; auto-dispatch mechanism handles this for new code. Direct-Seed removal is a separate PR.
+**Standards updates.** In `agent-standards.md`, the Bootstrap pattern replaces Template-Wrapped as the primary dispatch pattern. The bootstrap-ack requirement and schema-as-guidance instruction are documented. Direct-Seed removal is a separate PR. Test coverage expectations are documented in the new `testing-standards.md`: if a script exists and was changed, it needs a corresponding test; auto-dispatch mechanism handles this for any code change; coverage-gap detection is a post-implementation backstop.
 
 **Convention docs.** Create `subagent-bootstrap-dispatch.md` following the existing solution doc format (frontmatter + Context/Guidance/Why This Matters/When to Apply/Examples/Related). Create `automatic-test-dispatch.md` documenting the dispatch logic and coverage-gap detection.
 
@@ -450,6 +470,44 @@ The detector's input source must be explicitly specified: accepts a file list fr
 
 ---
 
+### U9. Remove HTML rendering and Phase 0.0 output-format resolution
+
+**Goal:** Eliminate legacy HTML rendering support and the Phase 0.0 output-format resolution logic. This repo always uses markdown — the HTML path is dead code borrowed from the upstream plugin.
+
+**Requirements:** R6 (contributes to SKILL.md word count reduction)
+
+**Dependencies:** U1 (resolve-output-format.sh becomes unnecessary once Phase 0.0 is removed)
+
+**Files:**
+- `skills/ts-plan/references/html-rendering.md` (delete)
+- `skills/ts-plan/SKILL.md` (modify — remove Phase 0.0 entirely, remove all HTML output references, remove `output:html` CLI token handling)
+- `skills/ts-plan/references/plan-handoff.md` (modify — remove HTML format gate, remove "Open in browser" option for HTML)
+- Any other references to `html-rendering.md` or `OUTPUT_FORMAT=html` (search and remove)
+
+**Approach:** Remove all HTML rendering support since this repo exclusively uses markdown:
+
+1. Delete `skills/ts-plan/references/html-rendering.md` — legacy from upstream plugin, never used
+2. Remove Phase 0.0 from SKILL.md entirely — the output-format resolution logic (CLI arg scan, config read, default, pipeline override) exists only to choose between markdown and HTML. With HTML removed, the answer is always markdown. Any remaining prose about format selection becomes dead weight
+3. Remove `output:html` CLI token handling and `plan_output: html` config option references
+4. Update `plan-handoff.md` to remove the HTML format gate (5.3.8) and the "Open in browser" option
+5. Search all references for `html-rendering`, `OUTPUT_FORMAT=html`, and `output:html` — remove or update
+
+**Patterns to follow:**
+- The existing reference cleanup in U3 for deduplication against SKILL.md
+
+**Test scenarios:**
+- Happy path: ts-plan invocation with no `output:` arg → defaults to markdown, no format resolution prose emitted
+- Happy path: ts-plan invocation with `output:md` → accepted (no-op), no format resolution prose emitted
+- Edge case: ts-plan invocation with `output:html` → ignored with note (HTML support removed)
+- Edge case: ts-plan invocation with `output:` alone → no-op, falls through to default
+- Regression: all existing plan files in `docs/plans/` remain valid (no format changes)
+- Regression: ts-plan produces equivalent plans before and after removal
+- Regression: plan-handoff menu renders correctly with 4 options (no HTML option)
+
+**Verification:** `html-rendering.md` deleted. No references to it remain. Phase 0.0 removed from SKILL.md. Word count further reduced. ts-plan produces equivalent plans. Plan-handoff menu works without HTML option.
+
+---
+
 ## Risks & Dependencies
 
 - **U3 depends on U1 and U2** — the restructure benefits from the script extraction and rubric dedup landing first, reducing what SKILL.md needs to carry inline.
@@ -457,8 +515,9 @@ The detector's input source must be explicitly specified: accepts a file list fr
 - **U4b depends on U4a** — Monitor-based recovery builds on the bootstrap dispatch pattern.
 - **U5 depends on U4a** — automatic test-coder dispatch uses the bootstrap pattern.
 - **U7 depends on U5** — the detector runs after auto-dispatch completes.
-- **U8 depends on U1-U7** — standards document what was built.
-- **Harness limitation (Issue 98)** — the notification-failure problem is at the harness level. The Monitor-based recovery and disk-first state are recovery mechanisms, not fixes. The harness team would need to implement interrupt-safe notification delivery for a complete fix.
+- **U8 depends on U1-U7, U9** — standards document what was built, including the HTML/Phase 0.0 removal.
+- **U9 depends on U1** — resolve-output-format.sh extraction should land before Phase 0.0 removal, to preserve the logic if ever needed for reference.
+- **Harness limitation (Issue 98)** — the notification-failure problem is out of scope for this repo and requires an upstream fix in Claude Code. The Monitor-based recovery and disk-first state in U4b are recovery mechanisms, not fixes. A GitHub issue should be created to track the upstream dependency.
 - **Behavioral equivalence verification** — restructured SKILL.md files and deduplicated rubrics must produce equivalent outputs. Diff outputs before/after baseline invocations; flag deviations beyond minor. Same deviations occurring across multiple tests increase the signal.
 
 ## Sources & Research
