@@ -83,11 +83,29 @@ Some skills define specialized heading structures adapted from these base templa
 
 ## Dispatch Patterns
 
-Two dispatch patterns coexist in the codebase:
+Three dispatch patterns coexist in the codebase, with Bootstrap as the primary:
 
-### Template-Wrapped (ts-code-review, ts-doc-review)
+### Bootstrap (primary — ts-doc-review, ts-work, ts-plan)
 
-The orchestrator injects agent file content into a subagent template via `{agent_file}` variable substitution. The template provides shared structure (output contract, confidence rubric, schema) and the agent file provides domain-specific identity and scope.
+The orchestrator passes file paths instead of inline content. The subagent reads its own operating contract, role prompt, and schema from disk. This reduces orchestrator dispatch output from ~10k tokens to ~150-300 tokens per reviewer.
+
+```text
+Read these files IN FULL before starting:
+1. references/subagent-template.md (your operating contract)
+2. references/agents/<reviewer-name>.md (your role)
+3. references/findings-schema.json (output schema)
+4. <document_path> (document under review)
+```
+
+**Bootstrap-ack:** The agent emits a brief acknowledgment (file paths + line counts) before starting analysis. The orchestrator verifies all expected files appear in the ack and that each reported line count matches the on-disk file length. Missing files or mismatched counts trigger re-dispatch (up to 3 attempts), then fallback to inline-content dispatch.
+
+**Schema-as-guidance:** Schema `description` fields contain behavioral guidance — agents must read them as instructions, not metadata.
+
+See `docs/solutions/conventions/subagent-bootstrap-dispatch.md` for the full pattern.
+
+### Template-Wrapped (legacy — ts-code-review, fallback)
+
+The orchestrator injects agent file content into a subagent template via `{agent_file}` variable substitution. The template provides shared structure (output contract, confidence rubric, schema) and the agent file provides domain-specific identity and scope. Used as fallback when bootstrap dispatch is unavailable (harness lacks file-read tools).
 
 ```
 <agent>
@@ -95,11 +113,9 @@ The orchestrator injects agent file content into a subagent template via `{agent
 </agent>
 ```
 
-### Direct-Seed (ts-work, ts-compound, ts-plan)
+### Direct-Seed (legacy — ts-compound)
 
-The orchestrator seeds agent file content directly into a generic subagent prompt. The agent file carries the full context including output contract.
-
-Both patterns produce the same result: a subagent running with the agent's identity and scope. The difference is whether shared structure lives in a template (template-wrapped) or in the agent file itself (direct-seed).
+The orchestrator seeds agent file content directly into a generic subagent prompt. The agent file carries the full context including output contract. Scheduled for removal in a separate PR.
 
 ## File Placement
 

@@ -2,9 +2,40 @@
 
 This template is used by the ts-doc-review orchestrator to spawn each reviewer sub-agent. Variable substitution slots are filled at dispatch time.
 
+**Bootstrap dispatch.** The orchestrator passes file paths instead of inline content. The agent reads its own files from disk. This reduces orchestrator dispatch output from ~10k tokens to ~150-300 tokens per reviewer.
+
 ---
 
-## Template
+## Bootstrap Prompt (orchestrator sends this)
+
+```
+Read these files IN FULL before starting. Do not begin analysis until all four are read:
+1. references/subagent-template.md (your operating contract)
+2. references/agents/{reviewer_name}.md (your role)
+3. references/findings-schema.json (output schema)
+4. {document_path} (document under review)
+
+Schema `description` fields contain behavioral guidance — read them as instructions, not metadata.
+
+After reading all files, emit a brief acknowledgment listing files read (paths + line counts) before starting analysis. Format: one line per file, `<path> (<N> lines)`.
+
+<agent-file-path>references/agents/{reviewer_name}.md</agent-file-path>
+<schema-path>references/findings-schema.json</schema-path>
+
+document_type: {document_type}
+origin_path: {origin_path}
+
+{decision_primer}
+
+Document content:
+{document_content}
+```
+
+**Bootstrap-ack verification.** The orchestrator checks that each expected path appears in the ack before accepting findings. If ack is missing expected files, reject and re-dispatch (up to 3 attempts). If all 3 fail, fall back to inline-content dispatch.
+
+---
+
+## Template (fallback — inline content for harnesses without file-read tools)
 
 ```
 You are a specialist document reviewer.
@@ -28,15 +59,12 @@ Return ONLY valid JSON matching the findings schema below. No prose, no markdown
 
 If your agent description uses severity vocabulary like "high-priority" or "critical" in its rubric text, translate to the P0-P3 scale at emit time. "Critical / must-fix" → P0, "important / should-fix" → P1, "worth-noting / could-fix" → P2, "low-signal" → P3. Same for priorities described qualitatively in your analysis — map to P0-P3 on the way out.
 
-**Confidence rubric — use these exact behavioral anchors.** Pick the single anchor whose criterion you can honestly self-apply. Do not pick a value between anchors; only `0`, `25`, `50`, `75`, and `100` are valid. The rubric is anchored on behavior you performed, not on a vague sense of certainty — if you cannot truthfully attach the behavioral claim to the finding, step down to the next anchor.
+**Confidence rubric — authoritative source is `findings-schema.json`.** The `confidence` property's `description` field contains the behavioral anchor definitions (0/25/50/75/100). Read it as your rubric — pick the single anchor whose criterion you can honestly self-apply. Do not pick a value between anchors; only `0`, `25`, `50`, `75`, and `100` are valid. The rubric is anchored on behavior you performed, not on a vague sense of certainty — if you cannot truthfully attach the behavioral claim to the finding, step down to the next anchor.
 
-- **`0` — Not confident at all.** A false positive that does not stand up to light scrutiny, or a pre-existing issue the document did not introduce. **Do not emit — suppress silently.** This anchor exists in the enum only so synthesis can explicitly track the drop; agents never produce it.
-- **`25` — Somewhat confident.** Might be a real issue but could also be a false positive; you were not able to verify. **Do not emit — suppress silently.** This anchor, like `0`, exists in the enum only so synthesis can track the drop; agents never produce it. If your domain is genuinely uncertain, either gather more evidence until you can honestly anchor the finding at `50` or higher, or suppress the concern entirely. (Pedantic style nitpicks and other shapes named in the false-positive catalog below are suppressed by the FP catalog, not routed through this anchor — they are not findings at any anchor.)
-- **`50` — Moderately confident.** You verified this is a real issue but it may be a nitpick or not meaningfully affect plan correctness. Relative to the rest of the document, it is not very important. Advisory observations — where the honest answer to "what breaks if we do not fix this?" is "nothing breaks, but..." — land here. Surfaces in the FYI subsection.
-- **`75` — Highly confident.** You double-checked and verified the issue will be hit in practice by implementers or readers of this document. The existing approach in the document is insufficient. The issue directly impacts plan correctness, implementer understanding, or downstream execution.
+**Additional confidence rules (not in schema — apply these):**
 
-  **Anchor `75` requires naming a concrete downstream consequence someone will hit** — a wrong deploy order, an unimplementable step, a contract mismatch, missing evidence that blocks a decision. Strength-of-argument concerns ("motivation is thin," "premise is unconvincing," "a different reader might disagree") do not meet this bar on their own — they are advisory observations and land at anchor `50` unless they also name the specific downstream outcome the reader hits. When in doubt between `50` and `75`, ask: "will a competent implementer or reader concretely encounter this, or is this my opinion about the document's strength?" The former is `75`; the latter is `50`.
-- **`100` — Absolutely certain.** You double-checked and confirmed the issue. The evidence directly confirms it will happen frequently in practice. The document text, codebase, or cross-references leave no room for interpretation.
+- **Suppress anchors `0` and `25` silently.** These anchors exist in the enum so synthesis can track drops; agents never produce findings at these levels. If your domain is genuinely uncertain, gather more evidence until you can anchor at `50` or higher, or suppress entirely. (Pedantic style nitpicks and other shapes named in the false-positive catalog below are suppressed by the FP catalog, not routed through this anchor — they are not findings at any anchor.)
+- **Anchor `75` requires naming a concrete downstream consequence someone will hit** — a wrong deploy order, an unimplementable step, a contract mismatch, missing evidence that blocks a decision. Strength-of-argument concerns ("motivation is thin," "premise is unconvincing," "a different reader might disagree") do not meet this bar on their own — they are advisory observations and land at anchor `50` unless they also name the specific downstream outcome the reader hits. When in doubt between `50` and `75`, ask: "will a competent implementer or reader concretely encounter this, or is this my opinion about the document's strength?" The former is `75`; the latter is `50`.
 
 Anchor and severity are independent axes. A P2 finding can be anchor `100` if the evidence is airtight; a P0 finding can be anchor `50` if it is an important concern you could not fully verify. Anchor gates where the finding surfaces (drop / FYI / actionable); severity orders it within the actionable surface.
 
