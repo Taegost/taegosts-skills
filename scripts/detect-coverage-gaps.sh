@@ -8,8 +8,12 @@
 # Output: JSON report of gaps found (or empty if no gaps).
 set -euo pipefail
 
-# Escape special characters for JSON string values
-# Handles: backslash, double-quote, newline, tab, carriage return
+# Escape special characters for JSON string values.
+# Handles: backslash, double-quote, newline, tab, carriage return.
+# Limitation: filenames with control characters other than \n, \t, \r may produce
+# invalid JSON. This is acceptable because such filenames are extremely rare in
+# practice and git itself handles them poorly. If jq becomes a required dependency,
+# replace this with jq-based JSON construction for full spec compliance.
 json_escape() {
   printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\t/\\t/g' | tr '\n' ' ' | tr '\r' ' '
 }
