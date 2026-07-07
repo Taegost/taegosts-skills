@@ -34,20 +34,24 @@ rationale_parts=()
 
 while IFS= read -r f; do
   [[ -z "$f" ]] && continue
-  case "$f" in
-    *auth*|*login*|*session*|*middleware*|*permission*)
-      conditional+=("security"); rationale_parts+=("\"security\":\"auth/session files changed\"") ;;
-    *migrate*|*migration*|*schema*|*alembic*|*flyway*)
-      conditional+=("data-migration"); rationale_parts+=("\"data-migration\":\"migration files changed\"") ;;
-    *test*|*spec*)
-      conditional+=("testing"); rationale_parts+=("\"testing\":\"test files changed\"") ;;
-    *deploy*|*docker*|*k8s*|*kubernetes*|*helm*)
-      conditional+=("deployment-verification"); rationale_parts+=("\"deployment-verification\":\"deployment files changed\"") ;;
-    *.db*|*database*|*query*|*orm*)
-      conditional+=("performance"); rationale_parts+=("\"performance\":\"database files changed\"") ;;
-    *api*|*route*|*controller*|*endpoint*)
-      conditional+=("api-contract"); rationale_parts+=("\"api-contract\":\"API files changed\"") ;;
-  esac
+  # Independent predicate checks — each evaluated regardless of prior matches
+  # Skip "testing" since it is always_on
+  if [[ "$f" == *auth* ]] || [[ "$f" == *login* ]] || [[ "$f" == *session* ]] || [[ "$f" == *middleware* ]] || [[ "$f" == *permission* ]]; then
+    conditional+=("security"); rationale_parts+=("\"security\":\"auth/session files changed\"")
+  fi
+  if [[ "$f" == *migrate* ]] || [[ "$f" == *migration* ]] || [[ "$f" == *schema* ]] || [[ "$f" == *alembic* ]] || [[ "$f" == *flyway* ]]; then
+    conditional+=("data-migration"); rationale_parts+=("\"data-migration\":\"migration files changed\"")
+  fi
+  # testing predicate skipped — already in always_on
+  if [[ "$f" == *deploy* ]] || [[ "$f" == *docker* ]] || [[ "$f" == *k8s* ]] || [[ "$f" == *kubernetes* ]] || [[ "$f" == *helm* ]]; then
+    conditional+=("deployment-verification"); rationale_parts+=("\"deployment-verification\":\"deployment files changed\"")
+  fi
+  if [[ "$f" == *.db* ]] || [[ "$f" == *database* ]] || [[ "$f" == *query* ]] || [[ "$f" == *orm* ]]; then
+    conditional+=("performance"); rationale_parts+=("\"performance\":\"database files changed\"")
+  fi
+  if [[ "$f" == *api* ]] || [[ "$f" == *route* ]] || [[ "$f" == *controller* ]] || [[ "$f" == *endpoint* ]]; then
+    conditional+=("api-contract"); rationale_parts+=("\"api-contract\":\"API files changed\"")
+  fi
 done <<< "$files"
 
 # Deduplicate conditional

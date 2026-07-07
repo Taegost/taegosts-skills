@@ -13,7 +13,6 @@ import json
 import os
 import re
 import sys
-from difflib import SequenceMatcher
 from pathlib import Path
 
 
@@ -71,12 +70,27 @@ def parse_frontmatter(filepath):
 
 
 def title_similarity(a, b):
-    """Compute title similarity (0-1) using SequenceMatcher + word overlap."""
+    """Compute title similarity (0-1) using substring and word-overlap logic.
+
+    Algorithm:
+    - Substring overlap: fraction of the shorter title contained in the longer
+    - Word overlap: Jaccard similarity on word sets (intersection / union)
+    - Final score: average of substring overlap and word overlap
+
+    This catches both substring matches (e.g., "Deployment" in "Deployment Patterns")
+    and reordered word matches (e.g., "Fix Bug A" vs "A Bug Fix").
+    """
     a_lower = a.lower()
     b_lower = b.lower()
 
-    seq_ratio = SequenceMatcher(None, a_lower, b_lower).ratio()
+    # Substring overlap: fraction of shorter string found in longer string
+    shorter, longer = (a_lower, b_lower) if len(a_lower) <= len(b_lower) else (b_lower, a_lower)
+    if shorter and shorter in longer:
+        substring_overlap = len(shorter) / len(longer)
+    else:
+        substring_overlap = 0.0
 
+    # Word overlap: Jaccard similarity on word sets
     a_words = set(re.findall(r"\w+", a_lower))
     b_words = set(re.findall(r"\w+", b_lower))
     if a_words and b_words:
@@ -84,7 +98,7 @@ def title_similarity(a, b):
     else:
         word_overlap = 0.0
 
-    return (seq_ratio + word_overlap) / 2.0
+    return (substring_overlap + word_overlap) / 2.0
 
 
 def tag_overlap(a_tags, b_tags):
