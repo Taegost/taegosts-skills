@@ -155,7 +155,7 @@ flowchart TB
 
 ## Implementation Units
 
-### Phase 1: Foundation (independent, can start immediately)
+### Phase 1: Foundation (independent, can start immediately — except U2, which waits for U14)
 
 ### U1. Update dispatch standards to reflect Bootstrap as primary
 
@@ -417,7 +417,7 @@ flowchart TB
 
 ### U9. Create update-indexes.py
 
-**Goal:** Automate recursive INDEX.md creation/updates across `docs/` and `skills/*/scripts/`.
+**Goal:** Automate recursive INDEX.md creation/updates across `docs/`, delegating all script indexing (`scripts/` and `skills/*/scripts/`) to index-scripts.py.
 
 **Requirements:** W2-R3, W2-R14
 
@@ -554,7 +554,7 @@ flowchart TB
 
 **Requirements:** W2-R5, W2-R6
 
-**Dependencies:** U11 (script enumeration output), U12 (shared scripts), U14 (ts-pr-fix-findings scripts)
+**Dependencies:** U11 (script enumeration output), U12 (shared scripts)
 
 **Files:**
 - `skills/ts-pr-review/scripts/map-diff-lines.sh` (new)
@@ -598,8 +598,8 @@ flowchart TB
 
 **Approach:**
 - Check the enumeration artifact (`docs/plans/2026-07-05-001-extraction-enumeration.md`) for extraction candidates before starting.
-- `resolve-thread.sh`: Extract the GraphQL mutation (line 198 of SKILL.md) into a script. Input: `--repo owner/repo --thread-id <id>`. Output: JSON with resolution status. Uses `gh api graphql`.
-- `request-re-review.sh`: Extract the re-review request (lines 207-212) into a script. Input: `--repo owner/repo --pr number --reviewer name`. Output: JSON confirmation. Uses `gh api` or `gh pr edit`.
+- `resolve-thread.sh`: Extract the GraphQL mutation block from SKILL.md into a script. Input: `--repo owner/repo --thread-id <id>`. Output: JSON with resolution status. Uses `gh api graphql`.
+- `request-re-review.sh`: Extract the re-review request block into a script. Input: `--repo owner/repo --pr number --reviewer name`. Output: JSON confirmation. Uses `gh api` or `gh pr edit`.
 - Both include R3 frontmatter, `--help`, input validation (owner/repo format, numeric PR, `--reviewer` format regex `^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$` matching GitHub username rules with metacharacter gate), exit codes
 - Update SKILL.md Steps 3 and 5 to call these scripts
 
@@ -883,7 +883,7 @@ flowchart TB
 
 - **Wave 1 landed:** R3/R7/R8 standards, ShellCheck integration, and script fixes (#63, #47, #44) are already on main (PR #99). No dependency gate for Phase 1 or Phase 2.
 - **Wave 1.5 landed:** Bootstrap dispatch, testing-standards.md, notification resilience are on main (PR #104). Phase 4 work includes ts-compound, ts-code-review, and ts-verify-implementation migration to Bootstrap.
-- **Script extraction coordination:** Track 2 (extraction) and Track 3 (fixes) may touch the same scripts. Coordinate to avoid conflicts — fixes should land before extraction changes the target files. **Exception:** U14 (Phase 2) is a hard predecessor of U2 (Phase 1) because U2 validates scripts that U14 creates (`resolve-thread.sh`, `request-re-review.sh`). U14 must land before U2 can extend those scripts with injection-path tests.
+- **Script extraction coordination:** Track 2 (extraction) and Track 3 (fixes) may touch the same scripts. Coordinate to avoid conflicts — fixes should land before extraction changes the target files. **Exception:** U14 (Phase 3) is a hard predecessor of U2 (Phase 1) because U2 validates scripts that U14 creates (`resolve-thread.sh`, `request-re-review.sh`). U14 must land before U2 can extend those scripts with injection-path tests.
 - **Bootstrap migration risk:** ts-compound, ts-code-review, and ts-verify-implementation must all be migrated to Bootstrap. Migration is a behavioral change; test thoroughly. Template-wrapped is fully deprecated — no fallback.
 - **Inline script identification:** Some inline blocks in SKILL.md are templates (e.g., commit message patterns) that should stay inline, not be extracted. The implementer must use judgment on extraction candidates.
 - **Testing coverage:** PR #104's auto-dispatch mechanism means extracted scripts automatically get test coverage. The implementer must ensure each extraction unit has test scenarios defined so the auto-dispatch fires.
