@@ -117,34 +117,37 @@ flowchart TB
         U14["U14: ts-pr-fix-findings scripts"]
         U15["U15: ts-commit context"]
         U16["U16: ts-work scripts"]
-        U17["U17: CLAUDE.md #81"]
-        U18["U18: Fix line verification #101"]
+        U17["U17: ts-verify-implementation scripts #82"]
+        U18["U18: CLAUDE.md #81"]
+        U19["U19: Fix line verification #101"]
     end
 
     subgraph Phase4["Phase 4: Dispatch Unification"]
-        U19["U19: Verify ts-work Bootstrap"]
-        U20["U20: Migrate ts-compound to Bootstrap"]
+        U20["U20: Verify ts-work Bootstrap"]
+        U21["U21: Migrate ts-compound to Bootstrap"]
     end
 
     subgraph Phase5["Phase 5: Finalization"]
-        U21["U21: Update all indices"]
+        U22["U22: Update all indices"]
     end
 
     U7 --> U8
     U7 --> U9
     U7 --> U10
-    U1 --> U19
     U1 --> U20
-    U8 --> U17
+    U1 --> U21
+    U8 --> U18
     U1 --> U11
     U11 --> U15
     U11 --> U16
+    U11 --> U17
     U12 --> U15
     U12 --> U16
-    U7 --> U21
-    U9 --> U21
-    U19 --> U21
-    U20 --> U21
+    U12 --> U17
+    U7 --> U22
+    U9 --> U22
+    U20 --> U22
+    U21 --> U22
 ```
 
 ## Implementation Units
@@ -184,7 +187,7 @@ flowchart TB
 
 ### U2. Fix pr-fix-findings input validation (#63)
 
-**Goal:** `check-thread-resolution.sh` and `fetch-issue-comments.sh` validate input formats (owner/repo shape, digits-only PR number), not just shell metacharacters.
+**Goal:** `check-thread-resolution.sh` and `fetch-issue-comments.sh` validate input formats (owner/repo shape, digits-only PR number), not just shell metacharacters, and handle GitHub API failures gracefully. #63's CodeRabbit review raised three distinct findings; this unit covers all three.
 
 **Requirements:** R7
 
@@ -197,8 +200,11 @@ flowchart TB
 - `tests/skills/ts-pr-fix-findings/test-fetch-issue-comments.sh` (add test cases)
 
 **Approach:**
-- **Wave 1 (PR #99) already applied the fix.** Both scripts have `^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$` for repo and `^[0-9]+$` for PR number checks after the metacharacter gate.
-- Verify the current implementation is correct and add test cases for edge cases (path traversal, extra slashes, non-numeric PR)
+- **Wave 1 (PR #99) already applied all three fixes.** Verify each explicitly rather than assuming coverage from the format-validation fix alone:
+  - Finding 1 (command injection risk, `check-thread-resolution.sh:27`): both scripts gate on a shell-metacharacter regex *and* the `^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$` / `^[0-9]+$` format regexes before `$owner`/`$name`/`$pr_number` are interpolated into the `gh api graphql` query string — confirm no unvalidated value reaches a shell or API call.
+  - Finding 2 (missing API failure error handling, `check-thread-resolution.sh:28`): both scripts already gate on `gh auth status` and wrap the `gh api` / `gh api graphql` call in `|| { JSON error; exit 1; }` — confirm this still holds and add a test that simulates an API failure (e.g. mock `gh` to fail) and asserts JSON error + exit 1.
+  - Finding 3 (format validation, `fetch-issue-comments.sh:26`): `^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$` for repo and `^[0-9]+$` for PR number checks after the metacharacter gate.
+- Add test cases for edge cases (path traversal, extra slashes, non-numeric PR) and for the API-failure path
 - Ensure test file exists per `docs/standards/testing-standards.md`
 
 **Patterns to follow:** The existing error handling pattern in both scripts (JSON error on stderr, exit 1).
@@ -208,9 +214,11 @@ flowchart TB
 - Edge case: `1/../../orgs/other/...` is rejected by the format validator
 - Edge case: `owner/repo/extra/slashes` is rejected
 - Edge case: PR number with letters is rejected
+- Edge case: A validated `owner`/`name`/`pr_number` cannot inject additional GraphQL query fields or shell commands when interpolated
 - Error path: Validation failure produces JSON error on stderr with exit 1
+- Error path: A failing `gh api` / `gh api graphql` call (auth failure or API error) produces JSON error on stderr with exit 1, not a raw bash crash
 
-**Verification:** Both scripts reject non-conforming inputs with structured JSON errors. Test cases pass.
+**Verification:** Both scripts reject non-conforming inputs with structured JSON errors, safely interpolate validated input into `gh api` calls with no injection vector, and surface API failures as structured JSON errors rather than raw bash crashes. Test cases pass, covering all three #63 findings.
 
 ---
 
@@ -376,7 +384,7 @@ flowchart TB
 
 **Requirements:** R2
 
-**Dependencies:** U7 (script-index.md must exist to be referenced)
+**Dependencies:** U7 (`scripts/INDEX.md` must exist to be referenced)
 
 **Files:**
 - `docs/ROUTING.md` (new)
@@ -448,17 +456,19 @@ flowchart TB
 
 **Files:**
 - `skills/script-index/SKILL.md` (remove entirely)
+- `skills/ts-coding-workflow/SKILL.md` (update Phase 0 setup, lines 20-26 — named explicitly by #81 R5)
 
 **Approach:**
 - Remove `skills/script-index/SKILL.md` entirely — `index-scripts.py` (U7) generates `scripts/INDEX.md` which replaces the manual routing table
-- `grep` all skills for references to `script-index` and enumerate each one explicitly in this plan so the implementer does not need to search during implementation
-- Update each referenced skill to point to `scripts/INDEX.md` instead
+- `ts-coding-workflow` is the skill explicitly named by #81 R5 as needing this migration. Its Phase 0 setup (lines 20-26) reads `skills/script-index/SKILL.md` to discover available tools and locates the skill directory via `find . -name "script-index" -path "*/skills/*" -type d`. Replace this with a reference to `scripts/INDEX.md` (and `skills/*/scripts/INDEX.md` for skill-specific scripts) instead of locating and reading the deprecated skill.
+- `grep` all remaining skills for references to `script-index` and enumerate any additional ones found in this plan so the implementer does not need to search during implementation
 - Known references to check: any skill that mentions `script-index`, `/script-index`, or the old manual index routing table
 
 **Patterns to follow:** None — this is a removal/replacement.
 
 **Test scenarios:**
 - Happy path: No skill references the old `script-index` skill
+- Happy path: `ts-coding-workflow`'s Phase 0 setup reads `scripts/INDEX.md` instead of `skills/script-index/SKILL.md`
 - Happy path: `scripts/INDEX.md` is the authoritative script index
 
 **Verification:** `skills/script-index/` is removed or reduced to a redirect. All script references point to `scripts/INDEX.md`.
@@ -467,20 +477,20 @@ flowchart TB
 
 ### Phase 3: Script Extraction (depends on Phase 2 for index updates)
 
-### U11. Create dispatch standards documentation and enumerate extraction scripts
+### U11. Verify dispatch standards documentation and enumerate extraction scripts
 
-**Goal:** Create the standards documentation that all subsequent units in this phase will follow, and enumerate all scripts that need to be extracted per KTD-3.
+**Goal:** Verify the standards documentation (from U1) that all subsequent units in this phase will follow, and enumerate all scripts that need to be extracted per KTD-3.
 
 **Requirements:** R5, R6, R13
 
 **Dependencies:** U1 (dispatch standards updated)
 
 **Files:**
-- `docs/standards/dispatch-standard.md` (new — if not already created by U1)
+- `docs/standards/agent-standards.md` (existing canonical dispatch standard, updated by U1 — reused here, not duplicated)
 - Enumeration output: list of all inline scripts across all skills that qualify for extraction per KTD-3
 
 **Approach:**
-- Create or verify the dispatch standards documentation that all units in this phase must follow
+- U1 already makes `docs/standards/agent-standards.md` the canonical dispatch-pattern source of truth. This unit does not create a second dispatch-standard doc; it reuses U1's output. If this unit runs before U1 lands, verify `agent-standards.md` documents Bootstrap as the only allowed pattern before proceeding — do not create a parallel file.
 - Follow KTD-3's directions to look through ALL skills and enumerate any additional scripts that need to be pulled out
 - For each skill, identify inline blocks that qualify as extraction candidates (per KTD-3 criteria: duplicated across skills, complex mechanical steps, steps with known bugs)
 - Output a structured list that subsequent units (U13+) can reference during implementation
@@ -497,7 +507,7 @@ flowchart TB
 
 ---
 
-### U12. Create shared scripts: default-branch.sh and context-gather.sh
+### U12. Create shared scripts: git-default-branch.sh and context-gather.sh
 
 **Goal:** Extract duplicated default-branch resolution and git-context-gathering into shared scripts.
 
@@ -506,13 +516,13 @@ flowchart TB
 **Dependencies:** None (these are new scripts, no existing file conflicts)
 
 **Files:**
-- `scripts/default-branch.sh` (existing — verify Wave 1 implementation matches spec)
+- `scripts/git-default-branch.sh` (existing — verify Wave 1 implementation matches spec)
 - `scripts/context-gather.sh` (new)
 - `tests/scripts/test-default-branch.sh` (new)
 - `tests/scripts/test-context-gather.sh` (new)
 
 **Approach:**
-- `default-branch.sh`: Already exists at `scripts/git-default-branch.sh` (renamed in PR #104). Verify the existing implementation matches spec; add tests if missing. Do not create a new script.
+- `git-default-branch.sh`: Already exists at `scripts/git-default-branch.sh` (renamed from `default-branch.sh` in PR #104). Verify the existing implementation matches spec; add tests if missing. Do not create a new script.
 - `context-gather.sh`: Gather git context used by ts-commit and ts-commit-push-pr: current branch, default branch, recent commits, dirty/untracked/staged files, unpushed status. Output: JSON on stdout. Combines the inline context-gathering blocks from both skills.
 - Both follow R3 frontmatter, `--help`, exit codes, input validation conventions
 - Both must have corresponding tests per `docs/standards/testing-standards.md`
@@ -520,7 +530,7 @@ flowchart TB
 **Patterns to follow:** `scripts/git-context.sh` for git state JSON output patterns. `scripts/git-default-branch.sh` for the existing default branch script.
 
 **Test scenarios:**
-- Happy path: `default-branch.sh` returns `main` when origin/HEAD points to main
+- Happy path: `git-default-branch.sh` returns `main` when origin/HEAD points to main
 - Happy path: `context-gather.sh` returns valid JSON with all expected fields
 - Edge case: Fallback chain works when origin/HEAD is not set
 - Edge case: Dirty files list is accurate
@@ -545,7 +555,7 @@ flowchart TB
 - `tests/skills/ts-pr-review/test-fetch-pr-data.sh` (new)
 
 **Approach:**
-- `map-diff-lines.sh`: Extract the complex awk script (lines 73-78 of SKILL.md) that parses diff output to build `file:line` mapping. Input: diff on stdin or as file argument. Output: JSON mapping of `file:line` to diff locations. The awk logic stays in the script; the skill just calls it and parses the JSON result. **Aligns with R16:** This script's input source will be updated in U18 to use `gh pr diff` instead of local `git diff -U10`.
+- `map-diff-lines.sh`: Extract the complex awk script (lines 73-78 of SKILL.md) that parses diff output to build `file:line` mapping. Input: diff on stdin or as file argument. Output: JSON mapping of `file:line` to diff locations. The awk logic stays in the script; the skill just calls it and parses the JSON result. **Aligns with R16:** This script's input source will be updated in U19 to use `gh pr diff` instead of local `git diff -U10`.
 - `fetch-pr-data.sh`: Extract the `gh pr view` call (line 39) into a script with `--repo` and `--pr` arguments. Output: JSON with PR metadata. Uses `gh` CLI (matching existing patterns). This is a separate concern from `map-diff-lines.sh` (API data fetch vs. diff parsing), so it remains a distinct script.
 - Update SKILL.md to call these scripts instead of inline commands
 
@@ -650,7 +660,33 @@ flowchart TB
 
 ---
 
-### U17. Create CLAUDE.md (#81)
+### U17. Extract ts-verify-implementation inline scripts (#82)
+
+**Goal:** Replace the duplicated base-branch-detection block in ts-verify-implementation with a call to the shared `git-default-branch.sh` script, and audit remaining inline bash blocks per KTD-3.
+
+**Requirements:** R5, R6
+
+**Dependencies:** U12 (`scripts/git-default-branch.sh` verified)
+
+**Files:**
+- `skills/ts-verify-implementation/SKILL.md` (update Step 1 to call the shared script)
+
+**Approach:**
+- Step 1 ("Determine base branch", lines 25-29) inlines the exact fallback chain (`git remote show origin` → `git branch --list main master develop trunk`) already implemented in `scripts/git-default-branch.sh` (KTD-4, U12). Replace it with a call to that script and parse its output.
+- Audit the remaining inline bash blocks in the skill against KTD-3: the `git diff ${base_branch}...HEAD` invocation (line 57) is a single-idiom step with no plausible near-miss and stays inline. The `mktemp`/`printf`/`verify-ktd-literal.py` sequence (lines 76-81) is boilerplate around an already-extracted script call and stays inline. The `extract-ktds.py` (line 44) and `detect-coverage-gaps.sh` (line 115) invocations are already calls to extracted scripts — no change needed.
+- This closes the coverage gap for ts-verify-implementation, which is named in R5 and the Scope Boundaries as one of the six skills requiring extraction but had no corresponding unit.
+
+**Patterns to follow:** `scripts/git-default-branch.sh` for the fallback chain contract. How ts-work (U16) consumes shared scripts.
+
+**Test scenarios:**
+- Happy path: ts-verify-implementation resolves the base branch via `git-default-branch.sh` and produces the same result as the prior inline logic
+- Edge case: Fallback chain works when `origin/HEAD` is not set (same behavior as `git-default-branch.sh`'s own tests)
+
+**Verification:** ts-verify-implementation SKILL.md calls `git-default-branch.sh` instead of duplicating the fallback chain inline.
+
+---
+
+### U18. Create CLAUDE.md (#81)
 
 **Goal:** Create a `CLAUDE.md` at the repo root with a concise repository summary, pointer to ROUTING.md, and universal agent rules.
 
@@ -679,7 +715,7 @@ flowchart TB
 
 ---
 
-### U18. Fix ts-pr-review line number verification (#101)
+### U19. Fix ts-pr-review line number verification (#101)
 
 **Goal:** Build the linemap from `gh pr diff` output (GitHub's 3-line context) instead of local `git diff -U10` so inline comment line numbers match what the Reviews API accepts.
 
@@ -710,7 +746,7 @@ flowchart TB
 
 ### Phase 4: Dispatch Unification (depends on U1 for standards)
 
-### U19. Verify ts-work Bootstrap migration and add auto-dispatch
+### U20. Verify ts-work Bootstrap migration and add auto-dispatch
 
 **Goal:** Verify ts-work's Bootstrap dispatch (migrated in PR #104) is complete and add the auto-dispatch mechanism for `implementer-tests` per `docs/standards/testing-standards.md`.
 
@@ -739,7 +775,7 @@ flowchart TB
 
 ---
 
-### U20. Migrate all remaining skills to Bootstrap dispatch
+### U21. Migrate all remaining skills to Bootstrap dispatch
 
 **Goal:** Migrate ts-compound (direct-seed), ts-code-review (template-wrapped), and ts-verify-implementation (template-wrapped) to Bootstrap dispatch. ts-work, ts-plan, and ts-doc-review are already migrated (PR #104).
 
@@ -775,13 +811,13 @@ flowchart TB
 
 ### Phase 5: Finalization
 
-### U21. Update docs/standards/INDEX.md and run update-indexes.py
+### U22. Update docs/standards/INDEX.md and run update-indexes.py
 
 **Goal:** Ensure all indices are up-to-date after Wave 2 changes.
 
 **Requirements:** R3
 
-**Dependencies:** U7, U8, U9 (index infrastructure complete), U1-U20 (all changes landed)
+**Dependencies:** U7, U8, U9 (index infrastructure complete), U1-U21 (all changes landed)
 
 **Files:**
 - All `INDEX.md` files across `docs/` and `skills/*/scripts/` (regenerated by `update-indexes.py` — do NOT edit manually)
