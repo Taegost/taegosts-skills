@@ -17,14 +17,12 @@ This is the required process for ALL coding tasks across ALL projects. Do not sk
 
 ### Phase 0: Setup
 
-1. **Load script-index** — read `skills/script-index/SKILL.md` to know what tools are available
-2. **Add scripts to PATH** — detect skill directory and add both `scripts/` and `skills/*/scripts/` to PATH:
+1. **Add scripts to PATH** — detect repo root and add both `scripts/` and `skills/*/scripts/` to PATH:
 
    ```bash
-   SKILL_DIR="$(cd "$(dirname "$(find . -name "script-index" -path "*/skills/*" -type d | head -1)")" && pwd)"
-   SKILL_BASE="$SKILL_DIR/.."
-   export PATH="$SKILL_BASE/scripts:$PATH"
-   for d in "$SKILL_BASE/skills"/*/scripts; do
+   REPO_ROOT="$(git rev-parse --show-toplevel)"
+   export PATH="$REPO_ROOT/scripts:$PATH"
+   for d in "$REPO_ROOT/skills"/*/scripts; do
      [[ -d "$d" ]] && export PATH="$d:$PATH"
    done
    ```

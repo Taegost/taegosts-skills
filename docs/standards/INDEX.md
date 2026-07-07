@@ -1,16 +1,16 @@
 ---
 tags: [index]
-description: Index of standards for the taegosts-skills repository.
+description: Index of documentation in docs/standards/.
 ---
 
 # Standards Index
 
-Canonical standards for the taegosts-skills repository.
+Index of documentation in docs/standards/.
 
 | Link | Description |
 |------|-------------|
-| [agent-standards.md](agent-standards.md) | Agent definition format: frontmatter schema, heading sub-templates (implementer/reviewer), terminology conventions, and dispatch patterns |
-| [testing-standards.md](testing-standards.md) | Test coverage expectations, auto-dispatch trigger rules, coverage-gap detection, test conventions |
-| [link-convention.md](link-convention.md) | Standard for markdown link format across all documentation (R7) |
-| [index-convention.md](index-convention.md) | Standard for INDEX.md file structure, scoping, and frontmatter requirements (R8) |
-| [script-frontmatter-convention.md](script-frontmatter-convention.md) | Shell script description comment format: `# <name> -- <description>` on line 2 after shebang |
+| [agent-standards.md](agent-standards.md) | Canonical reference for agent definition format across all taegosts-skills. |
+| [index-convention.md](index-convention.md) | Canonical standard for INDEX.md files across all documentation in taegosts-skills. |
+| [link-convention.md](link-convention.md) | Canonical standard for markdown links across all documentation in taegosts-skills. |
+| [script-frontmatter-convention.md](script-frontmatter-convention.md) | Canonical reference for the description comment format used in all shell scripts across the repository. |
+| [testing-standards.md](testing-standards.md) | If a script exists and was changed, it needs a corresponding test file. No line threshold. |
