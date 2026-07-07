@@ -25,37 +25,37 @@ Skills contain inline shell commands and mechanical steps that the LLM executes 
 
 **Index Infrastructure (from #81)**
 
-- R1. `scripts/index-scripts.py` indexes all repo-level scripts using R3 frontmatter, producing `scripts/INDEX.md`
-- R2. `docs/ROUTING.md` is a Map of Content pointing to other indices and important information
-- R3. `scripts/update-indexes.py` recursively creates/updates INDEX.md files in `docs/` and `skills/*/scripts/`, calls index-scripts.py, and ensures ROUTING.md has entries for all sub-indices. Runs as a pre-commit hook to keep indexes current automatically.
-- R4. Update skills that reference inline script locations to reference the new script-index
+- W2-R1. `scripts/index-scripts.py` indexes all repo-level scripts using R3 frontmatter, producing `scripts/INDEX.md`
+- W2-R2. `docs/ROUTING.md` is a Map of Content pointing to other indices and important information
+- W2-R3. `scripts/update-indexes.py` recursively creates/updates INDEX.md files in `docs/` and ensures ROUTING.md has entries for all sub-indices. It delegates all script indexing (`scripts/` and `skills/*/scripts/`) to `index-scripts.py`.
+- W2-R4. Update skills that reference inline script locations to reference the new script-index
 
 **Script Extraction (from #82)**
 
-- R5. Extract inline scripts from ts-commit, ts-commit-push-pr, ts-pr-review, ts-verify-implementation, ts-pr-fix-findings, and ts-work into reusable script files under `scripts/` or `skills/<name>/scripts/`
-- R6. Each extracted script follows existing conventions: R3 frontmatter (line 2: `# <name> -- <description>`), `--help` flag, JSON output, exit codes (0/1/2), input validation, `set -euo pipefail`, ShellCheck-clean. Each script must have a corresponding test in `tests/scripts/` per `docs/standards/testing-standards.md`. Coverage targets: 100% for high-risk code paths (input validation, shell metacharacter gates, GraphQL mutation construction); ≥80% for the remainder of each extracted script.
+- W2-R5. Extract inline scripts from ts-commit, ts-commit-push-pr, ts-pr-review, ts-verify-implementation, ts-pr-fix-findings, and ts-work into reusable script files under `scripts/` or `skills/<name>/scripts/`
+- W2-R6. Each extracted script follows existing conventions: R3 frontmatter (line 2: `# <name> -- <description>`), `--help` flag, JSON output, exit codes (0/1/2), input validation, `set -euo pipefail`, ShellCheck-clean. Each script must have a corresponding test in `tests/scripts/` per `docs/standards/testing-standards.md`. Coverage targets: 100% for high-risk code paths (input validation, shell metacharacter gates, GraphQL mutation construction); ≥80% for the remainder of each extracted script.
 
 **Script Fixes (from #63, #60, #61, #47, #44)**
 
-- R7. `check-thread-resolution.sh` and `fetch-issue-comments.sh` validate input formats (owner/repo shape, digits-only PR number), not just shell metacharacters (#63)
-- R8. `select-reviewers.sh` uses independent predicate checks instead of case-block-first-match, so a single file can activate multiple reviewer personas (#60)
-- R9. `detect-overlap.py` title scorer uses only substring/word-overlap logic, removing SequenceMatcher contribution (#61)
-- R10. `find-precommit-hook.sh` outputs the full resolved hook path in scripts[0], not just the basename (#47)
-- R11. `detect-missing-artifacts.sh` guards against missing option values before reading `$2`, failing gracefully with JSON error (#44)
+- W2-R7. `check-thread-resolution.sh` and `fetch-issue-comments.sh` validate input formats (owner/repo shape, digits-only PR number), not just shell metacharacters (#63)
+- W2-R8. `select-reviewers.sh` uses independent predicate checks instead of case-block-first-match, so a single file can activate multiple reviewer personas (#60)
+- W2-R9. `detect-overlap.py` title scorer uses only substring/word-overlap logic, removing SequenceMatcher contribution (#61)
+- W2-R10. `find-precommit-hook.sh` outputs the full resolved hook path in scripts[0], not just the basename (#47)
+- W2-R11. `detect-missing-artifacts.sh` guards against missing option values before reading `$2`, failing gracefully with JSON error (#44)
 
 **Dispatch Unification**
 
-- R12. All skills use Bootstrap dispatch (file-path-based, bootstrap-ack verification). Template-wrapped is fully deprecated and must be removed from all skills. Direct-seed is deprecated and only allowed in narrow circumstances with explicit owner approval. All skills that call subagents must be migrated to Bootstrap as part of this PR.
-- R13. `docs/standards/agent-standards.md` documents Bootstrap as the only allowed dispatch pattern per PR #104. The standards documentation must explicitly state that template-wrapped is deprecated (not a fallback) and direct-seed requires explicit approval. Skills not yet migrated (ts-compound, ts-code-review, ts-verify-implementation) must be migrated to Bootstrap.
-- R14. `scripts/update-indexes.py` runs as a pre-commit hook so all INDEX.md files and ROUTING.md are updated automatically before every commit
+- W2-R12. All skills use Bootstrap dispatch (file-path-based, bootstrap-ack verification). Template-wrapped is fully deprecated and must be removed from all skills. Direct-seed is deprecated and only allowed in narrow circumstances with explicit owner approval. All skills that call subagents must be migrated to Bootstrap as part of this PR.
+- W2-R13. `docs/standards/agent-standards.md` documents Bootstrap as the only allowed dispatch pattern per PR #104. The standards documentation must explicitly state that template-wrapped is deprecated (not a fallback) and direct-seed requires explicit approval. Skills not yet migrated (ts-compound, ts-code-review, ts-verify-implementation) must be migrated to Bootstrap.
+- W2-R14. `scripts/update-indexes.py` runs as a pre-commit hook so all INDEX.md files and ROUTING.md are updated automatically before every commit
 
 **CLAUDE.md (from #81)**
 
-- R15. Create a `CLAUDE.md` at the repo root containing: a concise repository summary written for AI consumption, a pointer to `docs/ROUTING.md`, and any rules or standards that all agents running in this repository must follow. CLAUDE.md is NOT an index file.
+- W2-R15. Create a `CLAUDE.md` at the repo root containing: a concise repository summary written for AI consumption, a pointer to `docs/ROUTING.md`, and any rules or standards that all agents running in this repository must follow. CLAUDE.md is NOT an index file.
 
 **Reporting Logic Fix (from #101)**
 
-- R16. `ts-pr-review` line number verification must use `gh pr diff` output (GitHub's 3-line context hunks) instead of local `git diff -U10` for the linemap, so inline comment line numbers match what the Reviews API accepts
+- W2-R16. `ts-pr-review` line number verification must use `gh pr diff` output (GitHub's 3-line context hunks) instead of local `git diff -U10` for the linemap, so inline comment line numbers match what the Reviews API accepts
 
 ## Key Technical Decisions
 
@@ -130,21 +130,23 @@ flowchart TB
     U7 --> U8
     U7 --> U9
     U7 --> U10
+    U8 --> U9
     U1 --> U20
     U1 --> U21
-    U8 --> U18
     U1 --> U11
+    U8 --> U18
+    U11 --> U13
+    U11 --> U14
     U11 --> U15
     U11 --> U16
     U11 --> U17
-    U12 --> U15
-    U12 --> U16
-    U12 --> U17
     U12 --> U13
     U12 --> U14
     U12 --> U15
     U12 --> U16
     U12 --> U17
+    U13 --> U19
+    U14 --> U2
     U7 --> U22
     U9 --> U22
     U20 --> U22
@@ -159,7 +161,7 @@ flowchart TB
 
 **Goal:** Update `docs/standards/agent-standards.md` to document Bootstrap as the only allowed dispatch pattern. Template-wrapped is fully deprecated (not a fallback). Direct-seed is deprecated and only allowed in narrow circumstances with explicit owner approval.
 
-**Requirements:** R13
+**Requirements:** W2-R13
 
 **Dependencies:** None
 
@@ -190,9 +192,9 @@ flowchart TB
 
 **Goal:** `check-thread-resolution.sh` and `fetch-issue-comments.sh` validate input formats (owner/repo shape, digits-only PR number), not just shell metacharacters, and handle GitHub API failures gracefully. #63's CodeRabbit review raised three distinct findings; this unit covers all three.
 
-**Requirements:** R7
+**Requirements:** W2-R7
 
-**Dependencies:** None
+**Dependencies:** U14 (creates the scripts and test files this unit extends)
 
 **Files:**
 - `skills/ts-pr-fix-findings/scripts/check-thread-resolution.sh` (update validation)
@@ -201,17 +203,15 @@ flowchart TB
 - `skills/ts-pr-fix-findings/scripts/request-re-review.sh` (add format validation for `--reviewer`: metacharacter gate + regex `^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$`)
 - `tests/skills/ts-pr-fix-findings/test-check-thread-resolution.sh` (add test cases)
 - `tests/skills/ts-pr-fix-findings/test-fetch-issue-comments.sh` (add test cases)
-- `tests/skills/ts-pr-fix-findings/test-resolve-thread.sh` (add injection-path test: "validated thread-id cannot inject GraphQL fields when interpolated")
-- `tests/skills/ts-pr-fix-findings/test-request-re-review.sh` (add injection-path test: "validated reviewer name cannot inject shell commands when interpolated")
-
-**Approach:**
-- **Wave 1 (PR #99) already applied validation fixes for check-thread-resolution.sh and fetch-issue-comments.sh.** Extend the same dual-gate pattern (metacharacter regex + format regex) to the new scripts resolve-thread.sh and request-re-review.sh.
+- `tests/skills/ts-pr-fix-findings/test-resolve-thread.sh` (add injection-path test: "validated thread-id cannot inject GraphQL fields when interpolated") (test file created by U14)
+- `tests/skills/ts-pr-fix-findings/test-request-re-review.sh` (add injection-path test: "validated reviewer name cannot inject shell commands when interpolated") (test file created by U14)
 
 **Approach:**
 - **Wave 1 (PR #99) already applied all three fixes.** Verify each explicitly rather than assuming coverage from the format-validation fix alone:
   - Finding 1 (command injection risk, `check-thread-resolution.sh:27`): both scripts gate on a shell-metacharacter regex *and* the `^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$` / `^[0-9]+$` format regexes before `$owner`/`$name`/`$pr_number` are interpolated into the `gh api graphql` query string — confirm no unvalidated value reaches a shell or API call.
   - Finding 2 (missing API failure error handling, `check-thread-resolution.sh:28`): both scripts already gate on `gh auth status` and wrap the `gh api` / `gh api graphql` call in `|| { JSON error; exit 1; }` — confirm this still holds and add a test that simulates an API failure (e.g. mock `gh` to fail) and asserts JSON error + exit 1.
   - Finding 3 (format validation, `fetch-issue-comments.sh:26`): `^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$` for repo and `^[0-9]+$` for PR number checks after the metacharacter gate.
+- Extend the same dual-gate validation pattern (metacharacter injection gate + format regex) to `resolve-thread.sh` and `request-re-review.sh` (created by U14). Uses the validation regex and metacharacter set defined in U14; see U14 for the authoritative spec. Adds injection-path tests: "validated thread-id cannot inject GraphQL fields when interpolated" and "validated reviewer name cannot inject shell commands when interpolated."
 - Add test cases for edge cases (path traversal, extra slashes, non-numeric PR) and for the API-failure path
 - Ensure test file exists per `docs/standards/testing-standards.md`
 
@@ -234,7 +234,7 @@ flowchart TB
 
 **Goal:** Replace case-block-first-match with independent predicate checks so a single file can activate multiple reviewer personas.
 
-**Requirements:** R8
+**Requirements:** W2-R8
 
 **Dependencies:** None
 
@@ -265,7 +265,7 @@ flowchart TB
 
 **Goal:** Remove SequenceMatcher contribution from `title_similarity()`, using only substring/word-overlap logic.
 
-**Requirements:** R9
+**Requirements:** W2-R9
 
 **Dependencies:** None
 
@@ -276,10 +276,10 @@ flowchart TB
 **Approach:**
 - In `title_similarity()` (around line 87), remove the `SequenceMatcher` ratio contribution
 - Keep only the substring/word-overlap based scoring that matches the documented contract
-- Verify the composite scoring formula (0.6 * title_sim + 0.4 * tag_overlap) still produces expected results with the simplified scorer
+- Verify the composite scoring formula (0.6 \* title_sim + 0.4 \* tag_overlap) still produces expected results with the simplified scorer
 - Update any test cases that relied on SequenceMatcher-specific scores
 
-**Patterns to follow:** The documented scoring algorithm in the existing script's docstring and the script extraction plan (U15).
+**Patterns to follow:** The documented scoring algorithm in the existing script's docstring.
 
 **Test scenarios:**
 - Happy path: Identical titles produce score 1.0
@@ -295,7 +295,7 @@ flowchart TB
 
 **Goal:** Output the full resolved hook path in scripts[0], not just the basename.
 
-**Requirements:** R10
+**Requirements:** W2-R10
 
 **Dependencies:** None
 
@@ -323,7 +323,7 @@ flowchart TB
 
 **Goal:** Guard against missing option values before reading `$2`, failing gracefully with JSON error.
 
-**Requirements:** R11
+**Requirements:** W2-R11
 
 **Dependencies:** None
 
@@ -348,13 +348,13 @@ flowchart TB
 
 ---
 
-### Phase 2: Index Infrastructure (depends on Wave 1 R3/R7/R8 landing on main)
+### Phase 2: Index Infrastructure (Wave 1 prerequisites landed in PR #99)
 
 ### U7. Create index-scripts.py
 
 **Goal:** Automate script indexing using R3 frontmatter, replacing the manual `script-index` skill.
 
-**Requirements:** R1
+**Requirements:** W2-R1
 
 **Dependencies:** Wave 1 R3 (script frontmatter standardized), Wave 1 R7/R8 (link/index conventions)
 
@@ -390,7 +390,7 @@ flowchart TB
 
 **Goal:** Create the Map of Content pointing to other indices and important information.
 
-**Requirements:** R2
+**Requirements:** W2-R2
 
 **Dependencies:** U7 (`scripts/INDEX.md` must exist to be referenced)
 
@@ -419,7 +419,7 @@ flowchart TB
 
 **Goal:** Automate recursive INDEX.md creation/updates across `docs/` and `skills/*/scripts/`.
 
-**Requirements:** R3, R14
+**Requirements:** W2-R3, W2-R14
 
 **Dependencies:** U7 (index-scripts.py exists), U8 (ROUTING.md exists)
 
@@ -443,7 +443,7 @@ flowchart TB
 
 **Test scenarios:**
 - Happy path: Creates INDEX.md in each `docs/` subfolder that doesn't have one
-- Happy path: Creates INDEX.md in each `skills/*/scripts/` directory
+- Happy path: Delegates to index-scripts.py, which creates INDEX.md in each `skills/*/scripts/` directory
 - Happy path: Updates existing INDEX.md files to match current directory contents
 - Happy path: `docs/solutions/INDEX.md` includes Tags column from frontmatter
 - Edge case: `--dry-run` shows what would change without writing
@@ -458,7 +458,7 @@ flowchart TB
 
 **Goal:** Remove the manual `script-index` skill, replaced by `index-scripts.py`.
 
-**Requirements:** R4
+**Requirements:** W2-R4
 
 **Dependencies:** U7 (index-scripts.py exists and works)
 
@@ -479,7 +479,7 @@ flowchart TB
 - Happy path: `ts-coding-workflow`'s Phase 0 setup reads `scripts/INDEX.md` instead of `skills/script-index/SKILL.md`
 - Happy path: `scripts/INDEX.md` is the authoritative script index
 
-**Verification:** `skills/script-index/` is removed or reduced to a redirect. All script references point to `scripts/INDEX.md`.
+**Verification:** `skills/script-index/SKILL.md` is removed entirely. All script references point to `scripts/INDEX.md`.
 
 ---
 
@@ -489,16 +489,17 @@ flowchart TB
 
 **Goal:** Verify the standards documentation (from U1) that all subsequent units in this phase will follow, and enumerate all scripts that need to be extracted per KTD-3.
 
-**Requirements:** R5, R6, R13
+**Requirements:** W2-R5, W2-R6, W2-R13
 
 **Dependencies:** U1 (dispatch standards updated)
 
 **Files:**
 - `docs/standards/agent-standards.md` (existing canonical dispatch standard, updated by U1 — reused here, not duplicated)
-- Enumeration output: list of all inline scripts across all skills that qualify for extraction per KTD-3
+- `docs/plans/2026-07-05-001-extraction-enumeration.md` (new — enumeration output listing all inline scripts across all skills that qualify for extraction per KTD-3)
 
 **Approach:**
-- U1 already makes `docs/standards/agent-standards.md` the canonical dispatch-pattern source of truth. This unit does not create a second dispatch-standard doc; it reuses U1's output. If this unit runs before U1 lands, verify `agent-standards.md` documents Bootstrap as the only allowed pattern before proceeding — do not create a parallel file.
+- U1 must be complete and verified before U11 runs (U11 declares `Dependencies: U1`). U1 already makes `docs/standards/agent-standards.md` the canonical dispatch-pattern source of truth. This unit does not create a second dispatch-standard doc; it reuses U1's output. Verify that `agent-standards.md` documents Bootstrap as the only allowed pattern before proceeding — do not create a parallel file.
+- Write the enumeration to `docs/plans/2026-07-05-001-extraction-enumeration.md`.
 - Follow KTD-3's directions to look through ALL skills and enumerate any additional scripts that need to be pulled out
 - For each skill, identify inline blocks that qualify as extraction candidates (per KTD-3 criteria: duplicated across skills, complex mechanical steps, steps with known bugs)
 - Output a structured list that subsequent units (U13+) can reference during implementation
@@ -511,22 +512,22 @@ flowchart TB
 - Happy path: Each identified block is categorized by KTD-3 criteria (duplication, complexity, known bugs)
 - Edge case: Blocks that should stay inline (templates, single-idiom steps) are explicitly excluded
 
-**Verification:** A complete enumeration of extractable scripts exists, categorized by KTD-3 criteria, ready for subsequent units to consume.
+**Verification:** The file `docs/plans/2026-07-05-001-extraction-enumeration.md` exists, contains a complete enumeration of extractable scripts categorized by KTD-3 criteria, and lists all extraction candidates for subsequent units to consume.
 
 ---
 
-### U12. Create shared scripts: git-default-branch.sh and context-gather.sh
+### U12. Verify git-default-branch.sh and create context-gather.sh
 
 **Goal:** Extract duplicated default-branch resolution and git-context-gathering into shared scripts.
 
-**Requirements:** R5, R6
+**Requirements:** W2-R5, W2-R6
 
 **Dependencies:** None (these are new scripts, no existing file conflicts)
 
 **Files:**
 - `scripts/git-default-branch.sh` (existing — verify Wave 1 implementation matches spec)
 - `scripts/context-gather.sh` (new)
-- `tests/scripts/test-default-branch.sh` (new)
+- `tests/scripts/test-git-default-branch.sh` (new)
 - `tests/scripts/test-context-gather.sh` (new)
 
 **Approach:**
@@ -551,9 +552,9 @@ flowchart TB
 
 **Goal:** Extract the diff line mapping awk script and PR data fetch into reusable scripts.
 
-**Requirements:** R5, R6
+**Requirements:** W2-R5, W2-R6
 
-**Dependencies:** None
+**Dependencies:** U11 (script enumeration output), U12 (shared scripts), U14 (ts-pr-fix-findings scripts)
 
 **Files:**
 - `skills/ts-pr-review/scripts/map-diff-lines.sh` (new)
@@ -563,8 +564,9 @@ flowchart TB
 - `tests/skills/ts-pr-review/test-fetch-pr-data.sh` (new)
 
 **Approach:**
-- `map-diff-lines.sh`: Extract the complex awk script (lines 73-78 of SKILL.md) that parses diff output to build `file:line` mapping. Input: diff on stdin or as file argument. Output: JSON mapping of `file:line` to diff locations. The awk logic stays in the script; the skill just calls it and parses the JSON result. **Aligns with R16:** This script's input source will be updated in U19 to use `gh pr diff` instead of local `git diff -U10`.
-- `fetch-pr-data.sh`: Extract the `gh pr view` call (line 39) into a script with `--repo` and `--pr` arguments. Output: JSON with PR metadata. Uses `gh` CLI (matching existing patterns). This is a separate concern from `map-diff-lines.sh` (API data fetch vs. diff parsing), so it remains a distinct script.
+- Check the enumeration artifact (`docs/plans/2026-07-05-001-extraction-enumeration.md`) for extraction candidates before starting.
+- `map-diff-lines.sh`: Extract the awk block that builds the file:line map from diff output (in SKILL.md). Input: diff on stdin or as file argument. Output: JSON mapping of `file:line` to diff locations. The awk logic stays in the script; the skill just calls it and parses the JSON result. **Aligns with W2-R16:** This script's input source will be updated in U19 to use `gh pr diff` instead of local `git diff -U10`.
+- `fetch-pr-data.sh`: Extract the `gh pr view` invocation into a script with `--repo` and `--pr` arguments. Output: JSON with PR metadata. Uses `gh` CLI (matching existing patterns). This is a separate concern from `map-diff-lines.sh` (API data fetch vs. diff parsing), so it remains a distinct script.
 - Update SKILL.md to call these scripts instead of inline commands
 
 **Patterns to follow:** `scripts/pr-metadata.sh` for PR data fetching. `scripts/to-json.sh` for JSON output patterns.
@@ -583,9 +585,9 @@ flowchart TB
 
 **Goal:** Extract the thread resolution GraphQL mutation and re-review request into scripts.
 
-**Requirements:** R5, R6
+**Requirements:** W2-R5, W2-R6
 
-**Dependencies:** None
+**Dependencies:** U11 (script enumeration output)
 
 **Files:**
 - `skills/ts-pr-fix-findings/scripts/resolve-thread.sh` (new)
@@ -595,6 +597,7 @@ flowchart TB
 - `tests/skills/ts-pr-fix-findings/test-request-re-review.sh` (new)
 
 **Approach:**
+- Check the enumeration artifact (`docs/plans/2026-07-05-001-extraction-enumeration.md`) for extraction candidates before starting.
 - `resolve-thread.sh`: Extract the GraphQL mutation (line 198 of SKILL.md) into a script. Input: `--repo owner/repo --thread-id <id>`. Output: JSON with resolution status. Uses `gh api graphql`.
 - `request-re-review.sh`: Extract the re-review request (lines 207-212) into a script. Input: `--repo owner/repo --pr number --reviewer name`. Output: JSON confirmation. Uses `gh api` or `gh pr edit`.
 - Both include R3 frontmatter, `--help`, input validation (owner/repo format, numeric PR, `--reviewer` format regex `^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$` matching GitHub username rules with metacharacter gate), exit codes
@@ -619,16 +622,17 @@ flowchart TB
 
 **Goal:** Replace inline context-gathering blocks in ts-commit and ts-commit-push-pr with calls to `context-gather.sh`.
 
-**Requirements:** R5
+**Requirements:** W2-R5
 
-**Dependencies:** U12 (context-gather.sh exists)
+**Dependencies:** U11 (script enumeration output), U12 (context-gather.sh exists)
 
 **Files:**
 - `skills/ts-commit/SKILL.md` (update to call context-gather.sh)
 - `skills/ts-commit-push-pr/SKILL.md` (update to call context-gather.sh)
 
 **Approach:**
-- Replace the inline `printf` + git commands blocks (ts-commit line 37, ts-commit-push-pr line 40) with a call to `../../scripts/context-gather.sh`
+- Check the enumeration artifact (`docs/plans/2026-07-05-001-extraction-enumeration.md`) for extraction candidates before starting.
+- Replace the inline `printf` + git commands context-gathering blocks in ts-commit and ts-commit-push-pr with a call to `../../scripts/context-gather.sh`
 - The skill parses the JSON output instead of executing individual git commands
 - Preserve the skill's orchestration logic (what to do with the context data)
 
@@ -647,15 +651,16 @@ flowchart TB
 
 **Goal:** Extract high-value inline steps from ts-work into reusable scripts.
 
-**Requirements:** R5, R6
+**Requirements:** W2-R5, W2-R6
 
-**Dependencies:** U12 (default-branch.sh may be used)
+**Dependencies:** U11 (script enumeration output), U12 (default-branch.sh may be used)
 
 **Files:**
 - `skills/ts-work/SKILL.md` (update to call extracted scripts)
 - New scripts as identified (e.g., `scripts/cross-check-conventions.sh` if the convention grep pattern is worth extracting)
 
 **Approach:**
+- Check the enumeration artifact (`docs/plans/2026-07-05-001-extraction-enumeration.md`) for extraction candidates before starting.
 - Audit ts-work SKILL.md for extractable inline steps (context gathering, default branch resolution, convention cross-checking)
 - Replace inline blocks with calls to shared or skill-specific scripts
 - The incremental commit pattern (`git add && git commit`) is a template, not extractable — stays inline
@@ -675,17 +680,18 @@ flowchart TB
 
 **Goal:** Replace the duplicated base-branch-detection block in ts-verify-implementation with a call to the shared `git-default-branch.sh` script, and audit remaining inline bash blocks per KTD-3.
 
-**Requirements:** R5, R6
+**Requirements:** W2-R5, W2-R6
 
-**Dependencies:** U12 (`scripts/git-default-branch.sh` verified)
+**Dependencies:** U11 (script enumeration output), U12 (`scripts/git-default-branch.sh` verified)
 
 **Files:**
 - `skills/ts-verify-implementation/SKILL.md` (update Step 1 to call the shared script)
 
 **Approach:**
-- Step 1 ("Determine base branch", lines 25-29) inlines the exact fallback chain (`git remote show origin` → `git branch --list main master develop trunk`) already implemented in `scripts/git-default-branch.sh` (KTD-4, U12). Replace it with a call to that script and parse its output.
-- Audit the remaining inline bash blocks in the skill against KTD-3: the `git diff ${base_branch}...HEAD` invocation (line 57) is a single-idiom step with no plausible near-miss and stays inline. The `mktemp`/`printf`/`verify-ktd-literal.py` sequence (lines 76-81) is boilerplate around an already-extracted script call and stays inline. The `extract-ktds.py` (line 44) and `detect-coverage-gaps.sh` (line 115) invocations are already calls to extracted scripts — no change needed.
-- This closes the coverage gap for ts-verify-implementation, which is named in R5 and the Scope Boundaries as one of the six skills requiring extraction but had no corresponding unit.
+- Check the enumeration artifact (`docs/plans/2026-07-05-001-extraction-enumeration.md`) for extraction candidates before starting.
+- Step 1 ("Determine base branch") inlines the exact fallback chain (`git remote show origin` → `git branch --list main master develop trunk`) already implemented in `scripts/git-default-branch.sh` (KTD-4, U12). Replace it with a call to that script and parse its output.
+- Audit the remaining inline bash blocks in the skill against KTD-3: the `git diff ${base_branch}...HEAD` invocation is a single-idiom step with no plausible near-miss and stays inline. The `mktemp`/`printf`/`verify-ktd-literal.py` sequence is boilerplate around an already-extracted script call and stays inline. The `extract-ktds.py` and `detect-coverage-gaps.sh` invocations are already calls to extracted scripts — no change needed.
+- This closes the coverage gap for ts-verify-implementation, which is named in W2-R5 and the Scope Boundaries as one of the six skills requiring extraction but had no corresponding unit.
 
 **Patterns to follow:** `scripts/git-default-branch.sh` for the fallback chain contract. How ts-work (U16) consumes shared scripts.
 
@@ -701,7 +707,7 @@ flowchart TB
 
 **Goal:** Create a `CLAUDE.md` at the repo root with a concise repository summary, pointer to ROUTING.md, and universal agent rules.
 
-**Requirements:** R15
+**Requirements:** W2-R15
 
 **Dependencies:** U8 (ROUTING.md must exist to be referenced)
 
@@ -730,16 +736,16 @@ flowchart TB
 
 **Goal:** Build the linemap from `gh pr diff` output (GitHub's 3-line context) instead of local `git diff -U10` so inline comment line numbers match what the Reviews API accepts.
 
-**Requirements:** R16
+**Requirements:** W2-R16
 
 **Dependencies:** U13 (map-diff-lines.sh must exist)
 
 **Files:**
-- `skills/ts-pr-review/SKILL.md` (update Step 4b linemap generation, lines ~90-97)
-- `skills/ts-pr-review/scripts/map-diff-lines.sh` (from U13 — update line ~12 to read from `gh pr diff` output file)
+- `skills/ts-pr-review/SKILL.md` (update the Step 4b linemap generation block)
+- `skills/ts-pr-review/scripts/map-diff-lines.sh` (from U13 — update its input source to read `gh pr diff` output)
 - `tests/skills/ts-pr-review/test-map-diff-lines.sh` (add test case for `gh pr diff` input with 3-line context)
 
-**Note:** Verify first whether R16 is already satisfied by current ts-pr-review SKILL.md Step 4b. If `gh pr diff` is already in use, mark this unit as verification-only.
+**Note:** Verify first whether W2-R16 is already satisfied by current ts-pr-review SKILL.md Step 4b. If `gh pr diff` is already in use, mark this unit as verification-only.
 
 **Approach:**
 - In Step 4b, replace the local `git diff -U10` with `gh pr diff NUMBER` for linemap generation
@@ -764,7 +770,7 @@ flowchart TB
 
 **Goal:** Verify ts-work's Bootstrap dispatch (migrated in PR #104) is complete and add the auto-dispatch mechanism for `implementer-tests` per `docs/standards/testing-standards.md`.
 
-**Requirements:** R12
+**Requirements:** W2-R12
 
 **Dependencies:** U1 (standards document updated)
 
@@ -793,7 +799,7 @@ flowchart TB
 
 **Goal:** Migrate ts-compound (direct-seed), ts-code-review (template-wrapped), and ts-verify-implementation (template-wrapped) to Bootstrap dispatch. ts-work, ts-plan, and ts-doc-review are already migrated (PR #104).
 
-**Requirements:** R12
+**Requirements:** W2-R12
 
 **Dependencies:** U1 (standards document updated)
 
@@ -829,7 +835,7 @@ flowchart TB
 
 **Goal:** Ensure all indices are up-to-date after Wave 2 changes.
 
-**Requirements:** R3
+**Requirements:** W2-R3
 
 **Dependencies:** U7, U8, U9 (index infrastructure complete), U1-U21 (all changes landed)
 
@@ -867,7 +873,6 @@ flowchart TB
 
 **Deferred to Follow-Up Work:**
 - **Agent consolidation (#83)** — requires its own dedicated plan. Tracked separately.
-- **Script-index skill removal** — may be kept as a thin redirect if downstream tools depend on it.
 
 **Out of scope:**
 - Agent deduplication across skills (#83)
@@ -878,14 +883,14 @@ flowchart TB
 
 - **Wave 1 landed:** R3/R7/R8 standards, ShellCheck integration, and script fixes (#63, #47, #44) are already on main (PR #99). No dependency gate for Phase 1 or Phase 2.
 - **Wave 1.5 landed:** Bootstrap dispatch, testing-standards.md, notification resilience are on main (PR #104). Phase 4 work includes ts-compound, ts-code-review, and ts-verify-implementation migration to Bootstrap.
-- **Script extraction coordination:** Track 2 (extraction) and Track 3 (fixes) may touch the same scripts. Coordinate to avoid conflicts — fixes should land before extraction changes the target files.
+- **Script extraction coordination:** Track 2 (extraction) and Track 3 (fixes) may touch the same scripts. Coordinate to avoid conflicts — fixes should land before extraction changes the target files. **Exception:** U14 (Phase 2) is a hard predecessor of U2 (Phase 1) because U2 validates scripts that U14 creates (`resolve-thread.sh`, `request-re-review.sh`). U14 must land before U2 can extend those scripts with injection-path tests.
 - **Bootstrap migration risk:** ts-compound, ts-code-review, and ts-verify-implementation must all be migrated to Bootstrap. Migration is a behavioral change; test thoroughly. Template-wrapped is fully deprecated — no fallback.
 - **Inline script identification:** Some inline blocks in SKILL.md are templates (e.g., commit message patterns) that should stay inline, not be extracted. The implementer must use judgment on extraction candidates.
 - **Testing coverage:** PR #104's auto-dispatch mechanism means extracted scripts automatically get test coverage. The implementer must ensure each extraction unit has test scenarios defined so the auto-dispatch fires.
 
 ## System-Wide Impact
 
-- All skills use Bootstrap dispatch (template-wrapped and direct-seed fully deprecated), reducing token cost by ~97% per reviewer invocation
+- All skills use Bootstrap dispatch (template-wrapped and direct-seed fully deprecated), substantially reducing token cost per reviewer invocation (measured in PR #104)
 - Automated index infrastructure replaces manual script-index skill
 - ROUTING.md provides a single entry point for navigating the repo's documentation
 - Extracted scripts reduce token cost for skill invocations and are ShellCheck-clean
