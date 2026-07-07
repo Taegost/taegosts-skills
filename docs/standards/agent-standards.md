@@ -83,9 +83,9 @@ Some skills define specialized heading structures adapted from these base templa
 
 ## Dispatch Patterns
 
-Three dispatch patterns coexist in the codebase, with Bootstrap as the primary:
+**Bootstrap is the only allowed dispatch pattern.** All skills that dispatch subagents must use Bootstrap. The two legacy patterns (Template-Wrapped and Direct-Seed) are deprecated and must not be used in new work.
 
-### Bootstrap (primary — ts-doc-review, ts-work, ts-plan)
+### Bootstrap (required — all skills)
 
 The orchestrator passes file paths instead of inline content. The subagent reads its own operating contract, role prompt, and schema from disk. This reduces orchestrator dispatch output from ~10k tokens to ~150-300 tokens per reviewer.
 
@@ -97,15 +97,15 @@ Read these files IN FULL before starting:
 4. <document_path> (document under review)
 ```
 
-**Bootstrap-ack:** The agent emits a brief acknowledgment (file paths + line counts) before starting analysis. The orchestrator verifies all expected files appear in the ack and that each reported line count matches the on-disk file length. Missing files or mismatched counts trigger re-dispatch (up to 3 attempts), then fallback to inline-content dispatch.
+**Bootstrap-ack requirement:** After reading all files, the agent emits a plain-text acknowledgment listing each file path and its line count (one line per file, `<path> (<N> lines)`). The orchestrator verifies each expected path appears in the ack before accepting findings. Missing files or mismatched counts trigger re-dispatch with an admonition to read all files (up to 3 attempts). If all 3 attempts fail, the orchestrator falls back to inline-content dispatch for that reviewer.
 
-**Schema-as-guidance:** Schema `description` fields contain behavioral guidance — agents must read them as instructions, not metadata.
+**Schema-as-guidance:** The bootstrap prompt includes: "Schema `description` fields contain behavioral guidance — read them as instructions, not metadata." This ensures agents process rubric descriptions as behavioral rules, not passive documentation.
 
-See `docs/solutions/conventions/subagent-bootstrap-dispatch.md` for the full pattern.
+See `docs/solutions/conventions/subagent-bootstrap-dispatch.md` for the full pattern, prompt shapes, and examples.
 
-### Template-Wrapped (legacy — ts-code-review, fallback)
+### Template-Wrapped (deprecated — not a fallback)
 
-The orchestrator injects agent file content into a subagent template via `{agent_file}` variable substitution. The template provides shared structure (output contract, confidence rubric, schema) and the agent file provides domain-specific identity and scope. Used as fallback when bootstrap dispatch is unavailable (harness lacks file-read tools).
+The orchestrator injects agent file content into a subagent template via `{agent_file}` variable substitution. This pattern is **deprecated and must not be used for new skills or migrations.** It exists only as documentation of a pattern that predates this standard.
 
 ```
 <agent>
@@ -113,9 +113,37 @@ The orchestrator injects agent file content into a subagent template via `{agent
 </agent>
 ```
 
-### Direct-Seed (legacy — ts-compound)
+**Why deprecated:** Inline content inflates orchestrator dispatch tokens (~10k per reviewer) and couples agent identity to the orchestrator's context window. Bootstrap eliminates both problems.
 
-The orchestrator seeds agent file content directly into a generic subagent prompt. The agent file carries the full context including output contract. Scheduled for removal in a separate PR.
+### Direct-Seed (deprecated — only with explicit owner approval)
+
+The orchestrator seeds agent file content directly into a generic subagent prompt. The agent file carries the full context including output contract. This pattern is **deprecated.** Skills still using it must migrate to Bootstrap. The only exception: a skill owner may request a temporary deferral if the skill's dispatch mechanism cannot support file-path passing (e.g., a platform harness without file-read tools). Such deferrals require explicit owner approval and a tracked migration issue.
+
+**Why deprecated:** Same token-inflation problem as Template-Wrapped, plus the agent's operating contract is not separated from its task prompt, making updates fragile.
+
+## Migration to Bootstrap
+
+Skills still using Template-Wrapped or Direct-Seed dispatch must migrate to Bootstrap. The migration steps are:
+
+1. **Identify the current dispatch pattern.** Read the skill's SKILL.md for how subagents are spawned. Look for `{agent_file}` substitution (Template-Wrapped) or inline agent content in the dispatch prompt (Direct-Seed).
+
+2. **Replace inline content with file paths.** Instead of injecting the agent file's content into the dispatch prompt, pass the file path. The subagent reads the file itself.
+
+3. **Add bootstrap-ack to the dispatch prompt.** Include the ack instruction: "After reading all files, emit acknowledgment: one line per file, `<path> (<N> lines)`."
+
+4. **Add ack verification to the orchestrator.** After the subagent returns, verify the ack contains all expected file paths. Implement the 3-attempt retry with admonition, then inline-content fallback.
+
+5. **Remove `{agent_file}` substitution.** Delete any template variable substitution logic from the orchestrator.
+
+6. **Test the migration.** Run the skill end-to-end. Verify the subagent reads its own files and the ack is present and correct.
+
+### Skills requiring migration
+
+| Skill | Current pattern | Status |
+|-------|----------------|--------|
+| `ts-compound` | Direct-Seed | Needs migration — see its SKILL.md dispatch section |
+
+Skills already on Bootstrap: `ts-code-review`, `ts-doc-review`, `ts-work`, `ts-verify-implementation`, `ts-plan`.
 
 ## File Placement
 
