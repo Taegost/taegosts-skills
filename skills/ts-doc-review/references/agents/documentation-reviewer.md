@@ -1,6 +1,7 @@
 ---
 name: documentation-reviewer
 description: Reviews requirements and plan documents against repository documentation and conventions — flags conflicts and missing doc updates.
+model: haiku
 tools: Read, Grep, Glob
 disallowedTools: Write, Edit
 effort: high

@@ -1,6 +1,7 @@
 ---
 name: api-contract-reviewer
 description: Evaluates API and interface changes through the lens of every consumer that depends on the current contract.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

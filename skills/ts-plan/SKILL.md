@@ -202,8 +202,6 @@ All specialist research and deepening prompts used in this phase are skill-local
 
 **Notification recovery.** When agents run in the background, completion notifications may be missed. Each agent writes its output to disk as its primary completion signal. The orchestrator can detect completion via Monitor-based file watching or polling fallback (`scripts/wait-for-file.sh`). See `docs/solutions/workflow-issues/notification-resilience-via-disk-state.md`.
 
-Model tiering lives in this caller, not in prompt assets. Local prompt files have no frontmatter. Use the platform's mid-tier model for external/organizational research prompts such as `slack-researcher` and `web-researcher` when the current harness exposes a known override; otherwise omit the override and inherit. Use inherited model for high-judgment architecture, migration, and planning-deepening prompts unless the harness has an established cheaper capable tier.
-
 #### 1.1 Local Research (Always Runs)
 
 Prepare a concise planning context summary (a paragraph or two) to pass as input to the research agents:

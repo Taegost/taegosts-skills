@@ -1,6 +1,7 @@
 ---
 name: security-lens-reviewer
 description: Evaluates whether a plan accounts for security at the planning level — attack surface, auth, data protection.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

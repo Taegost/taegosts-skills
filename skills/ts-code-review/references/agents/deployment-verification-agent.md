@@ -1,6 +1,7 @@
 ---
 name: deployment-verification-agent
 description: Produces concrete, executable go/no-go checklists for risky data deployments.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

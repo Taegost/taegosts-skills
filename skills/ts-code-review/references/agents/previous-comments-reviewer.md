@@ -1,6 +1,7 @@
 ---
 name: previous-comments-reviewer
 description: Verifies that prior review feedback on a PR has been addressed, serving as institutional memory.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

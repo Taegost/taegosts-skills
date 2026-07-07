@@ -1,6 +1,7 @@
 ---
 name: performance-reviewer
 description: Reviews code for runtime performance and scalability issues observable in production.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

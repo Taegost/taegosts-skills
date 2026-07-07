@@ -1,6 +1,7 @@
 ---
 name: standards-verifier
 description: Verifies that changes follow project conventions, naming, structure, and code style.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

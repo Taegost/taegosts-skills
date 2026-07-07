@@ -1,6 +1,7 @@
 ---
 name: test-documentation-reviewer
 description: Reviews requirements and plan documents for test-plan completeness and acceptance-criterion coverage.
+model: haiku
 tools: Read, Grep, Glob
 disallowedTools: Write, Edit
 effort: high

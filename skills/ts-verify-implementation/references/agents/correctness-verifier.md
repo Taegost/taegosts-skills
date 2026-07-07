@@ -1,6 +1,7 @@
 ---
 name: correctness-verifier
 description: Verifies that the implementation matches the plan — logic, behavior, and intent alignment.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

@@ -174,7 +174,7 @@ gh pr view <number-or-url> --json state,title,body,files
 Apply skip rules in order:
 
 - `state` is `CLOSED` or `MERGED` -> stop with reason `PR is closed/merged; not reviewing.`
-- **Trivial-PR judgment**: spawn a lightweight sub-agent on the platform's cheapest capable model when a known override exists; otherwise omit the model override and inherit. Give it the PR title, body, and changed file paths. The agent's task: "Is this an automated or trivial PR that does not warrant a code review? Consider: dependency lock-file or manifest-only bumps, automated release commits, chore version increments with no substantive code changes. When in doubt, answer no — false negatives (skipped reviews that should have run) are more costly than false positives (unnecessary reviews)." If the judgment returns yes: stop with reason `PR appears to be a trivial automated PR; not reviewing. Run without a PR argument to review the current branch, or pass base:<ref> if review is intended.`
+- **Trivial-PR judgment**: spawn a lightweight sub-agent. Give it the PR title, body, and changed file paths. The agent's task: "Is this an automated or trivial PR that does not warrant a code review? Consider: dependency lock-file or manifest-only bumps, automated release commits, chore version increments with no substantive code changes. When in doubt, answer no — false negatives (skipped reviews that should have run) are more costly than false positives (unnecessary reviews)." If the judgment returns yes: stop with reason `PR appears to be a trivial automated PR; not reviewing. Run without a PR argument to review the current branch, or pass base:<ref> if review is intended.`
 
 When any skip rule fires, stop without dispatching reviewers. **Default mode:** emit the reason as plain text. **`mode:agent`:** emit JSON only — `{"status":"skipped","reason":"<same message>"}` — so programmatic callers can parse the outcome. **Standalone**, **`base:`**, and **branch-remote** paths are unaffected. **Draft PRs are reviewed normally.**
 
@@ -306,23 +306,20 @@ Stack-specific agents are additive when runtime behavior warrants them. A Hotwir
 
 For `deployment-verification-agent`, use the same migration-artifact gate when the change is risky (destructive DDL, backfills, NOT NULL without default, column renames/drops).
 
-Announce the team before spawning. Tag each reviewer with its model tier (`[session model]` or `[mid-tier]`) — this annotation is the authoritative input Stage 4 reads to apply the dispatch-time override, so it must be present and accurate before any agent is dispatched:
+Announce the team before spawning:
 
 ```
 Review team:
-- correctness (always) [session model]
-- testing (always) [mid-tier]
-- maintainability (always) [mid-tier]
-- project-standards (always) [mid-tier]
-- learnings-researcher (always) [mid-tier]
-- security -- new endpoint in routes.rb accepts user-provided redirect URL [session model]
-- julik-frontend-races -- Stimulus controller with async DOM updates [mid-tier]
-- data-migration -- adds migration 20260303_add_index_to_orders [mid-tier]
-- deployment-verification-agent -- destructive migration with backfill [mid-tier]
+- correctness (always)
+- testing (always)
+- maintainability (always)
+- project-standards (always)
+- learnings-researcher (always)
+- security -- new endpoint in routes.rb accepts user-provided redirect URL
+- julik-frontend-races -- Stimulus controller with async DOM updates
+- data-migration -- adds migration 20260303_add_index_to_orders
+- deployment-verification-agent -- destructive migration with backfill
 ```
-
-Tag `[session model]` only for `correctness-reviewer`, `security-reviewer`, and `adversarial-reviewer`; every other agent and CE agent gets `[mid-tier]` (see Model tiering below for the rationale).
-
 This is progress reporting, not a blocking confirmation.
 
 ### Stage 3b: Discover project standards paths
@@ -335,14 +332,6 @@ Before spawning sub-agents, find the file paths (not contents) of all relevant s
 Pass the resulting path list to the `project-standards` agent inside a `<standards-paths>` block in its review context (see Stage 4). The agent reads the files itself, targeting only the sections relevant to the changed file types. This keeps the orchestrator's work cheap (path discovery only) and avoids bloating the subagent prompt with content the reviewer may not fully need.
 
 ### Stage 4: Spawn sub-agents
-
-#### Model tiering
-
-Three reviewers inherit the session model with no override: `correctness-reviewer`, `security-reviewer`, and `adversarial-reviewer`. These perform the highest-stakes analysis — logic bugs, security vulnerabilities, adversarial failure scenarios — and should run at whatever capability level the user has configured. If the user is on Opus, these get Opus.
-
-All other agent subagents and CE local prompt assets use the platform's mid-tier model to reduce cost and latency. See the Spawning subsection below for the exact dispatch-time override.
-
-The orchestrator (this skill) also inherits the session model; it handles intent discovery, reviewer selection, finding merge/dedup, and synthesis.
 
 #### Run ID
 
@@ -360,13 +349,6 @@ Pass `{run_id}` to every agent sub-agent so they can write their full analysis t
 #### Spawning
 
 Omit the `mode` parameter when dispatching sub-agents so the user's configured permission settings apply. Do not pass `mode: "auto"`.
-
-**Model override at dispatch time — check this before every dispatch call.** Omitting it on a top-tier parent session (e.g. Opus) silently multiplies review cost. For each reviewer, read the `[session model]` / `[mid-tier]` tag from the Stage 3 team announce and apply it — do not re-derive the tier from the rules at dispatch time:
-
-- `[session model]` → no override; the reviewer inherits the session model. This covers `correctness-reviewer`, `security-reviewer`, and `adversarial-reviewer`.
-- `[mid-tier]` → pass the platform's mid-tier model. In Claude Code, that is the Sonnet class. In Codex, use the current mini/mid-tier model exposed by `spawn_agent` when known. On platforms where the dispatch primitive has no model-override parameter or the available model names are unknown, omit the override — a working review on the parent model beats a broken dispatch on an unrecognized name.
-
-The Stage 3 annotation is the single source of truth for model assignment; apply it on every Agent / `spawn_agent` / subagent call in the parallel dispatch.
 
 **Bounded parallel dispatch.** Respect the current harness's active-subagent limit. Queue selected reviewers, dispatch only as many as the harness accepts, and fill freed slots as reviewers complete. Treat active-agent/thread/concurrency-limit spawn errors as backpressure, not reviewer failure: leave the reviewer queued and retry after a slot frees. Record a reviewer as failed only after a successful dispatch times out/fails, or when dispatch fails for a non-capacity reason.
 
@@ -483,9 +465,8 @@ Independent verification gate. Spawn one validator sub-agent per surviving findi
    - `validated: true` -> finding survives unchanged into Stage 6
    - `validated: false` -> finding is dropped; record the validator's reason in Coverage
    - Validator **infrastructure** failure (timeout, dispatch error, malformed JSON — not a `validated:false` verdict): for **P2/P3**, drop the finding with reason "validator failed" (conservative bias). For **P0/P1**, do **not** drop on infra failure — keep the finding and mark its validation **degraded** (note in Coverage). A transient validator failure must never silently remove a critical/high finding; a genuine `validated:false` rejection above still drops at any severity.
-5. **Use mid-tier model for validators.** Same platform model class the mid-tier agent reviewers use; omit the override if the model name is unknown. Validators are read-only — same constraints as agent reviewers. They may use non-mutating inspection commands (Read, Grep, Glob, git blame, gh).
-6. **Record metrics for Coverage.** Total dispatched, validated true count, validated false count (with reasons), infra failures (and any P0/P1 kept-on-failure as degraded), and over-budget drops.
-7. **Prune triage groups after drops.** When validation dropped any finding, rebuild or prune `triage_groups` from the validated set: a group must never reference a `#` that was rejected or dropped. Remove groups left with fewer than two findings under `grouping:auto`; under `grouping:always`, keep them as single-finding groups only when still meaningful.
+5. **Record metrics for Coverage.** Total dispatched, validated true count, validated false count (with reasons), infra failures (and any P0/P1 kept-on-failure as degraded), and over-budget drops.
+6. **Prune triage groups after drops.** When validation dropped any finding, rebuild or prune `triage_groups` from the validated set: a group must never reference a `#` that was rejected or dropped. Remove groups left with fewer than two findings under `grouping:auto`; under `grouping:always`, keep them as single-finding groups only when still meaningful.
 
 **Orchestrator direct verification.** When a finding hinges on a fact the orchestrator can check cheaply and authoritatively — a pinned dependency's source, a wiring/config fact in this repo, a build tag — verify it directly with single-purpose native tools (Read/Grep/Glob, one git command at a time), never chained or error-suppressed shell. Fold confirmed facts into synthesis. Whether it can *replace* the independent validator turns on a single distinction: the orchestrator is **not** an independent second opinion (it synthesized these findings), so direct verification catches a wrong **fact** but not the orchestrator's own **bias**. Independence adds nothing to a mechanically-checkable fact and everything to a judgment call:
 

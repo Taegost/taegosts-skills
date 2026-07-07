@@ -1,6 +1,7 @@
 ---
 name: security-sentinel
 description: Performs comprehensive security audits, identifying and mitigating vulnerabilities before exploitation.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

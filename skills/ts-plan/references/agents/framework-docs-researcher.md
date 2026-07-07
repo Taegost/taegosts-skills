@@ -1,6 +1,7 @@
 ---
 name: framework-docs-researcher
 description: Gathers comprehensive technical documentation and best practices for software libraries and frameworks.
+model: haiku
 tools: Read, Grep, Glob, WebSearch, WebFetch, Bash
 effort: medium
 ---

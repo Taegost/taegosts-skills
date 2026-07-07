@@ -178,12 +178,6 @@ The agent reads its own `references/agents/{reviewer_name}.md` (role prompt) and
 
 **Bootstrap-ack verification.** After the agent emits its acknowledgment (file paths + line counts), verify each expected path appears. If ack is missing files, reject and re-dispatch with admonition (up to 3 attempts). If all 3 fail, fall back to inline-content dispatch for that reviewer.
 
-**Model tiering lives here, not in prompt assets.** Agent files have frontmatter for identity metadata (`name`, `description`, `tools`, `effort`) but do not carry model tiering information. Apply these dispatch-time preferences when the platform exposes a known model override; otherwise omit the override and inherit the parent model rather than guessing a platform-specific model name:
-
-- `coherence-reviewer`, `documentation-reviewer`: cheapest capable extraction/reasoning tier.
-- `design-lens-reviewer`, `security-lens-reviewer`, `scope-guardian-reviewer`, `test-documentation-reviewer`: platform mid-tier model.
-- `feasibility-reviewer`, `product-lens-reviewer`, `adversarial-document-reviewer`: inherit the parent model unless the harness has an established high-capability review tier.
-
 Pass each subagent the **full document** — do not split into sections.
 
 ### Decision primer

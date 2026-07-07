@@ -1,6 +1,7 @@
 ---
 name: adversarial-reviewer
 description: Reviews code by constructing failure scenarios and attack sequences to find exploitable paths.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

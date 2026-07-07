@@ -1,6 +1,7 @@
 ---
 name: coherence-reviewer
 description: Reviews documents for internal consistency — catches when a document disagrees with itself.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

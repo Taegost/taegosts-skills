@@ -1,6 +1,7 @@
 ---
 name: scope-verifier
 description: Verifies that no unplanned changes were made — flags anything beyond the plan's scope.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

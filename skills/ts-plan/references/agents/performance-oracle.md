@@ -1,6 +1,7 @@
 ---
 name: performance-oracle
 description: Identifies and resolves performance bottlenecks in software systems — algorithmic complexity, DB optimization, caching.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

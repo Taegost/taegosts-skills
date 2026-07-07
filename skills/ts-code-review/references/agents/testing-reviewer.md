@@ -1,6 +1,7 @@
 ---
 name: testing-reviewer
 description: Evaluates whether tests in a diff actually prove the code works, not just that they exist.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

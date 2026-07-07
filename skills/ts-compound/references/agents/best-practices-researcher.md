@@ -1,6 +1,7 @@
 ---
 name: best-practices-researcher
 description: Searches for and synthesizes best practices from authoritative sources for current industry standards.
+model: haiku
 tools: Read, Grep, Glob, WebSearch, WebFetch
 effort: medium
 ---

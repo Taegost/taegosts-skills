@@ -16,6 +16,7 @@ Every agent file must begin with YAML frontmatter containing these fields:
 ---
 name: <short-kebab-case-slug>
 description: <one-line activation trigger — when the orchestrator should dispatch this agent>
+model: <model>
 tools: <comma-separated list of tools the agent may use>
 effort: <low | medium | high | xhigh | max>
 ---
@@ -27,6 +28,7 @@ effort: <low | medium | high | xhigh | max>
 |-------|----------|-------------|
 | `name` | Yes | Short kebab-case identifier derived from the filename (without `.md`). Used for dispatch references and logging. |
 | `description` | Yes | One-line description of when to activate this agent. The orchestrator uses this to decide which agents to dispatch for a given task. |
+| `model` | Yes | The Claude Code model level to use. Defaults to "haiku" |
 | `tools` | Yes | Comma-separated list of tools the agent may use. Common values: `Read, Grep, Glob` (read-only analysis), `Read, Grep, Glob, WebSearch, WebFetch` (research agents), `Read, Edit, Write, Bash, Grep, Glob` (implementers). |
 | `effort` | Yes | Reasoning effort tier. `low` for mechanical tasks, `medium` for standard analysis, `high` for complex reasoning, `xhigh`/`max` for adversarial review or deep research. |
 | `disallowedTools` | No | Comma-separated list of tools the agent must NOT use. Used when an agent should be explicitly prevented from certain actions (e.g., `Write, Edit` for read-only reviewers). |

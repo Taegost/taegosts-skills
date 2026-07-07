@@ -1,6 +1,7 @@
 ---
 name: git-history-analyzer
 description: Analyzes git history for patterns, recent changes, and commit context to inform planning decisions.
+model: haiku
 tools: Read, Grep, Glob, Bash
 effort: medium
 ---

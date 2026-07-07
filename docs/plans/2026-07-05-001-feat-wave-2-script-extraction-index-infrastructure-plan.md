@@ -17,13 +17,9 @@ The index infrastructure replaces the manual `script-index` skill with automated
 
 **Wave 1.5 status (PR #104, merged 2026-07-06):** Bootstrap dispatch is now the only allowed pattern. Template-wrapped is fully deprecated (not a fallback). Direct-seed is deprecated and only allowed in narrow circumstances with explicit owner approval. ts-work, ts-plan, and ts-doc-review are already migrated to Bootstrap. Testing standards with auto-dispatch and coverage-gap detection are established. Notification resilience via disk-first state is documented.
 
-The index infrastructure replaces the manual `script-index` skill with automated indexers that scan `scripts/` and `skills/*/scripts/` directories (both `.sh` and `.py` files), generate R8-compliant `INDEX.md` files at each level, and maintain `ROUTING.md` as the repo's Map of Content. A pre-commit hook ensures indexes stay current without manual intervention.
-
 ## Problem Frame
 
 Skills contain inline shell commands and mechanical steps that the LLM executes token-by-token. These steps are duplicated across skills (default branch resolution appears in three skills, context gathering in two), error-prone when executed inline (complex awk scripts, GraphQL mutations), and expensive in tokens. Wave 1 established the frontmatter and standards foundation; Wave 2 extracts, indexes, and hardens.
-
-Bootstrap is the only allowed dispatch pattern. Template-wrapped and direct-seed are fully deprecated. All skills that call subagents must be migrated to Bootstrap dispatch as part of this PR. Bootstrap centralizes file-path-based dispatch with bootstrap-ack verification, reducing token cost by ~97% per reviewer invocation.
 
 ## Requirements
 
@@ -37,7 +33,7 @@ Bootstrap is the only allowed dispatch pattern. Template-wrapped and direct-seed
 **Script Extraction (from #82)**
 
 - R5. Extract inline scripts from ts-commit, ts-commit-push-pr, ts-pr-review, ts-verify-implementation, ts-pr-fix-findings, and ts-work into reusable script files under `scripts/` or `skills/<name>/scripts/`
-- R6. Each extracted script follows existing conventions: R3 frontmatter (line 2: `# <name> -- <description>`), `--help` flag, JSON output, exit codes (0/1/2), input validation, `set -euo pipefail`, ShellCheck-clean. Each script must have a corresponding test in `tests/scripts/` per `docs/standards/testing-standards.md`.
+- R6. Each extracted script follows existing conventions: R3 frontmatter (line 2: `# <name> -- <description>`), `--help` flag, JSON output, exit codes (0/1/2), input validation, `set -euo pipefail`, ShellCheck-clean. Each script must have a corresponding test in `tests/scripts/` per `docs/standards/testing-standards.md`. Coverage targets: 100% for high-risk code paths (input validation, shell metacharacter gates, GraphQL mutation construction); ≥80% for the remainder of each extracted script.
 
 **Script Fixes (from #63, #60, #61, #47, #44)**
 
@@ -144,6 +140,11 @@ flowchart TB
     U12 --> U15
     U12 --> U16
     U12 --> U17
+    U12 --> U13
+    U12 --> U14
+    U12 --> U15
+    U12 --> U16
+    U12 --> U17
     U7 --> U22
     U9 --> U22
     U20 --> U22
@@ -196,8 +197,15 @@ flowchart TB
 **Files:**
 - `skills/ts-pr-fix-findings/scripts/check-thread-resolution.sh` (update validation)
 - `skills/ts-pr-fix-findings/scripts/fetch-issue-comments.sh` (update validation)
+- `skills/ts-pr-fix-findings/scripts/resolve-thread.sh` (add format validation for `--thread-id`: metacharacter gate + regex `^[A-Za-z0-9=_-]+$` matching GitHub node ID pattern; metacharacter gate + regex `^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$` for `--reviewer`)
+- `skills/ts-pr-fix-findings/scripts/request-re-review.sh` (add format validation for `--reviewer`: metacharacter gate + regex `^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$`)
 - `tests/skills/ts-pr-fix-findings/test-check-thread-resolution.sh` (add test cases)
 - `tests/skills/ts-pr-fix-findings/test-fetch-issue-comments.sh` (add test cases)
+- `tests/skills/ts-pr-fix-findings/test-resolve-thread.sh` (add injection-path test: "validated thread-id cannot inject GraphQL fields when interpolated")
+- `tests/skills/ts-pr-fix-findings/test-request-re-review.sh` (add injection-path test: "validated reviewer name cannot inject shell commands when interpolated")
+
+**Approach:**
+- **Wave 1 (PR #99) already applied validation fixes for check-thread-resolution.sh and fetch-issue-comments.sh.** Extend the same dual-gate pattern (metacharacter regex + format regex) to the new scripts resolve-thread.sh and request-re-review.sh.
 
 **Approach:**
 - **Wave 1 (PR #99) already applied all three fixes.** Verify each explicitly rather than assuming coverage from the format-validation fix alone:
@@ -589,7 +597,7 @@ flowchart TB
 **Approach:**
 - `resolve-thread.sh`: Extract the GraphQL mutation (line 198 of SKILL.md) into a script. Input: `--repo owner/repo --thread-id <id>`. Output: JSON with resolution status. Uses `gh api graphql`.
 - `request-re-review.sh`: Extract the re-review request (lines 207-212) into a script. Input: `--repo owner/repo --pr number --reviewer name`. Output: JSON confirmation. Uses `gh api` or `gh pr edit`.
-- Both include R3 frontmatter, `--help`, input validation (owner/repo format, numeric PR), exit codes
+- Both include R3 frontmatter, `--help`, input validation (owner/repo format, numeric PR, `--reviewer` format regex `^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$` matching GitHub username rules with metacharacter gate), exit codes
 - Update SKILL.md Steps 3 and 5 to call these scripts
 
 **Patterns to follow:** `skills/ts-pr-fix-findings/scripts/check-thread-resolution.sh` for GraphQL API patterns. `scripts/pr-metadata.sh` for `gh api` patterns.
@@ -599,6 +607,9 @@ flowchart TB
 - Happy path: `request-re-review.sh` requests a re-review
 - Edge case: Invalid thread ID produces JSON error
 - Edge case: API auth failure produces clear error message
+- Injection path: `request-re-review.sh --reviewer "$(echo -e 'foo\nbar')"` rejects the input
+- Injection path: `request-re-review.sh --reviewer 'foo; rm -rf /tmp'` rejects the input
+- Injection path: `request-re-review.sh --reviewer 'foo$(whoami)'` rejects the input
 
 **Verification:** Both scripts work against a real PR. SKILL.md calls them instead of inline commands.
 
@@ -724,8 +735,11 @@ flowchart TB
 **Dependencies:** U13 (map-diff-lines.sh must exist)
 
 **Files:**
-- `skills/ts-pr-review/SKILL.md` (update Step 4b linemap generation)
-- `skills/ts-pr-review/scripts/map-diff-lines.sh` (from U13 — must use `gh pr diff` output)
+- `skills/ts-pr-review/SKILL.md` (update Step 4b linemap generation, lines ~90-97)
+- `skills/ts-pr-review/scripts/map-diff-lines.sh` (from U13 — update line ~12 to read from `gh pr diff` output file)
+- `tests/skills/ts-pr-review/test-map-diff-lines.sh` (add test case for `gh pr diff` input with 3-line context)
+
+**Note:** Verify first whether R16 is already satisfied by current ts-pr-review SKILL.md Step 4b. If `gh pr diff` is already in use, mark this unit as verification-only.
 
 **Approach:**
 - In Step 4b, replace the local `git diff -U10` with `gh pr diff NUMBER` for linemap generation
