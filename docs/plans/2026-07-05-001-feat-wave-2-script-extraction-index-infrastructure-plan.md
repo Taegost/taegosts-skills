@@ -15,13 +15,15 @@ The index infrastructure replaces the manual `script-index` skill with automated
 
 **Wave 1 status (PR #99, merged 2026-07-05):** All R3/R7/R8 standards are landed. Script fixes for #63, #47, and #44 are already applied. Shellcheck integration is complete. The testing-standards.md and auto-dispatch mechanism are in place.
 
-**Wave 1.5 status (PR #104, merged 2026-07-06):** Bootstrap dispatch is now the primary pattern (template-wrapped is legacy/fallback, direct-seed is legacy). ts-work, ts-plan, and ts-doc-review are already migrated to Bootstrap. Testing standards with auto-dispatch and coverage-gap detection are established. Notification resilience via disk-first state is documented.
+**Wave 1.5 status (PR #104, merged 2026-07-06):** Bootstrap dispatch is now the only allowed pattern. Template-wrapped is fully deprecated (not a fallback). Direct-seed is deprecated and only allowed in narrow circumstances with explicit owner approval. ts-work, ts-plan, and ts-doc-review are already migrated to Bootstrap. Testing standards with auto-dispatch and coverage-gap detection are established. Notification resilience via disk-first state is documented.
+
+The index infrastructure replaces the manual `script-index` skill with automated indexers that scan `scripts/` and `skills/*/scripts/` directories (both `.sh` and `.py` files), generate R8-compliant `INDEX.md` files at each level, and maintain `ROUTING.md` as the repo's Map of Content. A pre-commit hook ensures indexes stay current without manual intervention.
 
 ## Problem Frame
 
 Skills contain inline shell commands and mechanical steps that the LLM executes token-by-token. These steps are duplicated across skills (default branch resolution appears in three skills, context gathering in two), error-prone when executed inline (complex awk scripts, GraphQL mutations), and expensive in tokens. Wave 1 established the frontmatter and standards foundation; Wave 2 extracts, indexes, and hardens.
 
-Three dispatch patterns coexist: Bootstrap (primary — ts-work, ts-plan, ts-doc-review), template-wrapped (legacy/fallback — ts-code-review, ts-verify-implementation), and direct-seed (legacy — ts-compound). Unifying to Bootstrap centralizes file-path-based dispatch with bootstrap-ack verification, reducing token cost by ~97% per reviewer invocation.
+Bootstrap is the only allowed dispatch pattern. Template-wrapped and direct-seed are fully deprecated. All skills that call subagents must be migrated to Bootstrap dispatch as part of this PR. Bootstrap centralizes file-path-based dispatch with bootstrap-ack verification, reducing token cost by ~97% per reviewer invocation.
 
 ## Requirements
 
@@ -47,8 +49,8 @@ Three dispatch patterns coexist: Bootstrap (primary — ts-work, ts-plan, ts-doc
 
 **Dispatch Unification**
 
-- R12. All skills use Bootstrap dispatch (file-path-based, bootstrap-ack verification) as the primary pattern. Template-wrapped is retained as legacy/fallback for skills without Bootstrap agents. Direct-seed is deprecated.
-- R13. `docs/standards/agent-standards.md` documents Bootstrap as the primary dispatch pattern per PR #104. Skills not yet migrated (ts-compound, ts-code-review, ts-verify-implementation) adopt Bootstrap where feasible; template-wrapped remains as fallback.
+- R12. All skills use Bootstrap dispatch (file-path-based, bootstrap-ack verification). Template-wrapped is fully deprecated and must be removed from all skills. Direct-seed is deprecated and only allowed in narrow circumstances with explicit owner approval. All skills that call subagents must be migrated to Bootstrap as part of this PR.
+- R13. `docs/standards/agent-standards.md` documents Bootstrap as the only allowed dispatch pattern per PR #104. The standards documentation must explicitly state that template-wrapped is deprecated (not a fallback) and direct-seed requires explicit approval. Skills not yet migrated (ts-compound, ts-code-review, ts-verify-implementation) must be migrated to Bootstrap.
 - R14. `scripts/update-indexes.py` runs as a pre-commit hook so all INDEX.md files and ROUTING.md are updated automatically before every commit
 
 **CLAUDE.md (from #81)**
@@ -63,7 +65,7 @@ Three dispatch patterns coexist: Bootstrap (primary — ts-work, ts-plan, ts-doc
 
 **KTD-1. Agent consolidation (#83) is out of scope.** The nine cross-skill agent duplicates require their own dedicated plan due to the cross-cutting nature of the changes. Wave 2 focuses on script work and dispatch unification only.
 
-**KTD-2. Bootstrap is the primary dispatch pattern (per PR #104).** Orchestrators pass file paths instead of inline content; subagents read their own contract/role/schema from disk. Bootstrap-ack is mandatory: agent emits file paths + line counts; orchestrator verifies. Template-wrapped is retained as legacy/fallback for skills without Bootstrap agents. ts-work, ts-plan, and ts-doc-review are already migrated. ts-compound is the remaining migration target. See `docs/solutions/conventions/subagent-bootstrap-dispatch.md` for the full pattern.
+**KTD-2. Bootstrap is the only allowed dispatch pattern (per PR #104).** Orchestrators pass file paths instead of inline content; subagents read their own contract/role/schema from disk. Bootstrap-ack is mandatory: agent emits file paths + line counts; orchestrator verifies. Template-wrapped is fully deprecated — not a fallback. Direct-seed is deprecated and only allowed in narrow circumstances with explicit owner approval. ts-work, ts-plan, and ts-doc-review are already migrated. All remaining skills (ts-compound, ts-code-review, ts-verify-implementation) must be migrated to Bootstrap as part of this PR. See `docs/solutions/conventions/subagent-bootstrap-dispatch.md` for the full pattern.
 
 **KTD-3. Script extraction scope — decision surface, not line count.** The boundary isn't length, it's whether a step has a single canonical textual form or a parameter surface a model can get wrong.
 
@@ -109,36 +111,40 @@ flowchart TB
     end
 
     subgraph Phase3["Phase 3: Script Extraction + Fixes"]
-        U11["U11: Shared scripts"]
-        U12["U12: ts-pr-review scripts"]
-        U13["U13: ts-pr-fix-findings scripts"]
-        U14["U14: ts-commit context"]
-        U15["U15: ts-work scripts"]
-        U16["U16: CLAUDE.md #81"]
-        U17["U17: Fix line verification #101"]
+        U11["U11: Standards + script enumeration"]
+        U12["U12: Shared scripts"]
+        U13["U13: ts-pr-review scripts"]
+        U14["U14: ts-pr-fix-findings scripts"]
+        U15["U15: ts-commit context"]
+        U16["U16: ts-work scripts"]
+        U17["U17: CLAUDE.md #81"]
+        U18["U18: Fix line verification #101"]
     end
 
     subgraph Phase4["Phase 4: Dispatch Unification"]
-        U18["U18: Verify ts-work Bootstrap"]
-        U19["U19: Migrate ts-compound to Bootstrap"]
+        U19["U19: Verify ts-work Bootstrap"]
+        U20["U20: Migrate ts-compound to Bootstrap"]
     end
 
     subgraph Phase5["Phase 5: Finalization"]
-        U20["U20: Update all indices"]
+        U21["U21: Update all indices"]
     end
 
     U7 --> U8
     U7 --> U9
     U7 --> U10
-    U1 --> U18
     U1 --> U19
-    U8 --> U16
-    U11 --> U14
+    U1 --> U20
+    U8 --> U17
+    U1 --> U11
     U11 --> U15
-    U7 --> U20
-    U9 --> U20
-    U18 --> U20
-    U19 --> U20
+    U11 --> U16
+    U12 --> U15
+    U12 --> U16
+    U7 --> U21
+    U9 --> U21
+    U19 --> U21
+    U20 --> U21
 ```
 
 ## Implementation Units
@@ -147,7 +153,7 @@ flowchart TB
 
 ### U1. Update dispatch standards to reflect Bootstrap as primary
 
-**Goal:** Update `docs/standards/agent-standards.md` to document Bootstrap as the primary dispatch pattern, with template-wrapped as legacy/fallback and direct-seed as deprecated.
+**Goal:** Update `docs/standards/agent-standards.md` to document Bootstrap as the only allowed dispatch pattern. Template-wrapped is fully deprecated (not a fallback). Direct-seed is deprecated and only allowed in narrow circumstances with explicit owner approval.
 
 **Requirements:** R13
 
@@ -158,19 +164,21 @@ flowchart TB
 
 **Approach:**
 - PR #104 already updated agent-standards.md with Bootstrap as primary. Verify the current state is correct and complete.
-- Ensure the three-pattern hierarchy is documented: Bootstrap (primary) → Template-Wrapped (legacy/fallback) → Direct-Seed (deprecated)
+- Document Bootstrap as the only allowed dispatch pattern. State explicitly that template-wrapped is deprecated (not a fallback) and direct-seed is deprecated (only with explicit owner approval).
 - Document Bootstrap-ack requirement: agent emits file paths + line counts; orchestrator verifies before accepting findings
 - Add migration guidance: how to convert a skill from template-wrapped or direct-seed to Bootstrap
 - Reference `docs/solutions/conventions/subagent-bootstrap-dispatch.md` for the full Bootstrap pattern
+- Enumerate all skills still on template-wrapped or direct-seed and add migration tasks to this plan
 
 **Patterns to follow:** `docs/solutions/conventions/subagent-bootstrap-dispatch.md` for Bootstrap dispatch. `skills/ts-work/SKILL.md` and `skills/ts-plan/SKILL.md` for already-migrated skills.
 
 **Test scenarios:**
-- Happy path: The dispatch patterns section documents Bootstrap as primary with template-wrapped as fallback
-- Happy path: The deprecation note for direct-seed is clear
+- Happy path: The dispatch patterns section documents Bootstrap as the only allowed pattern
+- Happy path: Template-wrapped is explicitly marked as deprecated (not a fallback)
+- Happy path: Direct-seed deprecation note is clear and specifies owner approval requirement
 - Edge case: Migration guidance is specific enough for an implementer to convert a skill to Bootstrap
 
-**Verification:** `docs/standards/agent-standards.md` documents the three-pattern hierarchy with Bootstrap as primary.
+**Verification:** `docs/standards/agent-standards.md` documents Bootstrap as the only allowed dispatch pattern, with template-wrapped and direct-seed explicitly deprecated.
 
 ---
 
@@ -255,7 +263,7 @@ flowchart TB
 - Verify the composite scoring formula (0.6 * title_sim + 0.4 * tag_overlap) still produces expected results with the simplified scorer
 - Update any test cases that relied on SequenceMatcher-specific scores
 
-**Patterns to follow:** The documented scoring algorithm in the existing script's docstring and the script extraction plan (U14).
+**Patterns to follow:** The documented scoring algorithm in the existing script's docstring and the script extraction plan (U15).
 
 **Test scenarios:**
 - Happy path: Identical titles produce score 1.0
@@ -349,10 +357,10 @@ flowchart TB
 - `--help` flag with usage documentation
 - Exit codes: 0 success, 1 error
 
-**Patterns to follow:** `scripts/extract-ktds.py` and `scripts/verify-ktd-literal.py` for Python script structure. `docs/standards/index-convention.md` for R8 format.
+**Patterns to follow:** `scripts/extract-ktds.py` and `scripts/verify-ktd-literal.py` for Python script structure. `docs/standards/index-standards.md` for R8 format.
 
 **Test scenarios:**
-- Happy path: Scans all `.sh` files in `scripts/` and `skills/*/scripts/`, extracts frontmatter, generates valid index
+- Happy path: Scans all `.sh` and `.py` files in `scripts/` and `skills/*/scripts/`, extracts frontmatter, generates valid index
 - Happy path: Generated `scripts/INDEX.md` passes R8 validation
 - Happy path: Each `skills/*/scripts/` directory gets its own INDEX.md listing its scripts
 - Edge case: Scripts without R3 frontmatter are listed with empty description and a warning is emitted
@@ -380,7 +388,7 @@ flowchart TB
 - Only ROUTING.md may reference files outside its parent folder per R8 convention
 - The script-index entry uses the prescribed description: "Index of all repo-level scripts. Read this any time you need to perform a repeatable task, such as git operations, JSON output, etc. Also consult this before running any ad-hoc scripts to see if one doesn't already exist"
 
-**Patterns to follow:** `docs/standards/INDEX.md` for R8 structure. The R8 convention in `docs/standards/index-convention.md`.
+**Patterns to follow:** `docs/standards/INDEX.md` for R8 structure. The R8 convention in `docs/standards/index-standards.md`.
 
 **Test scenarios:**
 - Happy path: ROUTING.md lists all major indices with accurate descriptions
@@ -405,17 +413,17 @@ flowchart TB
 - `.pre-commit-config.yaml` or equivalent hook configuration (new or updated)
 
 **Approach:**
-- Recursively searches through `docs/` subdirectories and `skills/*/scripts/` directories
-- In each folder, creates or updates an INDEX.md conforming to R8
+- Recursively searches through `docs/` subdirectories for INDEX.md updates
+- In each `docs/` subfolder, creates or updates an INDEX.md conforming to R8
 - For `docs/solutions/` subdirectories: adds a "Tags" column pulled from solution file frontmatter
 - Descriptions pulled from the paragraph between first and second headings in each file
 - Ensures ROUTING.md has a table entry pointing to `docs/solutions/INDEX.md`
-- Calls `index-scripts.py` to ensure script indexes are up-to-date
+- Calls `scripts/index-scripts.py` to handle all script indexing (in `scripts/` and `skills/*/scripts/`) — does NOT do any script indexing itself. All script indexing logic lives exclusively in `index-scripts.py`.
 - Configured as a pre-commit hook so indexes are updated automatically before every commit
 - `--help` flag, `--dry-run` flag for preview
 - Exit codes: 0 success, 1 error
 
-**Patterns to follow:** `scripts/index-scripts.py` (U7) for Python structure. `docs/standards/index-convention.md` for R8 format.
+**Patterns to follow:** `scripts/index-scripts.py` (U7) for Python structure. `docs/standards/index-standards.md` for R8 format.
 
 **Test scenarios:**
 - Happy path: Creates INDEX.md in each `docs/` subfolder that doesn't have one
@@ -439,11 +447,13 @@ flowchart TB
 **Dependencies:** U7 (index-scripts.py exists and works)
 
 **Files:**
-- `skills/script-index/SKILL.md` (update or remove)
+- `skills/script-index/SKILL.md` (remove entirely)
 
 **Approach:**
 - Remove `skills/script-index/SKILL.md` entirely — `index-scripts.py` (U7) generates `scripts/INDEX.md` which replaces the manual routing table
-- Update any skills that referenced `script-index` to reference `scripts/INDEX.md` instead
+- `grep` all skills for references to `script-index` and enumerate each one explicitly in this plan so the implementer does not need to search during implementation
+- Update each referenced skill to point to `scripts/INDEX.md` instead
+- Known references to check: any skill that mentions `script-index`, `/script-index`, or the old manual index routing table
 
 **Patterns to follow:** None — this is a removal/replacement.
 
@@ -457,7 +467,37 @@ flowchart TB
 
 ### Phase 3: Script Extraction (depends on Phase 2 for index updates)
 
-### U11. Create shared scripts: default-branch.sh and context-gather.sh
+### U11. Create dispatch standards documentation and enumerate extraction scripts
+
+**Goal:** Create the standards documentation that all subsequent units in this phase will follow, and enumerate all scripts that need to be extracted per KTD-3.
+
+**Requirements:** R5, R6, R13
+
+**Dependencies:** U1 (dispatch standards updated)
+
+**Files:**
+- `docs/standards/dispatch-standard.md` (new — if not already created by U1)
+- Enumeration output: list of all inline scripts across all skills that qualify for extraction per KTD-3
+
+**Approach:**
+- Create or verify the dispatch standards documentation that all units in this phase must follow
+- Follow KTD-3's directions to look through ALL skills and enumerate any additional scripts that need to be pulled out
+- For each skill, identify inline blocks that qualify as extraction candidates (per KTD-3 criteria: duplicated across skills, complex mechanical steps, steps with known bugs)
+- Output a structured list that subsequent units (U13+) can reference during implementation
+- This enumeration must happen before extraction begins to avoid missing scripts
+
+**Patterns to follow:** KTD-3 decision-surface criteria. `skills/ts-work/SKILL.md` and `skills/ts-pr-review/SKILL.md` for examples of inline blocks.
+
+**Test scenarios:**
+- Happy path: All 6 target skills are audited for extractable inline blocks
+- Happy path: Each identified block is categorized by KTD-3 criteria (duplication, complexity, known bugs)
+- Edge case: Blocks that should stay inline (templates, single-idiom steps) are explicitly excluded
+
+**Verification:** A complete enumeration of extractable scripts exists, categorized by KTD-3 criteria, ready for subsequent units to consume.
+
+---
+
+### U12. Create shared scripts: default-branch.sh and context-gather.sh
 
 **Goal:** Extract duplicated default-branch resolution and git-context-gathering into shared scripts.
 
@@ -489,7 +529,7 @@ flowchart TB
 
 ---
 
-### U12. Extract ts-pr-review inline scripts
+### U13. Extract ts-pr-review inline scripts
 
 **Goal:** Extract the diff line mapping awk script and PR data fetch into reusable scripts.
 
@@ -505,8 +545,8 @@ flowchart TB
 - `tests/skills/ts-pr-review/test-fetch-pr-data.sh` (new)
 
 **Approach:**
-- `map-diff-lines.sh`: Extract the complex awk script (lines 73-78 of SKILL.md) that parses diff output to build `file:line` mapping. Input: diff on stdin or as file argument. Output: JSON mapping of `file:line` to diff locations. The awk logic stays in the script; the skill just calls it and parses the JSON result.
-- `fetch-pr-data.sh`: Extract the `gh pr view` call (line 39) into a script with `--repo` and `--pr` arguments. Output: JSON with PR metadata. Uses `gh` CLI (matching existing patterns).
+- `map-diff-lines.sh`: Extract the complex awk script (lines 73-78 of SKILL.md) that parses diff output to build `file:line` mapping. Input: diff on stdin or as file argument. Output: JSON mapping of `file:line` to diff locations. The awk logic stays in the script; the skill just calls it and parses the JSON result. **Aligns with R16:** This script's input source will be updated in U18 to use `gh pr diff` instead of local `git diff -U10`.
+- `fetch-pr-data.sh`: Extract the `gh pr view` call (line 39) into a script with `--repo` and `--pr` arguments. Output: JSON with PR metadata. Uses `gh` CLI (matching existing patterns). This is a separate concern from `map-diff-lines.sh` (API data fetch vs. diff parsing), so it remains a distinct script.
 - Update SKILL.md to call these scripts instead of inline commands
 
 **Patterns to follow:** `scripts/pr-metadata.sh` for PR data fetching. `scripts/to-json.sh` for JSON output patterns.
@@ -521,7 +561,7 @@ flowchart TB
 
 ---
 
-### U13. Extract ts-pr-fix-findings inline scripts
+### U14. Extract ts-pr-fix-findings inline scripts
 
 **Goal:** Extract the thread resolution GraphQL mutation and re-review request into scripts.
 
@@ -554,13 +594,13 @@ flowchart TB
 
 ---
 
-### U14. Extract ts-commit and ts-commit-push-pr context gathering
+### U15. Extract ts-commit and ts-commit-push-pr context gathering
 
 **Goal:** Replace inline context-gathering blocks in ts-commit and ts-commit-push-pr with calls to `context-gather.sh`.
 
 **Requirements:** R5
 
-**Dependencies:** U11 (context-gather.sh exists)
+**Dependencies:** U12 (context-gather.sh exists)
 
 **Files:**
 - `skills/ts-commit/SKILL.md` (update to call context-gather.sh)
@@ -582,13 +622,13 @@ flowchart TB
 
 ---
 
-### U15. Extract ts-work inline scripts
+### U16. Extract ts-work inline scripts
 
 **Goal:** Extract high-value inline steps from ts-work into reusable scripts.
 
 **Requirements:** R5, R6
 
-**Dependencies:** U11 (default-branch.sh may be used)
+**Dependencies:** U12 (default-branch.sh may be used)
 
 **Files:**
 - `skills/ts-work/SKILL.md` (update to call extracted scripts)
@@ -610,7 +650,7 @@ flowchart TB
 
 ---
 
-### U16. Create CLAUDE.md (#81)
+### U17. Create CLAUDE.md (#81)
 
 **Goal:** Create a `CLAUDE.md` at the repo root with a concise repository summary, pointer to ROUTING.md, and universal agent rules.
 
@@ -624,7 +664,7 @@ flowchart TB
 **Approach:**
 - Write a concise repository summary optimized for AI consumption (what this repo is, its purpose, key concepts)
 - Include a pointer to `docs/ROUTING.md` as the entry point for navigating documentation
-- Include universal rules/standards that apply to all agents (e.g., R3 frontmatter convention, R8 index standards, Bootstrap dispatch pattern, testing-standards.md auto-dispatch)
+- Include ONLY high-level rules that EVERY agent touching this repository must follow (e.g., "check ROUTING.md to locate documentation and scripts", "follow R3 frontmatter for all scripts", "Bootstrap is the only allowed dispatch pattern"). If a rule is not needed by every agent, it does NOT belong in CLAUDE.md — it belongs in `docs/`.
 - Keep it short — CLAUDE.md is a quick-reference, not a replacement for the full docs tree
 - CLAUDE.md is NOT an index file; it does not follow R8 conventions
 
@@ -639,17 +679,17 @@ flowchart TB
 
 ---
 
-### U17. Fix ts-pr-review line number verification (#101)
+### U18. Fix ts-pr-review line number verification (#101)
 
 **Goal:** Build the linemap from `gh pr diff` output (GitHub's 3-line context) instead of local `git diff -U10` so inline comment line numbers match what the Reviews API accepts.
 
 **Requirements:** R16
 
-**Dependencies:** U12 (map-diff-lines.sh must exist)
+**Dependencies:** U13 (map-diff-lines.sh must exist)
 
 **Files:**
 - `skills/ts-pr-review/SKILL.md` (update Step 4b linemap generation)
-- `skills/ts-pr-review/scripts/map-diff-lines.sh` (from U12 — must use `gh pr diff` output)
+- `skills/ts-pr-review/scripts/map-diff-lines.sh` (from U13 — must use `gh pr diff` output)
 
 **Approach:**
 - In Step 4b, replace the local `git diff -U10` with `gh pr diff NUMBER` for linemap generation
@@ -670,7 +710,7 @@ flowchart TB
 
 ### Phase 4: Dispatch Unification (depends on U1 for standards)
 
-### U18. Verify ts-work Bootstrap migration and add auto-dispatch
+### U19. Verify ts-work Bootstrap migration and add auto-dispatch
 
 **Goal:** Verify ts-work's Bootstrap dispatch (migrated in PR #104) is complete and add the auto-dispatch mechanism for `implementer-tests` per `docs/standards/testing-standards.md`.
 
@@ -699,9 +739,9 @@ flowchart TB
 
 ---
 
-### U19. Migrate ts-compound to Bootstrap dispatch
+### U20. Migrate all remaining skills to Bootstrap dispatch
 
-**Goal:** Migrate ts-compound from direct-seed to Bootstrap dispatch (the last remaining skill). ts-plan is already migrated (PR #104).
+**Goal:** Migrate ts-compound (direct-seed), ts-code-review (template-wrapped), and ts-verify-implementation (template-wrapped) to Bootstrap dispatch. ts-work, ts-plan, and ts-doc-review are already migrated (PR #104).
 
 **Requirements:** R12
 
@@ -709,49 +749,52 @@ flowchart TB
 
 **Files:**
 - `skills/ts-compound/SKILL.md` (update dispatch instructions)
+- `skills/ts-code-review/SKILL.md` (update dispatch instructions)
+- `skills/ts-verify-implementation/SKILL.md` (update dispatch instructions)
 
 **Approach:**
-- PR #104 already migrated ts-plan to Bootstrap. ts-compound is the last skill on direct-seed.
-- Convert ts-compound's dispatch from inline agent content to file-path-based Bootstrap: orchestrator passes agent file paths, subagent reads its own contract from disk.
-- Ensure bootstrap-ack is enforced: agent emits file paths + line counts; orchestrator verifies.
-- ts-compound's Phase 1 research agents should work through Bootstrap the same way ts-plan's research agents do.
+- PR #104 already migrated ts-work, ts-plan, and ts-doc-review to Bootstrap. Three skills remain.
+- **ts-compound:** Convert from direct-seed to file-path-based Bootstrap: orchestrator passes agent file paths, subagent reads its own contract from disk. ts-compound's Phase 1 research agents should work through Bootstrap the same way ts-plan's research agents do.
+- **ts-code-review:** Convert from template-wrapped to Bootstrap: create or use existing Bootstrap agent definitions for the code review subagents.
+- **ts-verify-implementation:** Convert from template-wrapped to Bootstrap: create or use existing Bootstrap agent definitions for the verification subagents.
+- Ensure bootstrap-ack is enforced for all three: agent emits file paths + line counts; orchestrator verifies.
 - Verify disk-first completion: agents write output to disk as the authoritative signal.
 
 **Patterns to follow:** `skills/ts-plan/SKILL.md` for the Bootstrap migration pattern (already done). `docs/solutions/conventions/subagent-bootstrap-dispatch.md` for the full Bootstrap pattern.
 
 **Test scenarios:**
 - Happy path: ts-compound dispatches research agents via Bootstrap (file paths, not inline content)
-- Happy path: Bootstrap-ack verification works for ts-compound agents
-- Edge case: ts-compound's Phase 1 research agents all work through Bootstrap
-- Edge case: Fallback to template-wrapped works if Bootstrap agent definition is missing
+- Happy path: ts-code-review dispatches review agents via Bootstrap
+- Happy path: ts-verify-implementation dispatches verification agents via Bootstrap
+- Happy path: Bootstrap-ack verification works for all three skills
+- Error path: If Bootstrap agent definition is missing, the skill fails with a clear error (no fallback to deprecated patterns)
 
-**Verification:** ts-compound uses Bootstrap dispatch. All direct-seed patterns are removed.
+**Verification:** All three skills use Bootstrap dispatch. No template-wrapped or direct-seed patterns remain.
 
 ---
 
 ### Phase 5: Finalization
 
-### U20. Update docs/standards/INDEX.md and run update-indexes.py
+### U21. Update docs/standards/INDEX.md and run update-indexes.py
 
 **Goal:** Ensure all indices are up-to-date after Wave 2 changes.
 
 **Requirements:** R3
 
-**Dependencies:** U7, U8, U9 (index infrastructure complete), U1-U19 (all changes landed)
+**Dependencies:** U7, U8, U9 (index infrastructure complete), U1-U20 (all changes landed)
 
 **Files:**
-- `docs/standards/INDEX.md` (update to list new standards)
-- All `INDEX.md` files across `docs/` (regenerated by update-indexes.py)
+- All `INDEX.md` files across `docs/` and `skills/*/scripts/` (regenerated by `update-indexes.py` — do NOT edit manually)
+- `scripts/INDEX.md` (regenerated by `index-scripts.py` — do NOT edit manually)
 - `docs/ROUTING.md` (verified up-to-date)
 
 **Approach:**
-- Add dispatch-standard entry to `docs/standards/INDEX.md` if not already present
-- Run `scripts/update-indexes.py` to regenerate all INDEX.md files
-- Run `scripts/index-scripts.py` to regenerate `scripts/INDEX.md`
+- Run `scripts/update-indexes.py` to regenerate all INDEX.md files — this script handles everything including calling `index-scripts.py`. `docs/standards/INDEX.md` is updated by the script, not manually.
 - Run `scripts/validate-index-standards.py --all` to confirm compliance
 - Verify ROUTING.md has entries for all sub-indices
+- Ensure all new/updated standards from this PR are documented in the appropriate locations (the script will pick them up from frontmatter)
 
-**Patterns to follow:** R8 convention in `docs/standards/index-convention.md`.
+**Patterns to follow:** R8 convention in `docs/standards/index-standards.md`.
 
 **Test scenarios:**
 - Happy path: All INDEX.md files pass R8 validation
@@ -766,7 +809,7 @@ flowchart TB
 - All 6 skills for script extraction (ts-commit, ts-commit-push-pr, ts-pr-review, ts-verify-implementation, ts-pr-fix-findings, ts-work)
 - Index infrastructure (index-scripts.py, update-indexes.py, ROUTING.md)
 - 5 script hardening fixes (#63, #60, #61, #47, #44) — fixes for #63, #47, #44 already applied in Wave 1; verification and test coverage remain
-- Dispatch pattern unification to Bootstrap (ts-compound migration; ts-work/ts-plan verification)
+- Dispatch pattern unification to Bootstrap (ts-compound, ts-code-review, ts-verify-implementation migration; ts-work/ts-plan verification)
 - Standards documentation updates
 - CLAUDE.md creation (#81)
 - ts-pr-review line number verification fix (#101)
@@ -775,7 +818,6 @@ flowchart TB
 **Deferred to Follow-Up Work:**
 - **Agent consolidation (#83)** — requires its own dedicated plan. Tracked separately.
 - **Script-index skill removal** — may be kept as a thin redirect if downstream tools depend on it.
-- **ts-code-review and ts-verify-implementation Bootstrap migration** — these skills use template-wrapped; migration is lower priority since they work correctly.
 
 **Out of scope:**
 - Agent deduplication across skills (#83)
@@ -785,15 +827,15 @@ flowchart TB
 ## Risks & Dependencies
 
 - **Wave 1 landed:** R3/R7/R8 standards, ShellCheck integration, and script fixes (#63, #47, #44) are already on main (PR #99). No dependency gate for Phase 1 or Phase 2.
-- **Wave 1.5 landed:** Bootstrap dispatch, testing-standards.md, notification resilience are on main (PR #104). Phase 4 work is reduced to verification and ts-compound migration.
+- **Wave 1.5 landed:** Bootstrap dispatch, testing-standards.md, notification resilience are on main (PR #104). Phase 4 work includes ts-compound, ts-code-review, and ts-verify-implementation migration to Bootstrap.
 - **Script extraction coordination:** Track 2 (extraction) and Track 3 (fixes) may touch the same scripts. Coordinate to avoid conflicts — fixes should land before extraction changes the target files.
-- **Bootstrap migration risk:** ts-compound is the last direct-seed skill. Migration is a behavioral change; test thoroughly. ts-code-review and ts-verify-implementation remain on template-wrapped (deferred).
+- **Bootstrap migration risk:** ts-compound, ts-code-review, and ts-verify-implementation must all be migrated to Bootstrap. Migration is a behavioral change; test thoroughly. Template-wrapped is fully deprecated — no fallback.
 - **Inline script identification:** Some inline blocks in SKILL.md are templates (e.g., commit message patterns) that should stay inline, not be extracted. The implementer must use judgment on extraction candidates.
 - **Testing coverage:** PR #104's auto-dispatch mechanism means extracted scripts automatically get test coverage. The implementer must ensure each extraction unit has test scenarios defined so the auto-dispatch fires.
 
 ## System-Wide Impact
 
-- All skills use Bootstrap dispatch as primary (template-wrapped as fallback), reducing token cost by ~97% per reviewer invocation
+- All skills use Bootstrap dispatch (template-wrapped and direct-seed fully deprecated), reducing token cost by ~97% per reviewer invocation
 - Automated index infrastructure replaces manual script-index skill
 - ROUTING.md provides a single entry point for navigating the repo's documentation
 - Extracted scripts reduce token cost for skill invocations and are ShellCheck-clean
