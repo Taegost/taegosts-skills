@@ -1,6 +1,7 @@
 ---
 name: completeness-verifier
 description: Verifies that all plan items were implemented — nothing missing, partially done, or skipped.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

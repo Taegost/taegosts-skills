@@ -1,0 +1,10 @@
+repos:
+  - repo: local
+    hooks:
+      - id: update-indexes
+        name: Update documentation indexes
+        entry: scripts/update-indexes.py
+        language: python
+        pass_filenames: false
+        always_run: true
+        description: Runs the index updater before each commit to keep INDEX.md files in sync.

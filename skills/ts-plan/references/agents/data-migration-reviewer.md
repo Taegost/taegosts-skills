@@ -1,6 +1,7 @@
 ---
 name: data-migration-reviewer
 description: Evaluates migration-related diffs for schema safety, data integrity, and rollback procedures.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

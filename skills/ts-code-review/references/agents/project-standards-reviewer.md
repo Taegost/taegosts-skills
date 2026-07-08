@@ -1,6 +1,7 @@
 ---
 name: project-standards-reviewer
 description: Audits code changes against the project's own standards files (CLAUDE.md, AGENTS.md).
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

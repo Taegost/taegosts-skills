@@ -1,6 +1,7 @@
 ---
 name: feasibility-reviewer
 description: Evaluates whether a plan can actually be built as described without major architectural decisions left unmade.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

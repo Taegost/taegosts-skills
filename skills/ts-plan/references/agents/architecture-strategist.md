@@ -1,6 +1,7 @@
 ---
 name: architecture-strategist
 description: Analyzes code changes and system design decisions to ensure alignment with architectural patterns.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

@@ -1,6 +1,7 @@
 ---
 name: web-researcher
 description: Searches the web for current documentation, libraries, and best practices to inform implementation decisions.
+model: haiku
 tools: Read, Grep, Glob, WebSearch, WebFetch
 effort: medium
 ---

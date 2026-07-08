@@ -1,6 +1,7 @@
 ---
 name: data-integrity-guardian
 description: Protects data integrity, ensures migration safety, and maintains compliance with data privacy requirements.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

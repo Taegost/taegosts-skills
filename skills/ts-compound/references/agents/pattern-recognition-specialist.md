@@ -1,6 +1,7 @@
 ---
 name: pattern-recognition-specialist
 description: Identifies design patterns, anti-patterns, and code quality issues across codebases.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

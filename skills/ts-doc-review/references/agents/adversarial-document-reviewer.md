@@ -1,6 +1,7 @@
 ---
 name: adversarial-document-reviewer
 description: Challenges plans by trying to falsify premises, assumptions, and decisions — the adversarial skeptic.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

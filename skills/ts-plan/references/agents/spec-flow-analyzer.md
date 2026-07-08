@@ -1,6 +1,7 @@
 ---
 name: spec-flow-analyzer
 description: Analyzes specifications from the user's perspective to surface missing flows, ambiguous requirements, and edge cases.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

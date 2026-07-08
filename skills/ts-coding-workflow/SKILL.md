@@ -17,14 +17,12 @@ This is the required process for ALL coding tasks across ALL projects. Do not sk
 
 ### Phase 0: Setup
 
-1. **Load script-index** — read `skills/script-index/SKILL.md` to know what tools are available
-2. **Add scripts to PATH** — detect skill directory and add both `scripts/` and `skills/*/scripts/` to PATH:
+1. **Add scripts to PATH** — detect repo root and add both `scripts/` and `skills/*/scripts/` to PATH:
 
    ```bash
-   SKILL_DIR="$(cd "$(dirname "$(find . -name "script-index" -path "*/skills/*" -type d | head -1)")" && pwd)"
-   SKILL_BASE="$SKILL_DIR/.."
-   export PATH="$SKILL_BASE/scripts:$PATH"
-   for d in "$SKILL_BASE/skills"/*/scripts; do
+   REPO_ROOT="$(git rev-parse --show-toplevel)"
+   export PATH="$REPO_ROOT/scripts:$PATH"
+   for d in "$REPO_ROOT/skills"/*/scripts; do
      [[ -d "$d" ]] && export PATH="$d:$PATH"
    done
    ```
@@ -60,6 +58,14 @@ This is the required process for ALL coding tasks across ALL projects. Do not sk
 - **Never start coding before Mike approves the plan.** The plan is the contract.
 - **Each PR is a separate piece of work.** Don't carry implementation from one PR into the next without going through Phase 1 again.
 - **This applies to ALL coding tasks**, not just taegosts-skills. Homelab-k8s, personal projects, work repos — same process.
+
+## Dispatch Model
+
+This skill delegates to other skills by loading them via their file paths. The skill file path is the single source of truth — load, don't re-derive.
+
+**Bootstrap pattern:** load skill → execute → return result.
+
+When invoking sub-skills (`/ts-plan`, `/ts-doc-review`, `/ts-do-work-loop`, `/ts-pr-fix-findings`), use the bootstrap dispatch pattern: pass file paths, not inline content. The target skill reads its own operating contract from disk.
 
 ## Why This Exists
 

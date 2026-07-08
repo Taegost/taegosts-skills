@@ -1,6 +1,7 @@
 ---
 name: reliability-reviewer
 description: Reviews code for production reliability, failure modes, retry logic, and graceful degradation.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

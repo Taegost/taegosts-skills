@@ -1,16 +1,25 @@
 ---
+title: "Standards Index"
+description: "Index of documentation in docs/standards/."
+status: active
+version: "1.0"
+created: 2026-07-08
+last-updated: 2026-07-08
+owner: wave-2-dispatch-index-automation
+dependencies: []
 tags: [index]
-description: Index of standards for the taegosts-skills repository.
 ---
 
 # Standards Index
 
-Canonical standards for the taegosts-skills repository.
+Index of documentation in docs/standards/.
 
 | Link | Description |
 |------|-------------|
-| [agent-standards.md](agent-standards.md) | Agent definition format: frontmatter schema, heading sub-templates (implementer/reviewer), terminology conventions, and dispatch patterns |
-| [testing-standards.md](testing-standards.md) | Test coverage expectations, auto-dispatch trigger rules, coverage-gap detection, test conventions |
-| [link-convention.md](link-convention.md) | Standard for markdown link format across all documentation (R7) |
-| [index-convention.md](index-convention.md) | Standard for INDEX.md file structure, scoping, and frontmatter requirements (R8) |
-| [script-frontmatter-convention.md](script-frontmatter-convention.md) | Shell script description comment format: `# <name> -- <description>` on line 2 after shebang |
+| [agent-standards.md](./agent-standards.md) | Canonical reference for agent definition format across all taegosts-skills. |
+| [dispatch-standards.md](./dispatch-standards.md) | Canonical reference for how skills dispatch subagents and delegate to other skills. |
+| [index-convention.md](./index-convention.md) | Canonical standard for INDEX.md files across all documentation in taegosts-skills. |
+| [index-standards.md](./index-standards.md) | Every INDEX.md file MUST have YAML frontmatter with: |
+| [link-convention.md](./link-convention.md) | Canonical standard for markdown links across all documentation in taegosts-skills. |
+| [script-frontmatter-convention.md](./script-frontmatter-convention.md) | Canonical reference for the description comment format used in all shell scripts across the repository. |
+| [testing-standards.md](./testing-standards.md) | If a script exists and was changed, it needs a corresponding test file. No line threshold. |

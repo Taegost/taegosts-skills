@@ -1,6 +1,7 @@
 ---
 name: maintainability-reviewer
 description: Reviews code for structural quality, complexity reduction, coupling, and dead code.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

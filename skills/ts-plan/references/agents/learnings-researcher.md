@@ -1,6 +1,7 @@
 ---
 name: learnings-researcher
 description: Searches docs/solutions/ for past learnings related to the current task's modules and patterns.
+model: haiku
 tools: Read, Grep, Glob
 effort: medium
 ---

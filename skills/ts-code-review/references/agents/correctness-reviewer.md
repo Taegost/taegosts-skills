@@ -1,6 +1,7 @@
 ---
 name: correctness-reviewer
 description: Reviews code for logic and behavioral correctness by mentally executing inputs through branches and state.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

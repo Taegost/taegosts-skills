@@ -115,7 +115,9 @@ class TestR8Index:
     def test_compliant_index(self, tmp_path):
         """A well-formed INDEX.md should pass R8 checks."""
         content = (
-            "---\ntags: [index]\ndescription: Test index\n---\n\n"
+            "---\ntitle: Test index\ndescription: Test index\nstatus: active\n"
+            'version: "1.0"\ncreated: 2026-07-07\nlast-updated: 2026-07-07\n'
+            'owner: test-owner\ndependencies: []\ntags: [index]\n---\n\n'
             "# Index\n\n"
             "| Link | Description |\n"
             "|------|-------------|\n"

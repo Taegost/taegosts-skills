@@ -5,7 +5,12 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SCRIPT="$REPO_ROOT/scripts/classify-document.sh"
-PARSE_JSON="/tmp/parse_json.py"
+
+# Inline JSON field extractor: takes file path and field name as arguments
+# Usage: parse_json /path/to/file.json field_name
+parse_json() {
+  python3 -c "import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])" "$1" "$2"
+}
 
 pass=0
 fail=0
@@ -69,14 +74,14 @@ else
   die "output is not valid JSON"
 fi
 
-doc_type=$(python3 "$PARSE_JSON" /tmp/u6-test.json type)
+doc_type=$(parse_json /tmp/u6-test.json type)
 if [[ "$doc_type" == "plan" ]]; then
   ok "classifies plan correctly"
 else
   die "expected plan, got $doc_type"
 fi
 
-confidence=$(python3 "$PARSE_JSON" /tmp/u6-test.json confidence)
+confidence=$(parse_json /tmp/u6-test.json confidence)
 if [[ "$confidence" == "high" ]]; then
   ok "confidence is high"
 else
@@ -108,7 +113,7 @@ DOCEOF
 
 output=$("$SCRIPT" "$tmpdir/requirements.md" 2>&1) && rc=0 || rc=$?
 echo "$output" > /tmp/u6-req.json
-doc_type=$(python3 "$PARSE_JSON" /tmp/u6-req.json type)
+doc_type=$(parse_json /tmp/u6-req.json type)
 if [[ "$doc_type" == "requirements" ]]; then
   ok "classifies requirements correctly"
 else

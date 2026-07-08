@@ -55,13 +55,16 @@ These files are the durable contract for the workflow. Read them on-demand at th
 - `references/schema.yaml` — canonical frontmatter fields and enum values (read when validating YAML)
 - `references/yaml-schema.md` — category mapping from problem_type to directory (read when classifying)
 - `references/concepts-vocabulary.md` — CONCEPTS.md format and inclusion rules (read in Phase 2.4 when domain terms surface)
+- `references/agents/context-analyzer.md` — Bootstrap agent definition for context analysis (read by Context Analyzer subagent)
+- `references/agents/solution-extractor.md` — Bootstrap agent definition for solution extraction (read by Solution Extractor subagent)
+- `references/agents/related-docs-finder.md` — Bootstrap agent definition for related docs discovery (read by Related Docs Finder subagent)
 (If `references/agents/session-historian.md` is not present, session-history context is unavailable — skip this step.)
 - `references/agents/session-historian.md` — skill-local synthesis prompt for optional session-history compounding context (read only when the user opts into session history)
 - `assets/resolution-template.md` — section structure for new docs (read when assembling)
 - `scripts/session-history/` — session discovery and extraction scripts copied into this skill so session-history support does not depend on the deleted `ce-sessions` public skill
 - `scripts/validate-frontmatter.py` — frontmatter parser-safety validator (run in Phase 2 step 8 through the existence guard documented there; resolves only on Claude Code via `${CLAUDE_SKILL_DIR}`, with a manual-checklist fallback elsewhere)
 
-When spawning subagents, pass the relevant file contents into the task prompt so they have the contract without needing cross-skill paths.
+This skill uses the **Bootstrap dispatch pattern** — subagents receive file paths, not inline content. Each subagent reads its own operating contract, role prompt, and schema from disk. This reduces orchestrator dispatch output and decouples agent identity from the orchestrator's context window.
 
 ## Execution Strategy
 
@@ -131,13 +134,41 @@ If no relevant entries are found, proceed to Phase 1 without passing memory cont
 
 ### Phase 1: Research
 
-Launch research subagents. Each writes its full output to a per-run scratch artifact and returns only the artifact path to the orchestrator.
+Launch research subagents using the **Bootstrap dispatch pattern**. Each subagent reads its own operating contract from disk, writes its full output to a per-run scratch artifact, and returns only the artifact path to the orchestrator.
 
 **Run ID and run dir (before dispatching any subagent):** generate a unique run identifier and create the run directory. This scopes every Phase 1 artifact file to the same directory so the orchestrator can Read them back in Phase 2.
 
 ```bash
 RUN_ID=$(date +%Y%m%d-%H%M%S)-$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' ')
 mkdir -p "/tmp/taegosts-skills/ts-compound/$RUN_ID"
+```
+
+**Bootstrap dispatch (path-based delegation):** For each agent, the orchestrator reads the corresponding agent file from `references/agents/<agent-name>.md` and delegates work by passing **file paths** — the agent is invoked with its agent contract, the schema files, and the artifact directory. The agent reads its own contract from disk rather than receiving content inline. This eliminates the need for `subagent_type`, typed `Agent` names, or platform-level agent registration. Each agent receives:
+
+1. **Agent file path** — `references/agents/<agent-name>.md` (its operating contract — read by the agent itself)
+2. **Schema files** — `references/schema.yaml` and `references/yaml-schema.md` (for classification and validation)
+3. **Run ID** — `{run_id}` for artifact file path
+4. **Artifact path** — `/tmp/taegosts-skills/ts-compound/{run_id}/<artifact-name>`
+5. **Task context** — conversation history excerpt, auto memory block (if any)
+
+**Bootstrap-ack requirement:** After reading all files, the agent emits a plain-text acknowledgment listing each file path and its line count (one line per file, `<path> (<N> lines)`). The orchestrator verifies each expected path appears in the ack before accepting findings. Missing files trigger re-dispatch with an admonition to read all files (up to 3 attempts). If all 3 attempts fail, the orchestrator logs the failure and aborts the agent (inline-content fallback is removed per the Bootstrap-only dispatch contract).
+
+**Subagent prompt template:**
+
+```
+Read these files IN FULL before starting:
+1. references/agents/<agent-name>.md (your operating contract)
+2. references/schema.yaml (frontmatter schema)
+3. references/yaml-schema.md (category mapping)
+
+After reading all files, emit acknowledgment: one line per file, `<path> (<N> lines)`.
+
+Then execute your task:
+- Run ID: {run_id}
+- Artifact path: /tmp/taegosts-skills/ts-compound/{run_id}/<artifact-name>
+- Task: <task-specific instructions>
+
+Write your full output to the artifact path. Return only the artifact path when the write succeeds. If the write fails, return your full output inline.
 ```
 
 Pass `{run_id}` (the resolved `$RUN_ID` value) into every Phase 1 subagent prompt. Each subagent **writes its full structured output** to its own file under `/tmp/taegosts-skills/ts-compound/{run_id}/`, **confirms the write succeeded** (the file exists and is non-empty), and then **returns only a one-line confirmation containing the artifact path** — not the prose body inline. Artifact filenames by subagent:
@@ -156,20 +187,21 @@ Pass `{run_id}` (the resolved `$RUN_ID` value) into every Phase 1 subagent promp
 <parallel_tasks>
 
 #### 1. **Context Analyzer**
-   - Extracts conversation history
+   - Agent file: `references/agents/context-analyzer.md`
    - Reads `references/schema.yaml` for enum validation and **track classification**
-   - Determines the track (bug or knowledge) from the problem_type
+   - Reads `references/yaml-schema.md` for category mapping into `docs/solutions/`
+   - Extracts conversation history and determines the track (bug or knowledge)
    - Identifies problem type, component, and track-appropriate fields:
      - **Bug track**: symptoms, root_cause, resolution_type
      - **Knowledge track**: applies_when (symptoms/root_cause/resolution_type optional)
    - Incorporates auto memory excerpts (if provided by the orchestrator) as supplementary evidence
-   - Reads `references/yaml-schema.md` for category mapping into `docs/solutions/`
    - Suggests a filename using the pattern `[sanitized-problem-slug].md` — no date suffix, even if existing files in the target directory have one; the `date:` frontmatter field is the canonical creation date
    - Writes to `context.json`: YAML frontmatter skeleton (must include `category:` field mapped from problem_type), category directory path, suggested filename, and which track applies. Returns only the artifact path.
    - Does not invent enum values, categories, or frontmatter fields from memory; reads the schema and mapping files above
    - Does not force bug-track fields onto knowledge-track learnings or vice versa
 
 #### 2. **Solution Extractor**
+   - Agent file: `references/agents/solution-extractor.md`
    - Reads `references/schema.yaml` for track classification (bug vs knowledge)
    - Adapts output structure based on the problem_type track
    - **Writes the full doc-body prose** (all track-appropriate sections below) to `solution.md` and returns only the artifact path. This is the subagent most prone to the issue #956 summary-collapse, so its prose must land on disk rather than only in the inline return.
@@ -194,6 +226,7 @@ Pass `{run_id}` (the resolved `$RUN_ID` value) into every Phase 1 subagent promp
    - **Examples**: Concrete before/after or usage examples showing the practice in action
 
 #### 3. **Related Docs Finder**
+   - Agent file: `references/agents/related-docs-finder.md`
    - Searches `docs/solutions/` for related documentation
    - Identifies cross-references and links
    - Finds related GitHub issues
@@ -297,6 +330,13 @@ Pass `{run_id}` (the resolved `$RUN_ID` value) into every Phase 1 subagent promp
 **WAIT for all Phase 1 inputs to complete before proceeding** — the three parallel subagents and, when the user opted in, the internal session-history flow. Session history is a Phase 1 input even though it runs in the orchestrator rather than as a public skill.
 
 The orchestrating agent (main conversation) performs these steps:
+
+0. **Verify bootstrap acknowledgments.** For each Phase 1 subagent, verify its bootstrap-ack contains all expected file paths:
+   - Context Analyzer: `references/agents/context-analyzer.md`, `references/schema.yaml`, `references/yaml-schema.md`
+   - Solution Extractor: `references/agents/solution-extractor.md`, `references/schema.yaml`, `references/yaml-schema.md`, `references/yaml-schema.md`
+   - Related Docs Finder: `references/agents/related-docs-finder.md`
+
+   If any expected path is missing from the ack, re-dispatch that subagent with an admonition to read all files (up to 3 attempts). If all 3 attempts fail, abort the agent (inline-content fallback is removed per the Bootstrap-only dispatch contract).
 
 1. **Collect Phase 1 results from the run artifacts.** For each Phase 1 subagent, `Read` its artifact file under `/tmp/taegosts-skills/ts-compound/{run_id}/` (`context.json`, `solution.md`, `related.json`, and `session-history.md` when session history ran). The artifact holds the subagent's full output. **Fall back to the subagent's inline return only when its artifact file is absent or empty** (e.g., `{run_id}` did not resolve, or the subagent failed to write). The artifact is authoritative when present — this is what makes the workflow resilient to the issue #956 summary-collapse, where the inline return is only an executive summary.
 2. **Check the overlap assessment** from the Related Docs Finder before deciding what to write:
@@ -461,7 +501,7 @@ After the learning is written and the refresh decision is made, check whether th
 
 <parallel_tasks>
 
-Based on problem type, optionally dispatch generic subagents seeded with local prompt assets from `references/agents/` to review the documentation. Do not dispatch standalone agents by type/name.
+Based on problem type, optionally dispatch generic subagents using Bootstrap dispatch pattern. Read the corresponding agent file from `references/agents/<agent-name>.md` and spawn a generic subagent. Do not dispatch standalone agents by type/name. Each subagent reads its own operating contract from disk.
 
 - **performance_issue** → `references/agents/performance-oracle.md`
 - **security_issue** → `references/agents/security-sentinel.md`

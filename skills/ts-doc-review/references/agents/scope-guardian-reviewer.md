@@ -1,6 +1,7 @@
 ---
 name: scope-guardian-reviewer
 description: Reviews plans for right-sizing and whether every abstraction earns its keep.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

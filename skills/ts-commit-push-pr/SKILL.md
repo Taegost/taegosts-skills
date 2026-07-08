@@ -37,9 +37,19 @@ description: Commit, push, and open a PR. Use when asked to ship/open a PR, or f
 
 ### Context fallback
 
+Run the shared git context script:
+
 ```bash
-printf '=== STATUS ===\n'; git status; printf '\n=== DIFF ===\n'; git diff HEAD; printf '\n=== BRANCH ===\n'; git branch --show-current; printf '\n=== LOG ===\n'; git log --oneline -10; printf '\n=== DEFAULT_BRANCH ===\n'; git rev-parse --abbrev-ref origin/HEAD 2>/dev/null || echo 'DEFAULT_BRANCH_UNRESOLVED'; printf '\n=== PR_CHECK ===\n'; gh pr view --json url,title,state 2>/dev/null || echo 'NO_OPEN_PR'
+../../scripts/context-gather.sh
 ```
+
+Parse the JSON output for:
+- `current_branch` and `default_branch` — determine whether a new feature branch is needed
+- `has_open_pr` — if already open, fetch comments via the PR thread API rather than inline code review
+- `has_open_pr_error` — if `true`, the PR-existence check itself failed (e.g. `gh` auth/network error), not "no PR exists". Do NOT treat this the same as `has_open_pr: false` — proceeding to `gh pr create` in that state risks creating a duplicate PR. Instead, retry the check or ask the user before creating a new PR.
+- `staged` / `modified` / `untracked` — identify files to commit in this push; untracked files must be added with `git add`, and deleted modified files must be added too
+- `is_dirty` — if any changes exist in the working tree, include them in this commit rather than leaving them behind
+- `unpushed_count` — if greater than zero, a commit was made but not pushed, or a commit was committed locally without being pushed to the remote
 
 ---
 

@@ -1,6 +1,7 @@
 ---
 name: repo-research-analyst
 description: Searches the repository for existing patterns, conventions, and implementations to inform planning.
+model: haiku
 tools: Read, Grep, Glob
 effort: medium
 ---

@@ -1,6 +1,7 @@
 ---
 name: security-reviewer
 description: Reviews code for security vulnerabilities by thinking like an attacker looking for exploitable paths.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

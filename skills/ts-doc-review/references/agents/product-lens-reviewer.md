@@ -1,6 +1,7 @@
 ---
 name: product-lens-reviewer
 description: Challenges the premise of a plan before evaluating execution — ensures the right thing is being built.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---

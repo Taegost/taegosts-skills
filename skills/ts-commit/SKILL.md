@@ -32,11 +32,13 @@ Create a single, well-crafted git commit from the current working tree changes.
 
 **In Claude Code, skip this section — the data above is already available.**
 
-Run this single command to gather all context:
+Run the shared git context script to gather all context as JSON:
 
 ```bash
-printf '=== STATUS ===\n'; git status; printf '\n=== DIFF ===\n'; git diff HEAD; printf '\n=== BRANCH ===\n'; git branch --show-current; printf '\n=== LOG ===\n'; git log --oneline -10; printf '\n=== DEFAULT_BRANCH ===\n'; git rev-parse --abbrev-ref origin/HEAD 2>/dev/null || echo '__DEFAULT_BRANCH_UNRESOLVED__'
+../../scripts/context-gather.sh
 ```
+
+Parse the JSON output for: current_branch, default_branch, recent_commits, working_tree (staged/modified/untracked), unpushed_count, is_dirty, has_open_pr, has_open_pr_error.
 
 ---
 

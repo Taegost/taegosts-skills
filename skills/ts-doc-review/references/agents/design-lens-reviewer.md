@@ -1,6 +1,7 @@
 ---
 name: design-lens-reviewer
 description: Reviews plans for missing design decisions that would block or derail implementation.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---
