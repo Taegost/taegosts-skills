@@ -56,13 +56,14 @@ If the `/ts-debug` skill is not available, stop and alert the user. Do not conti
 
 - Get the latest version of the pull request
 - Review all open conversations and change requests for findings
+- **Fetch inline review comments.** Run `skills/ts-pr-fix-findings/scripts/fetch-review-comments.sh --repo <owner>/<repo> --pr <number>` to get the threaded findings anchored to specific file:line locations (CodeRabbit, human reviewers, etc.) — this is the primary source of findings for the rest of this step.
 - For each finding, do the following:
   - Check if the finding is already resolved. If it is, then it doesn't require remediation.
-  - **Check conversation resolution status.** For each threaded review conversation, check whether it has been resolved using the GraphQL API (gh api graphql with reviewThreads query checking isResolved). Skip any conversation where isResolved is true. Only unresolved conversations require remediation.
+  - **Check conversation resolution status.** Use the `resolved` field returned by `fetch-review-comments.sh` above (or run `skills/ts-pr-fix-findings/scripts/check-thread-resolution.sh --repo <owner>/<repo> --pr <number>` for a resolution-focused view). Skip any conversation where `resolved` is true. Only unresolved conversations require remediation.
   - Validate whether the finding is valid
   - Make note of any instructions or detailed descriptions are given
   - Make note of any comments in the conversation thread. They may provide additional context.
-- **Fetch issue-level comments.** Run gh api repos/{owner}/{repo}/issues/{pr_number}/comments to get comments posted directly on the PR (not threaded inline). These may contain corrections, updated assessments, or context that changes the validity of review findings. Check each issue-level comment for references to specific findings and update dispositions accordingly. Compare timestamps against the review submission time to identify comments that came after the review.
+- **Fetch issue-level comments.** Run `skills/ts-pr-fix-findings/scripts/fetch-issue-comments.sh --repo <owner>/<repo> --pr <number>` to get comments posted directly on the PR (not threaded inline). These may contain corrections, updated assessments, or context that changes the validity of review findings. Check each issue-level comment for references to specific findings and update dispositions accordingly. Compare timestamps against the review submission time to identify comments that came after the review.
 - If you are unsure whether a finding is valid, prompt the user, do not make an arbitrary decision
 - If you feel a particular finding is larger than a simple bug fix, alert the user and ask them what they would like to do with it. Large remediations may require a separate planning session.
 - If there aren't any findings, alert the user and stop. Do not continue.
@@ -231,7 +232,11 @@ Then:
   - If there is additional context required (such as an explanation as to why your remediation doesn't meet the reviewer's criteria), make sure it is added
 - If the finding was part of a threaded conversation, mark that conversation as Resolved:
     ```bash
-    ./scripts/resolve-thread.sh --pr-url "$PR_URL" --thread-id "$THREAD_ID" --reviewer "$REVIEWER"
+    skills/ts-pr-fix-findings/scripts/resolve-thread.sh --pr-url "$PR_URL" --thread-id "$THREAD_ID" --reviewer "$REVIEWER"
+    ```
+- Post a summary comment on the PR so the notes above are visible outside threaded conversations:
+    ```bash
+    skills/ts-pr-fix-findings/scripts/post-pr-comment.sh --repo "$REPO" --pr "$PR_NUMBER" --body "$SUMMARY"
     ```
 - If necessary, mark the PR and/or reviewer as ready for review again
 

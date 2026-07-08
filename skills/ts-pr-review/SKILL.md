@@ -155,7 +155,13 @@ Create a JSON file with the review body and inline comments. The `body` field is
 gh api repos/{owner}/{repo}/pulls/{number}/reviews --input review.json
 ```
 
-**Fallback:** If the review API fails, or some findings target non-commentable lines (per 4b), post those findings in a single `gh pr comment` with each finding as a separate section split by `---` separators. Inline-postable findings still go through the review API; only the un-postable remainder uses the flat comment.
+**Fallback:** If the review API fails, or some findings target non-commentable lines (per 4b), post those findings in a single flat comment with each finding as a separate section split by `---` separators:
+
+```bash
+skills/ts-pr-fix-findings/scripts/post-pr-comment.sh --repo {owner}/{repo} --pr {number} --body "$FALLBACK_BODY"
+```
+
+Inline-postable findings still go through the review API; only the un-postable remainder uses the flat comment.
 
 ### 5. Display a summary to the user
 
