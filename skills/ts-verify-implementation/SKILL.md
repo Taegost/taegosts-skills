@@ -37,6 +37,8 @@ When locating scripts, consult `docs/ROUTING.md` first to find the correct paths
 base_branch=$(scripts/context-gather.sh | python3 -c "import sys, json; print(json.load(sys.stdin)['default_branch'])")
 ```
 
+**Verification scope:** This skill verifies `git diff ${base_branch}...HEAD` plus staged/unstaged changes in the main working tree. It does not verify content under `.claude/worktrees/` — those are isolated checkouts for implementation-in-progress work from other sessions, not part of this branch's diff. If `git worktree list` shows entries besides the main tree, exclude their paths from every file-scanning step below (subagent dispatch, coverage-gap detection).
+
 ### 2. Load the plan
 
 Invoke `/load-plan` to discover and load the plan. The skill resolves the plan path through explicit path (if provided), PR body scanning, or branch name extraction:
@@ -114,6 +116,7 @@ Each subagent receives:
 - The git diff of all changes
 - The structured KTD list
 - Re-verification context (if re-verifying a prior round's findings)
+- An explicit instruction that verification scope is limited to the git diff and the main working tree — any Grep/Glob results under `.claude/worktrees/` must be ignored and never cited in findings
 
 ### 5. Run coverage-gap detection
 

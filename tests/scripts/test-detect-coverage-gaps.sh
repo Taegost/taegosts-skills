@@ -140,6 +140,19 @@ else
   die "JSON output matches expected schema (rc=$rc, output=$schema_ok)"
 fi
 
+# Given: an untracked script under .claude/worktrees/ with no test file
+# Then: no gap flagged (worktree paths are excluded from scan)
+rm -f new-script.sh
+mkdir -p .claude/worktrees/some-branch
+echo "print('hello')" > .claude/worktrees/some-branch/orphan.py
+output=$(python3 -c "import json, sys; d=json.loads(sys.argv[1]); print(d['count'])" "$("$SCRIPT" main 2>&1)")
+rm -rf .claude
+if [[ "$output" == "0" ]]; then
+  ok "excludes untracked files under .claude/worktrees/"
+else
+  die "excludes untracked files under .claude/worktrees/ (output=$output)"
+fi
+
 echo ""
 echo "Results: $pass passed, $fail failed"
 [[ $fail -eq 0 ]] && exit 0 || exit 1

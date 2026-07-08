@@ -32,13 +32,13 @@ else
   }
 fi
 
-# Get all changed files (diff + untracked)
+# Get all changed files (diff + untracked), excluding worktree checkouts
 CHANGED_FILES=$(
   {
     git diff --name-only "$BASE_BRANCH" 2>/dev/null || true
     git diff --name-only --cached 2>/dev/null || true
     git ls-files --others --exclude-standard 2>/dev/null || true
-  } | sort -u
+  } | { grep -v '^\.claude/worktrees/' || true; } | sort -u
 )
 
 # Script extensions to check

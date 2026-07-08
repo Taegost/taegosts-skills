@@ -43,8 +43,10 @@ If all remaining findings are FYI-subsection-only (no `gated_auto` or `manual` f
 The walk-through receives, from the orchestrator:
 
 - The merged findings list in severity order (P0 → P1 → P2 → P3), filtered to actionable findings (confidence anchor `75` or `100` with `autofix_class` `gated_auto` or `manual`). FYI-subsection findings (anchor `50`) are not included — they surface in the final report only and have no walk-through entry.
-- The run id for artifact lookups (when applicable).
+- The run id for artifact lookups. If the orchestrator has not already generated one this session, generate it now via `scripts/run-id.sh` — the walk-through needs it to derive the decision-log path (see "State" below) before the loop starts.
 - Premise-dependency chain annotations from synthesis step 3.5c: each finding may carry `depends_on: <root_id>` or `dependents: [<ids>]`.
+
+**Resuming an interrupted walk-through.** Before starting the loop, check for an existing decision log at `${TMPDIR:-/tmp}/ts-doc-review-decisions-<run_id>.jsonl`. If one exists and is non-empty (the session compacted or was otherwise interrupted mid-walk-through), read it back and reconstruct the in-memory decision list and Apply set from its entries, then resume the loop at the first finding not yet present in the log. Skip re-presenting already-decided findings.
 
 Each finding's recommended action has already been normalized by synthesis step 3.5b (Deterministic Recommended-Action Tie-Break, `Skip > Defer > Apply`) — the walk-through surfaces that recommendation via the merged finding's `recommended_action` field and does not recompute it.
 
@@ -54,7 +56,7 @@ Each finding's recommended action has already been normalized by synthesis step 
 
 1. Announce the cascade in the terminal before firing the next question: "Skipping/Deferring this root will auto-resolve N dependent finding(s): {titles}. Continue?"
 2. Use the platform's blocking question tool with two options: `Cascade — apply same action to all dependents` (recommended) and `Decide each dependent individually`. Labels must be self-contained per the blocking-question tool design rules.
-3. On Cascade: apply the root's action to every dependent and skip those findings' walk-through entries. Persistence follows the per-action routing rules from "Per-finding routing" below — the canonical home for every cascaded decision is the in-memory decision list (annotated with `cascaded from {root_title}` and the cascaded action), plus any action-specific side effect:
+3. On Cascade: apply the root's action to every dependent and skip those findings' walk-through entries. Persistence follows the per-action routing rules from "Per-finding routing" below — the canonical home for every cascaded decision is the in-memory decision list (annotated with `cascaded from {root_title}` and the cascaded action), plus any action-specific side effect. Each cascaded dependent's decision is appended to the on-disk decision log individually, same as a normal per-finding decision — the cascade is a fast path for the user's choice, not an exemption from persistence.
    - Cascaded `Apply` — add the dependent id to the Apply set and record in the decision list.
    - Cascaded `Defer` — invoke the open-questions append flow for the dependent and record the append outcome in the decision list. If the append fails, fall back to the per-finding failure path (Retry / Record only / Convert to Skip) for that dependent before advancing the cascade.
    - Cascaded `Skip` — record in the decision list only; no Apply-set entry, no open-questions append.
@@ -167,12 +169,12 @@ Only when `ToolSearch` explicitly returns no match or the tool call errors — o
 
 ## Per-finding routing
 
-For each finding's answer:
+For each finding's answer, record the outcome in the in-memory decision list **and** append the same entry to the on-disk decision log (see "State" below) before advancing to the next finding. The disk write happens every turn, not just at loop end — that's what makes decisions survive a mid-walk-through interruption.
 
 - **Apply the proposed fix** — add the finding's id to an in-memory Apply set. Advance to the next finding. Do not edit the document inline — Apply accumulates for end-of-walk-through batch execution. **No-fix guard:** if the merged finding has no `suggested_fix` (possible on `manual` findings where the agent flagged the issue as observation without a concrete resolution), Apply is not executable. Do not add the finding to the Apply set. Instead, surface the no-fix sub-question described below before advancing.
 - **Defer — append to Open Questions section** — invoke the append flow from `references/open-questions-defer.md`. The walk-through's position indicator stays on the current finding during any failure-path sub-question (Retry / Fall back / Convert to Skip). On success, record the append location and reference in the in-memory decision list and advance. On conversion-to-Skip from the failure path, advance with the failure noted in the completion report.
 - **Skip — don't apply, don't append** — record Skip in the in-memory decision list. Advance. No side effects.
-- **Auto-resolve with best judgment on the rest** — exit the walk-through loop. Dispatch the bulk preview from `references/bulk-preview.md`, scoped to the current finding and everything not yet decided. The preview header reports the count of already-decided findings ("K already decided"). If the user picks Cancel from the preview, return to the current finding's per-finding question (not to the routing question). If the user picks Proceed, execute the plan per `references/bulk-preview.md` — Apply findings join the in-memory Apply set with the ones the user already picked, Defer findings route through `references/open-questions-defer.md`, Skip is no-op — then proceed to end-of-walk-through execution.
+- **Auto-resolve with best judgment on the rest** — exit the walk-through loop. Dispatch the bulk preview from `references/bulk-preview.md`, scoped to the current finding and everything not yet decided. The preview header reports the count of already-decided findings ("K already decided"). If the user picks Cancel from the preview, return to the current finding's per-finding question (not to the routing question). If the user picks Proceed, execute the plan per `references/bulk-preview.md` — Apply findings join the in-memory Apply set with the ones the user already picked, Defer findings route through `references/open-questions-defer.md`, Skip is no-op — then proceed to end-of-walk-through execution. Every finding resolved through the bulk preview also gets a decision-log entry appended at the moment it's resolved, same as the per-finding loop.
 
 ### No-fix sub-question (Apply picked on a finding with no `suggested_fix`)
 
@@ -212,15 +214,16 @@ C. Acknowledge without applying — record the decision, no document edit
 
 ## State
 
-Walk-through state is **in-memory only**. The orchestrator maintains:
+The orchestrator maintains two representations of the same state, kept in sync every turn:
 
-- An Apply set (finding ids the user picked Apply on)
-- A decision list (every answered finding with its action and any metadata like `append_location` for Deferred or `reason` for Skipped)
-- The current position in the findings list
+- **In-memory** — an Apply set (finding ids the user picked Apply on), a decision list (every answered finding with its action and any metadata like `append_location` for Deferred or `reason` for Skipped), and the current position in the findings list. Used for fast access during the loop (e.g., computing "K already decided" for the bulk-preview handoff).
+- **On disk** — a decision-log file at `${TMPDIR:-/tmp}/ts-doc-review-decisions-<run_id>.jsonl`, one JSON object per line, appended immediately after each finding is routed (see "Per-finding routing" above). Each line carries at minimum: `finding_id`, `action` (`apply` / `defer` / `skip` / `acknowledge`), `timestamp`, and the same metadata the in-memory entry carries (`append_location`, `reason`, cascade annotations). The file is append-only — the orchestrator never rewrites or truncates it mid-walk-through, so a partial write from an interrupted turn can't corrupt already-recorded decisions.
 
-Nothing is written to disk per-decision except the in-doc Open Questions appends (which are external side effects — those cannot be rolled back). An interrupted walk-through (user cancels the prompt, session compacts, network dies) discards all in-memory state. Apply decisions have not been dispatched yet (they batch at end-of-walk-through), so they are cleanly lost with no document changes.
+**Why both.** The in-memory copy is what the loop actually reads from turn to turn — it's cheap and doesn't require a disk round-trip for every check. The disk copy exists purely for durability: if the session compacts, the user cancels mid-prompt, or the network drops, the in-memory list is gone but the decision log is not. Resuming re-hydrates the in-memory state from disk (see "Resuming an interrupted walk-through" above) instead of re-asking the user about findings already answered.
 
-Cross-session persistence is out of scope. Mirrors `ts-code-review`'s walk-through state rules.
+**What's still not durable.** The Apply set's *document edits* remain batched at end-of-walk-through (see "End-of-walk-through execution" below) — an Apply decision is persisted to the decision log the moment it's made, but the actual document mutation doesn't happen until the batch pass. If the session is interrupted before that pass runs, the decision log still shows the finding as `apply`, so a resumed session can complete the batch without re-asking the user; it does not silently lose the decision the way the old in-memory-only design did.
+
+Cross-session persistence (a *new* invocation of ts-doc-review after the prior one exited cleanly) remains out of scope — the decision log is scoped to a single run id and is not consulted by a fresh run.
 
 ---
 
@@ -231,6 +234,8 @@ After the loop terminates — either every finding has been answered, or the use
 1. **Apply set:** in a single pass, the orchestrator applies every accumulated Apply-set finding's `suggested_fix` to the document. Document edits happen inline via the platform's edit tool — ts-doc-review has no batch-fixer subagent (per scope boundary); the orchestrator performs the edits directly, since `gated_auto` and `manual` fixes for documents are single-file markdown changes with no cross-file dependencies. **Defensive no-fix check:** before dispatching the edit for each Apply-set entry, verify the merged finding carries a `suggested_fix`. If it does not (the decision-time no-fix guard in "Per-finding routing" should prevent this, but treat it as a defensive fallback), skip the edit, record the finding in the completion report's failure section with reason `Apply skipped — no suggested_fix available`, and continue the batch. Do not fail the entire pass because one Apply-set entry lacks a fix.
 2. **Defer set:** already executed inline during the walk-through via `references/open-questions-defer.md`. Nothing to dispatch here.
 3. **Skip:** no-op.
+
+After execution completes, delete the decision-log file for this run id — the walk-through finished normally, so there's nothing left to resume. If a later round of the same session starts a new walk-through (e.g., re-verification after fixes land), it generates a fresh run id and a fresh log rather than reusing the deleted one.
 
 After execution completes (or after `Auto-resolve with best judgment on the rest → Cancel` followed by the user working through remaining findings one at a time, or after the loop runs to completion), emit the unified completion report described below.
 
@@ -281,4 +286,4 @@ Verdict: Ready.
 
 ## Execution posture
 
-The walk-through is operationally read-only with respect to the project except for three permitted writes: the in-memory Apply set / decision list (managed by the orchestrator), the in-doc Open Questions appends (external side effects managed by `references/open-questions-defer.md`), and the end-of-walk-through batch document edits (the orchestrator's final Apply pass). Those agents remain strictly read-only. Unlike `ts-code-review`, there is no fixer subagent — the orchestrator owns the document edit directly.
+The walk-through is operationally read-only with respect to the project except for four permitted writes: the in-memory Apply set / decision list (managed by the orchestrator), the on-disk decision log (`${TMPDIR:-/tmp}/ts-doc-review-decisions-<run_id>.jsonl`, appended after every finding), the in-doc Open Questions appends (external side effects managed by `references/open-questions-defer.md`), and the end-of-walk-through batch document edits (the orchestrator's final Apply pass). Those agents remain strictly read-only. Unlike `ts-code-review`, there is no fixer subagent — the orchestrator owns the document edit directly.
