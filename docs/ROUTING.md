@@ -13,7 +13,7 @@ Core scripts used across the repository for automation, validation, and tooling.
 
 | Link | Description |
 |------|-------------|
-| [scripts/INDEX.md](../scripts/INDEX.md) | Index of all scripts in scripts/ |
+| [scripts/INDEX.md](../scripts/INDEX.md) | Index of all repo-level scripts. Read this any time you need to perform a repeatable task, such as git operations, JSON output, etc. Also consult this before running any ad-hoc scripts to see if one doesn't already exist. |
 
 ### Skill Scripts
 
@@ -44,6 +44,7 @@ Documented solutions to past problems, organized by category with YAML frontmatt
 
 | Link | Description |
 |------|-------------|
+| [solutions/INDEX.md](solutions/INDEX.md) | Index of all solution documents |
 | [solutions/](solutions/) | Solution documents directory |
 | [solutions/conventions/](solutions/conventions/) | Agent and dispatch conventions |
 | [solutions/tooling-decisions/](solutions/tooling-decisions/) | Tooling and architecture decisions |

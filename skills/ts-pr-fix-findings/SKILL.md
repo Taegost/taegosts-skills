@@ -240,7 +240,7 @@ Then:
 After pushing fixes and resolving threads, request re-review from the original reviewer(s). Do not assume they will notice the push:
 
 ```bash
-scripts/request-re-review.sh {pr_number} --fresh {reviewer1} [{reviewer2} ...]
+./scripts/request-re-review.sh --pr-url <pr-url> --reviewer <reviewer>
 ```
 
 This is easy to forget — if the PR shows "Changes Requested" and you have pushed fixes, the reviewer needs to know to look again. The script handles the remove-then-add flow (via `--fresh`), falls back to `gh pr edit` if the API call fails, and posts a comment if the bot lacks write access.

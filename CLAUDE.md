@@ -18,3 +18,7 @@ Extracted scripts must:
 - Be listed in the extraction enumeration (`docs/plans/2026-07-05-001-extraction-enumeration.md`)
 
 Trivial one-liners (e.g., `git status`, `gh pr view`) that are not duplicated may remain inline.
+
+## Documentation Navigation
+
+For a complete map of repository documentation, scripts, standards, and solutions, see [`docs/ROUTING.md`](docs/ROUTING.md) — the central entry point for navigating this repository's structure.
