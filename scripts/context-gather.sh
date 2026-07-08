@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# context-gather -- Gather git context as JSON (branch, commits, status, unpushed)
+# context-gather.sh -- Gather git context as JSON (branch, commits, status, unpushed)
 #
 # Usage: context-gather.sh [--help]
 #
@@ -41,128 +41,153 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
     exit 1
 fi
 
-# Current branch
-current_branch=$(git branch --show-current 2>/dev/null || echo "")
-if [[ -z "$current_branch" ]]; then
-    current_branch="null"
-else
-    current_branch="\"${current_branch}\""
-fi
+# Current branch (raw, unquoted)
+current_branch_raw=$(git branch --show-current 2>/dev/null || echo "")
 
 # Default branch delegates to git-default-branch.sh (single source of truth)
+# Run in a subshell because the helper may call `exit` on error; capture stdout.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+default_branch_raw="main"
 if [[ -f "${SCRIPT_DIR}/git-default-branch.sh" ]]; then
-    source "${SCRIPT_DIR}/git-default-branch.sh" 2>/dev/null || default_branch="main"
-    if [[ -n "${DEFAULT_BRANCH:-}" ]]; then
-        default_branch="${DEFAULT_BRANCH#origin/}"
-    else
-        default_branch="main"
-    fi
-else
-    default_branch="main"
-fi
-
-# Recent commits (last 10)
-recent_commits="["
-first=true
-while IFS=$'\t' read -r hash subject; do
-    if [[ -n "$hash" ]]; then
-        if [[ "$first" == "true" ]]; then
-            first=false
-        else
-            recent_commits+=","
+    if default_branch_output=$("${SCRIPT_DIR}/git-default-branch.sh" 2>/dev/null); then
+        default_branch_raw="${DEFAULT_BRANCH:-$default_branch_output}"
+        default_branch_raw="${default_branch_raw#origin/}"
+        if [[ -z "$default_branch_raw" ]]; then
+            default_branch_raw="main"
         fi
-        # Escape double quotes in subject
-        subject="${subject//\"/\\\"}"
-        recent_commits+="{\"hash\":\"${hash}\",\"subject\":\"${subject}\"}"
     fi
-done < <(git log --oneline -10 2>/dev/null | awk '{hash=$1; $1=""; sub(/^ /, ""); print hash"\t"$0}')
-recent_commits+="]"
-
-# Working tree status
-staged="["
-modified="["
-untracked="["
-s_first=true
-m_first=true
-u_first=true
-
-while IFS= read -r line; do
-    if [[ -z "$line" ]]; then
-        continue
-    fi
-
-    # git status --porcelain format: XY filename
-    # X = index status (staged), Y = work tree status (unstaged)
-    # Positions 1 and 2 are the status codes, position 4+ is the filename
-    x="${line:0:1}"
-    y="${line:1:1}"
-    file="${line:3}"
-
-    # Escape double quotes in filename
-    file="${file//\"/\\\"}"
-
-    # Staged changes (X position)
-    if [[ "$x" == "M" || "$x" == "A" || "$x" == "D" || "$x" == "R" || "$x" == "C" ]]; then
-        if [[ "$s_first" == "true" ]]; then s_first=false; else staged+=","; fi
-        staged+="\"${file}\""
-    fi
-
-    # Unstaged changes (Y position)
-    if [[ "$y" == "M" || "$y" == "D" ]]; then
-        if [[ "$m_first" == "true" ]]; then m_first=false; else modified+=","; fi
-        modified+="\"${file}\""
-    fi
-
-    # Untracked (XY=??)
-    if [[ "$x" == "?" && "$y" == "?" ]]; then
-        if [[ "$u_first" == "true" ]]; then u_first=false; else untracked+=","; fi
-        untracked+="\"${file}\""
-    fi
-done < <(git status --porcelain 2>/dev/null)
-
-staged+="]"
-modified+="]"
-untracked+="]"
-
-is_dirty="false"
-if [[ "$staged" != "[]" || "$modified" != "[]" || "$untracked" != "[]" ]]; then
-    is_dirty="true"
 fi
+
+# Recent commits (last 10) — collect as "hash<TAB>subject" lines
+recent_commits_raw="$(git log --format='%h	%s' -10 2>/dev/null || true)"
+
+# Working tree status — collect raw porcelain output
+working_tree_raw="$(git status --porcelain 2>/dev/null || true)"
 
 # Unpushed commits count
 unpushed_count=0
 if git rev-parse --abbrev-ref '@{upstream}' > /dev/null 2>&1; then
     unpushed_count=$(git rev-list --count '@{upstream}..HEAD' 2>/dev/null || echo "0")
 else
-    # No upstream set - check if there are any commits
+    # No upstream set — fallback: total commit count (matches legacy behavior)
     unpushed_count=$(git rev-list --count HEAD 2>/dev/null || echo "0")
 fi
 
 # Open PR check
+# IMPORTANT: Don't suppress gh failure. If gh is not authenticated, set a distinct error flag
+# instead of silently treating the failure as "no open PR" — that was a bug.
 has_open_pr="false"
-if current_branch_raw=$(git branch --show-current 2>/dev/null) && [[ -n "$current_branch_raw" ]]; then
-    pr_state=$(gh pr view --json state --jq '.state' 2>/dev/null || echo "")
-    if [[ "$pr_state" == "OPEN" ]]; then
-        has_open_pr="true"
+has_open_pr_error="false"
+if [[ -n "$current_branch_raw" ]]; then
+    # Capture both stdout and stderr separately to distinguish "no PR" from "gh error"
+    pr_state=$(gh pr view --json state --jq '.state' 2>&1)
+    gh_exit=$?
+    if [[ $gh_exit -eq 0 ]]; then
+        # gh succeeded
+        if [[ "$pr_state" == "OPEN" ]]; then
+            has_open_pr="true"
+        fi
+        # else: no PR or PR not open, no error
+    else
+        # gh failed — flag as error (could be auth, network, or PR doesn't exist)
+        has_open_pr_error="true"
     fi
 fi
 
-# Output JSON
-cat <<EOF
-{
-  "current_branch": ${current_branch},
-  "default_branch": "${default_branch}",
-  "recent_commits": ${recent_commits},
-  "working_tree": {
-    "staged": ${staged},
-    "modified": ${modified},
-    "untracked": ${untracked}
-  },
-  "unpushed_count": ${unpushed_count},
-  "is_dirty": ${is_dirty},
-  "has_open_pr": ${has_open_pr}
-}
-EOF
+# Serialize everything through Python for correct JSON escaping.
+# Pass raw data via env vars to avoid any interpolation issues.
+# Note: python3 availability is required; this is documented in the script header.
+export CTX_CURRENT_BRANCH="$current_branch_raw"
+export CTX_DEFAULT_BRANCH="$default_branch_raw"
+export CTX_RECENT_COMMITS="$recent_commits_raw"
+export CTX_WORKING_TREE="$working_tree_raw"
+export CTX_UNPUSHED_COUNT="$unpushed_count"
+export CTX_HAS_OPEN_PR="$has_open_pr"
+export CTX_HAS_OPEN_PR_ERROR="$has_open_pr_error"
+
+python3 - <<'PY'
+import json
+import os
+import sys
+
+def parse_porcelain(raw):
+    """Parse git status --porcelain into {staged, modified, untracked} arrays.
+    Handles rename/copy entries (R  old -> new) by extracting only the new path."""
+    staged, modified, untracked = [], [], []
+    for line in raw.splitlines():
+        if not line:
+            continue
+        x = line[0]
+        y = line[1]
+        path = line[3:] if len(line) > 3 else ""
+
+        # Handle rename/copy: "R  old -> new" or "R  old -> new" → take the new path
+        if x in ('R', 'C'):
+            if ' -> ' in path:
+                path = path.split(' -> ', 1)[1]
+            elif '"' in path:
+                # Quoted rename format: "old" -> "new"
+                parts = path.split(' -> ')
+                if len(parts) == 2 and parts[1].startswith('"') and parts[1].endswith('"'):
+                    path = parts[1][1:-1]
+
+        if x in ('M', 'A', 'D', 'R', 'C'):
+            staged.append(path)
+        if y in ('M', 'D'):
+            modified.append(path)
+        if x == '?' and y == '?':
+            untracked.append(path)
+    return staged, modified, untracked
+
+def parse_commits(raw):
+    """Parse commit log output into [{hash, subject}, ...] array."""
+    commits = []
+    for line in raw.splitlines():
+        if not line:
+            continue
+        parts = line.split('\t', 1)
+        if len(parts) != 2:
+            continue
+        commits.append({'hash': parts[0], 'subject': parts[1]})
+    return commits
+
+try:
+    current_branch = os.environ.get('CTX_CURRENT_BRANCH', '') or None
+    default_branch = os.environ.get('CTX_DEFAULT_BRANCH', 'main')
+    unpushed_count = int(os.environ.get('CTX_UNPUSHED_COUNT', '0') or '0')
+    has_open_pr = os.environ.get('CTX_HAS_OPEN_PR', 'false') == 'true'
+
+    staged, modified, untracked = parse_porcelain(os.environ.get('CTX_WORKING_TREE', ''))
+    is_dirty = bool(staged or modified or untracked)
+
+    commits = parse_commits(os.environ.get('CTX_RECENT_COMMITS', ''))
+
+    output = {
+        'current_branch': current_branch,
+        'default_branch': default_branch,
+        'recent_commits': commits,
+        'working_tree': {
+            'staged': staged,
+            'modified': modified,
+            'untracked': untracked,
+        },
+        'unpushed_count': unpushed_count,
+        'is_dirty': is_dirty,
+        'has_open_pr': has_open_pr,
+        'has_open_pr_error': os.environ.get('CTX_HAS_OPEN_PR_ERROR', 'false') == 'true',
+    }
+
+    json.dump(output, sys.stdout, ensure_ascii=False)
+    sys.stdout.write('\n')
+except Exception as e:
+    # Emit structured error, not raw traceback
+    json.dump({'error': str(e)}, sys.stderr, ensure_ascii=False)
+    sys.stderr.write('\n')
+    sys.exit(1)
+PY
+
+# Clean up env vars
+unset CTX_CURRENT_BRANCH CTX_DEFAULT_BRANCH CTX_RECENT_COMMITS \
+      CTX_WORKING_TREE CTX_UNPUSHED_COUNT CTX_HAS_OPEN_PR CTX_HAS_OPEN_PR_ERROR
 
 exit 0

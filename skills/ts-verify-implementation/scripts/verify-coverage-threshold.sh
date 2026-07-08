@@ -64,21 +64,28 @@ if [[ -z "$threshold" ]]; then
   exit 2
 fi
 
-# Validate threshold is numeric (integer or decimal)
-if ! [[ "$threshold" =~ ^[0-9]+\.?[0-9]*$ ]]; then
+# Validate threshold is numeric (integer or decimal) — supports leading zeros like "085"
+if ! [[ "$threshold" =~ ^[0-9]*\.?[0-9]+$ ]]; then
   echo '{"ok":false,"error":"--threshold must be a numeric value"}' >&2
   exit 2
 fi
+# Normalize to canonical decimal form ("08.0" -> "8", "12.50" -> "12.5")
+threshold=$(printf "%g" "$threshold")
 
 # Validate threshold is in range 0-100
-if (( $(echo "$threshold < 0" | bc -l) )) || (( $(echo "$threshold > 100" | bc -l) )); then
+if [[ -n "$(echo "$threshold < 0" | bc -l)" && "$(echo "$threshold < 0" | bc -l)" == "1" ]] || \
+   [[ -n "$(echo "$threshold > 100" | bc -l)" && "$(echo "$threshold > 100" | bc -l)" == "1" ]]; then
   echo '{"ok":false,"error":"--threshold must be between 0 and 100"}' >&2
   exit 2
 fi
 
-# Validate coverage file exists
+# Validate coverage file exists and is readable
 if [[ ! -f "$coverage_file" ]]; then
   echo "{\"ok\":false,\"error\":\"coverage file not found: $coverage_file\"}" >&2
+  exit 2
+fi
+if [[ ! -r "$coverage_file" ]]; then
+  echo "{\"ok\":false,\"error\":\"coverage file is not readable: $coverage_file\"}" >&2
   exit 2
 fi
 
@@ -88,7 +95,7 @@ coverage_value=""
 
 # Try to extract a percentage number from the file content
 # Match patterns like: 85.5%, Coverage: 85.5, Total: 85.5%, plain number
-raw_content=$(cat "$coverage_file")
+raw_content=$(<"$coverage_file")
 
 # First try: look for a percentage number (with or without % sign)
 if [[ "$raw_content" =~ ([0-9]+\.?[0-9]*)% ]]; then
@@ -111,6 +118,8 @@ if ! [[ "$coverage_value" =~ ^[0-9]+\.?[0-9]*$ ]]; then
   echo '{"ok":false,"error":"extracted coverage value is not numeric"}' >&2
   exit 2
 fi
+# Normalize to canonical decimal form ("08.0" -> "8", "12.50" -> "12.5")
+coverage_value=$(printf "%g" "$coverage_value")
 
 # Compare coverage against threshold using bc for decimal support
 meets_threshold=$(echo "$coverage_value >= $threshold" | bc -l)

@@ -44,13 +44,13 @@ tags: [index, <category-specific-tags>]
 
 INDEX.md files MUST use a markdown table with these columns:
 
-| Path | Description |
+| Link | Description |
 |------|-------------|
-| file1.md | One-line description of file1 |
-| file2.md | One-line description of file2 |
+| [file1.md](./file1.md) | One-line description of file1 |
+| [file2.md](./file2.md) | One-line description of file2 |
 
 **Column requirements:**
-- **Path**: Relative path from INDEX.md location (no leading ./)
+- **Link**: Markdown link with the filename as display text and a relative path from INDEX.md location (e.g. `[file.md](./file.md)`). This is the Wave 1 format and the authoritative standard — generators (index-scripts.py, update-indexes.py) produce this format.
 - **Description**: One-line description (MUST NOT be empty or vague like "Documentation file")
 
 **Description guidelines:**
@@ -68,6 +68,7 @@ INDEX.md files MUST use a markdown table with these columns:
 - No trailing slashes on file paths
 
 **Validation script behavior:**
+
 ```bash
 # Correct validation
 test -f "$path" && echo "VALID" || echo "BROKEN"
@@ -174,8 +175,8 @@ tags: index  # ❌ Should be array
 Before marking an INDEX.md as complete, verify:
 - [ ] Frontmatter has all required fields
 - [ ] Description is non-empty and specific
-- [ ] Table has Path and Description columns
-- [ ] All paths are relative (no leading ./)
+- [ ] Table has Link and Description columns (Link column contains markdown links: `[name](path)`)
+- [ ] All link paths are relative from INDEX.md location
 - [ ] All descriptions are non-empty
 - [ ] All links validate with filesystem checks
 - [ ] Placement rules satisfied (2+ related files, not root, not archive)

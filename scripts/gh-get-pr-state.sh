@@ -61,17 +61,27 @@ fi
 
 # Validate gh CLI is available and authenticated
 if ! command -v gh &>/dev/null; then
-  echo '{"ok":false,"error":"gh CLI is not installed"}' >&2
+  echo '{"ok":false,"error":"gh CLI not available"}' >&2
+  exit 1
+fi
+
+if ! gh auth status >/dev/null 2>&1; then
+  echo '{"ok":false,"error":"gh CLI not authenticated"}' >&2
   exit 1
 fi
 
 # Fetch PR state, head SHA, and base branch
-pr_json=$(gh pr view "$pr_url" --json state,headRefOid,baseRefName 2>/dev/null) || {
-  echo '{"ok":false,"error":"failed to fetch PR data. Check that the PR exists and you have access."}' >&2
+if ! pr_json=$(gh pr view "$pr_url" --json state,headRefOid,baseRefName 2>&1); then
+  echo '{"ok":false,"error":"failed to fetch PR data"}' >&2
   exit 1
-}
+fi
 
 # Extract fields using python3 for reliable JSON parsing
+if ! command -v python3 &>/dev/null; then
+  echo '{"ok":false,"error":"python3 not available"}' >&2
+  exit 1
+fi
+
 python3 -c "
 import json, sys
 data = json.loads(sys.stdin.read())
@@ -80,5 +90,5 @@ result = {
     'head_sha': data.get('headRefOid', ''),
     'base_branch': data.get('baseRefName', '')
 }
-print(json.dumps(result, indent=2))
+print(json.dumps(result))
 " <<< "$pr_json"

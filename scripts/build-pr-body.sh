@@ -129,8 +129,8 @@ while IFS= read -r line; do
   fi
   # Collect requirement items (lines starting with - W2-R or similar)
   if [[ "$in_requirements" == true ]] && [[ "$line" =~ ^-[[:space:]]W[0-9]+-R ]]; then
-    # Extract requirement ID and description
-    req_id=$(echo "$line" | grep -oP 'W[0-9]+-R[0-9]+\.?' | head -1 | tr -d '.')
+    # Extract requirement ID and description (use grep -E for portability — no -P on BSD/macOS)
+    req_id=$(echo "$line" | grep -oE 'W[0-9]+-R[0-9]+' | head -1)
     req_desc=$(echo "$line" | sed 's/^-[[:space:]]*W[0-9]*-R[0-9]*\.[[:space:]]*//')
     if [[ -n "$req_id" ]]; then
       units+="- **$req_id**: $req_desc"$'\n'
@@ -151,33 +151,52 @@ while IFS= read -r line; do
   if [[ "$in_decisions" == true ]] && [[ "$line" =~ ^##[[:space:]] ]] && [[ "$line" != "## Key Technical Decisions" ]]; then
     break
   fi
-  # Collect KTD items
+  # Collect KTD items (use grep -E for portability)
   if [[ "$in_decisions" == true ]] && [[ "$line" =~ ^\*\*KTD- ]]; then
-    ktd_id=$(echo "$line" | grep -oP 'KTD-[0-9]+' | head -1)
-    ktd_title=$(echo "$line" | sed 's/^\*\*KTD-[0-9]*\.[[:space:]]*//' | sed 's/\*\*$//')
+    ktd_id=$(echo "$line" | grep -oE 'KTD-[0-9]+' | head -1)
+    # KTD titles may use either `.` or `:` after the number: **KTD-1. Title** or **KTD-1: Title**
+    ktd_title=$(echo "$line" | sed 's/^\*\*KTD-[0-9]*[.:][[:space:]]*//' | sed 's/\*\*$//')
     if [[ -n "$ktd_id" ]]; then
       decisions+="- **$ktd_id**: $ktd_title"$'\n'
     fi
   fi
 done <<< "$plan_content"
 
-# Build the PR body
-cat <<EOF
-# $title
+# Build the PR body using awk ENVIRON for safe template substitution:
+# ENVIRON reads values from environment variables directly without shell expansion,
+# so $title/$summary/$units/$decisions containing backticks or $(...) cannot trigger
+# command injection (unlike an unquoted heredoc).
+# This also correctly handles multi-line content (heredoc-safe).
+DEFAULT_SUMMARY="No summary available."
+DEFAULT_UNITS="No requirements listed."
+DEFAULT_DECISIONS="No key technical decisions listed."
 
-## Summary
+TMPL_TITLE="$title" \
+TMPL_SUMMARY="${summary:-$DEFAULT_SUMMARY}" \
+TMPL_UNITS="${units:-$DEFAULT_UNITS}" \
+TMPL_DECISIONS="${decisions:-$DEFAULT_DECISIONS}" \
+TMPL_PLAN_PATH="$plan_path" \
+awk 'BEGIN {
+    title = ENVIRON["TMPL_TITLE"]
+    summary = ENVIRON["TMPL_SUMMARY"]
+    units = ENVIRON["TMPL_UNITS"]
+    decisions = ENVIRON["TMPL_DECISIONS"]
+    plan_path = ENVIRON["TMPL_PLAN_PATH"]
 
-${summary:-No summary available.}
-
-## Completed Requirements
-
-${units:-No requirements listed.}
-
-## Key Technical Decisions
-
-${decisions:-No key technical decisions listed.}
-
----
-
-*This PR body was auto-generated from the plan file: \`$plan_path\`*
-EOF
+    print "# " title ""
+    print ""
+    print "## Summary"
+    print ""
+    print summary
+    print ""
+    print "## Completed Requirements"
+    print ""
+    print units
+    print "## Key Technical Decisions"
+    print ""
+    print decisions
+    print ""
+    print "---"
+    print ""
+    print "*This PR body was auto-generated from the plan file: `" plan_path "`*"
+}'

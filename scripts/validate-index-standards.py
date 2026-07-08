@@ -161,23 +161,31 @@ def check_r8_frontmatter(content: str, filepath: Path) -> list[dict]:
         })
         return violations
 
-    # Required fields per R3 standard
-    required_fields = ['title', 'description', 'status', 'version', 'created', 'last-updated', 'owner', 'tags']
+    # Required fields per R3/R8 standard. `dependencies` is optional; it only fails
+    # if the reviewer requests tracking dependency changes.
+    required_fields = ['title', 'description', 'status', 'version',
+                       'created', 'last-updated', 'owner', 'tags']
+    dependency_tracking_ok = 'dependencies' in frontmatter  # informational
+
     for field in required_fields:
         if field not in frontmatter:
             violations.append({
-                'rule': 'R3',
+                'rule': 'R8',
                 'line': 1,
                 'message': f'Frontmatter missing required "{field}" field',
                 'fix': f'Add {field}: <value> to frontmatter'
             })
+
+    # Optional: if we start tracking dependency changes, flag an empty dependencies array
+    # (currently a no-op gate, kept here for reviewer-requested future use.)
+    _dependency_gate_placeholder = dependency_tracking_ok  # noqa: F841
 
     # Check description is non-empty
     if 'description' in frontmatter:
         desc = frontmatter['description'].strip().strip('"').strip("'")
         if not desc:
             violations.append({
-                'rule': 'R3',
+                'rule': 'R8',
                 'line': 1,
                 'message': 'Frontmatter "description" field is empty',
                 'fix': 'Add a meaningful description of what this index covers'
@@ -188,7 +196,7 @@ def check_r8_frontmatter(content: str, filepath: Path) -> list[dict]:
         version = frontmatter['version'].strip()
         if not (version.startswith('"') and version.endswith('"')) and not (version.startswith("'") and version.endswith("'")):
             violations.append({
-                'rule': 'R3',
+                'rule': 'R8',
                 'line': 1,
                 'message': 'Frontmatter "version" field must be quoted (e.g., "1.0")',
                 'fix': 'Quote the version value: version: "1.0"'
@@ -199,14 +207,14 @@ def check_r8_frontmatter(content: str, filepath: Path) -> list[dict]:
         tags = frontmatter['tags'].strip()
         if not tags.startswith('['):
             violations.append({
-                'rule': 'R3',
+                'rule': 'R8',
                 'line': 1,
                 'message': 'Frontmatter "tags" field must be an array',
                 'fix': 'Use array format: tags: [index, ...]'
             })
         elif 'index' not in tags:
             violations.append({
-                'rule': 'R3',
+                'rule': 'R8',
                 'line': 1,
                 'message': 'Frontmatter "tags" array must include "index"',
                 'fix': 'Add "index" to tags array: tags: [index, ...]'
@@ -430,7 +438,8 @@ def extract_indexed_paths(filepath: Path) -> set[str]:
         cells = [c.strip() for c in line.split('|')]
 
         # Check if this is the header row
-        if any(c.lower() == 'path' for c in cells):
+        # Accept both "Path" (Wave 2) and "Link" (Wave 1, authoritative standard)
+        if any(c.lower() in ('path', 'link') for c in cells):
             in_table = True
             continue
 
@@ -439,9 +448,14 @@ def extract_indexed_paths(filepath: Path) -> set[str]:
             continue
 
         # Extract path from first non-empty cell after the leading pipe
+        # The cell may contain a markdown link [name](path) — extract the path
         if in_table and len(cells) >= 3:
             path_cell = cells[1].strip()
             if path_cell and not path_cell.startswith('#'):
+                # Unwrap markdown link: [text](path) -> path
+                md_link_match = re.match(r'^\[[^\]]*\]\(([^)]+)\)$', path_cell)
+                if md_link_match:
+                    path_cell = md_link_match.group(1)
                 paths.add(path_cell)
 
     return paths

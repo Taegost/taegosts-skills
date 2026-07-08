@@ -91,9 +91,11 @@ class TestGeneratesIndexFiles:
 
         run_updater("--dir", str(docs_dir))
         content = (docs_dir / "INDEX.md").read_text()
+        # Wave 1 authoritative format (PR #97 directive)
         assert "| Link | Description |" in content
         assert "|------|-------------|" in content
-        assert "[readme.md]" in content
+        assert "readme.md" in content
+        assert "[readme.md](./readme.md)" in content
 
 
 class TestExtractsMetadata:
@@ -156,7 +158,7 @@ class TestR8Scoping:
         child.mkdir(parents=True)
         (parent / "doc.md").write_text("# Parent Doc\n\nParent content.\n")
         (child / "INDEX.md").write_text(
-            "---\ntags: [index]\ndescription: Child index.\n---\n\n# Child Index\n\nChild index.\n\n| Link | Description |\n|------|-------------|\n| [a.md](a.md) | Something |\n"
+            "---\ntags: [index]\ndescription: Child index.\n---\n\n# Child Index\n\nChild index.\n\n| Path | Description |\n|------|-------------|\n| a.md | Something |\n"
         )
 
         run_updater("--dir", str(parent))

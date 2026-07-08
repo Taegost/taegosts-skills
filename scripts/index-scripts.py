@@ -187,7 +187,7 @@ def generate_index_md(scripts: list[dict], title: str, description: str,
     for script in scripts:
         name = script["name"]
         desc = script["description"] or "(no description)"
-        lines.append(f"| [{name}]({name}) | {desc} |")
+        lines.append(f"| [{name}](./{name}) | {desc} |")
 
     lines.append("")  # trailing newline
     return "\n".join(lines)
@@ -281,6 +281,9 @@ Generates INDEX.md in scripts/ and skills/*/scripts/ using R8 format.
         if skills_dir.is_dir():
             for skill_dir in sorted(skills_dir.iterdir()):
                 if not skill_dir.is_dir():
+                    continue
+                # Skip _deprecated directories
+                if skill_dir.name.startswith("_"):
                     continue
                 skill_scripts_dir = skill_dir / "scripts"
                 if not skill_scripts_dir.is_dir():

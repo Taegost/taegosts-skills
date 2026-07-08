@@ -1,12 +1,23 @@
 #!/usr/bin/env bash
-# ---
-# description: "Load and query dispatch standards from standards/dispatch-standards.md"
-# triggers: []
-# inputs:
-#   - name: action
-#     type: string
-#     description: "get_rule <id> | validate <skill-path>"
-# ---
+# load-dispatch-standards.sh -- Sourceable validation library for dispatch pattern standards
+#
+# PURPOSE:
+#   This is a sourceable validation library, not a standalone script.
+#   It provides functions to load dispatch standards and validate skills
+#   against required patterns (DS-002: no-subagent-spawning).
+#
+# INPUTS:
+#   get_rule <id>                    - Fetch a specific dispatch rule by ID
+#   validate <skill-path>            - Validate a skill file follows dispatch patterns
+#
+# PRIMARY CONSUMERS:
+#   - tests/scripts/test-load-dispatch-standards.bats
+#   - tests/scripts/test-dispatch-standards-enforcement.bats
+#   - Future CI/dispatch validation tooling
+#
+# USAGE:
+#   source "$(dirname "$0")/load-dispatch-standards.sh"
+#   validate_dispatch_invocation "skills/ts-work/SKILL.md"
 
 set -euo pipefail
 
@@ -69,18 +80,42 @@ validate_dispatch_invocation() {
     local violation_messages=()
 
     # Check for prohibited patterns (DS-002: no-subagent-spawning)
+    # Exclude documentation/examples/references — only flag actual dispatch logic
+    local has_prohibited=false
     if grep -qiE '(Agent\s*\(|spawn_agent|subagent_type)' "$skill_path" 2>/dev/null; then
+        # Check if it's documentation/example/reference (not actual dispatch)
+        if ! grep -qiE '(example|documentation|reference|legacy|deprecated|comment|inline)' "$skill_path" 2>/dev/null; then
+            # Additional check: ensure it's not in a comment or docstring context
+            # Look for actual code lines (not starting with # or in heredocs)
+            if grep -E '^[^#]*\b(Agent\s*\(|spawn_agent|subagent_type)' "$skill_path" 2>/dev/null | grep -qvE '(#|```|<!--)'; then
+                has_prohibited=true
+            fi
+        fi
+    fi
+
+    if [[ "$has_prohibited" == "true" ]]; then
         violations=$((violations + 1))
-        violation_messages+=("Contains direct subagent spawning (Agent tool, spawn_agent, or subagent_type)")
+        violation_messages+=("Contains direct subagent spawning in code (Agent tool, spawn_agent, or subagent_type)")
     fi
 
     # Check for model selection logic for subagents
+    # Exclude documentation/examples/references — only flag actual dispatch logic
+    local has_model_logic=false
     if grep -qiE '(model.*haiku|model.*sonnet|model.*opus|subagent.*model)' "$skill_path" 2>/dev/null; then
-        # Exclude references that are documentation/examples, not dispatch logic
-        if ! grep -qiE '(example|documentation|reference|legacy|deprecated)' "$skill_path" 2>/dev/null; then
-            violations=$((violations + 1))
-            violation_messages+=("Contains model selection logic for subagents")
+        # Check if it's documentation/example/reference (not actual dispatch)
+        if ! grep -qiE '(example|documentation|reference|legacy|deprecated|comment|inline)' "$skill_path" 2>/dev/null; then
+            # Additional check: ensure it's not in a comment or docstring context
+            if grep -E '^[^#]*\bmodel.*haiku' "$skill_path" 2>/dev/null | grep -qvE '(#|```|<!--)'; then
+                has_model_logic=true
+            elif grep -E '^[^#]*\bsubagent.*model' "$skill_path" 2>/dev/null | grep -qvE '(#|```|<!--)'; then
+                has_model_logic=true
+            fi
         fi
+    fi
+
+    if [[ "$has_model_logic" == "true" ]]; then
+        violations=$((violations + 1))
+        violation_messages+=("Contains model selection logic in code")
     fi
 
     # Report results

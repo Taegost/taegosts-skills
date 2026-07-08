@@ -64,7 +64,7 @@ else
 fi
 
 # Given: temp repo with neither origin/main nor origin/master
-# When: source the script
+# When: run the script
 # Then: exits with error
 tmpdir3=$(mktemp -d)
 trap 'rm -rf "$tmpdir" "$tmpdir2" "$tmpdir3"' EXIT
@@ -75,7 +75,7 @@ git config user.name "Test"
 git commit --allow-empty -m "init" >/dev/null 2>&1
 git remote add origin https://example.com/fake.git 2>/dev/null
 
-output=$(source "$SCRIPT" 2>&1) && rc=0 || rc=$?
+output=$(bash "$SCRIPT" 2>&1) && rc=0 || rc=$?
 if [[ $rc -eq 2 ]]; then
   ok "exits 2 when no default branch found"
 else
@@ -83,22 +83,22 @@ else
 fi
 
 # Given: outside a git repo
-# When: source the script
+# When: run the script
 # Then: exits with error
 tmpdir4=$(mktemp -d)
 trap 'rm -rf "$tmpdir" "$tmpdir2" "$tmpdir3" "$tmpdir4"' EXIT
 cd "$tmpdir4" || exit 1
 
-output=$(source "$SCRIPT" 2>&1) && rc=0 || rc=$?
+output=$(bash "$SCRIPT" 2>&1) && rc=0 || rc=$?
 if [[ $rc -eq 2 ]]; then
   ok "exits 2 outside git repo"
 else
   die "outside git repo (rc=$rc, output=$output)"
 fi
 
-# Given: REPO_ROOT is set correctly
-# When: source the script in a git repo
-# Then: REPO_ROOT points to the repo root
+# Given: back in temp repo with origin/main
+# When: source the script to check REPO_ROOT
+# Then: REPO_ROOT matches tmpdir
 cd "$tmpdir" || exit 1
 source "$SCRIPT" 2>/dev/null && rc=0 || rc=$?
 if [[ $rc -eq 0 ]] && [[ "$REPO_ROOT" == "$tmpdir" ]]; then
@@ -109,11 +109,19 @@ fi
 
 # Given: output is a valid branch reference
 # When: check DEFAULT_BRANCH format
-# Then: matches origin/<branch> pattern
+# Then: matches origin/<branch> pattern where <branch> is a valid git ref
+# Use git check-ref-format to validate the branch name (it can contain slashes and dots)
 cd "$tmpdir" || exit 1
 source "$SCRIPT" 2>/dev/null && rc=0 || rc=$?
-if [[ $rc -eq 0 ]] && [[ "$DEFAULT_BRANCH" =~ ^origin/[a-zA-Z0-9_-]+$ ]]; then
-  ok "DEFAULT_BRANCH is valid branch reference"
+if [[ $rc -eq 0 ]] && [[ "$DEFAULT_BRANCH" =~ ^origin/(.+)$ ]]; then
+  branch_name="${BASH_REMATCH[1]}"
+  # git check-ref-format validates ref names: allows alphanumeric, -, _, ., and /
+  # Strip the refs/heads/ prefix it expects; we're checking just the leaf name
+  if git check-ref-format --allow-onelevel "$branch_name" 2>/dev/null; then
+    ok "DEFAULT_BRANCH is valid branch reference"
+  else
+    die "DEFAULT_BRANCH format (git check-ref-format rejected: $DEFAULT_BRANCH)"
+  fi
 else
   die "DEFAULT_BRANCH format (rc=$rc, DEFAULT_BRANCH=$DEFAULT_BRANCH)"
 fi

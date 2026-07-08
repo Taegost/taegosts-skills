@@ -82,7 +82,7 @@ class TestGeneratesIndexFiles:
         assert "description:" in content, "Expected description field"
 
     def test_scripts_index_has_table(self, tmp_path):
-        """Generated INDEX.md should have Link/Description table."""
+        """Generated INDEX.md should have Link/Description table (Wave 1 format)."""
         scripts_dir = tmp_path / "scripts"
         scripts_dir.mkdir()
         (scripts_dir / "test-script.sh").write_text(
@@ -91,9 +91,10 @@ class TestGeneratesIndexFiles:
 
         run_indexer("--dir", str(scripts_dir))
         content = (scripts_dir / "INDEX.md").read_text()
+        # Wave 1 authoritative format: Link column with markdown link, not plain Path
         assert "| Link | Description |" in content
         assert "|------|-------------|" in content
-        assert "[test-script.sh]" in content
+        assert "[test-script.sh](./test-script.sh)" in content
 
 
 class TestExtractsFrontmatter:
@@ -193,5 +194,5 @@ class TestSkillScripts:
         stdout, _, rc = run_indexer()
         assert rc == 0
         lines = stdout.strip().splitlines()
-        skill_indexes = [l for l in lines if "skills/" in l and "INDEX.md" in l]
+        skill_indexes = [line for line in lines if "skills/" in line and "INDEX.md" in line]
         assert len(skill_indexes) > 0, "Expected at least one skill INDEX.md"

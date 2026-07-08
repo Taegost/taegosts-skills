@@ -60,11 +60,32 @@ if [[ -z "$PR_URL" ]]; then
   exit 1
 fi
 
-# Check for shell metacharacters (security gate)
-if [[ "$PR_URL" =~ [\;\&\|\$\`\(\)\{\}\[\>\<] ]]; then
-  echo "Error: PR URL contains invalid characters." >&2
+# Extract bare PR number from URL (e.g., https://github.com/owner/repo/pull/123 → 123)
+# Uses only Bash regex for portability (no grep -P). Rejects anything that doesn't match
+# the two accepted formats: bare number or full GitHub PR URL with trailing digits.
+# This also acts as the safety gate: any value with shell metacharacters, `/` outside
+# the expected URL structure, or non-numeric payloads fails here and never reaches
+# the gh api endpoint.
+if [[ "$PR_URL" =~ ^[0-9]+$ ]]; then
+  PR_NUMBER="$PR_URL"
+elif [[ "$PR_URL" =~ ^https://github\.com/[^/]+/[^/]+/pull/([0-9]+)$ ]]; then
+  PR_NUMBER="${BASH_REMATCH[1]}"
+elif [[ "$PR_URL" =~ https://github\.com/[^/]+/[^/]+/pull/([0-9]+) ]]; then
+  # Accept GitHub URL with trailing slash or query params
+  PR_NUMBER="${BASH_REMATCH[1]}"
+else
+  echo "Error: Could not extract PR number from: $PR_URL" >&2
+  echo "Expected format: <number> or https://github.com/{owner}/{repo}/pull/<number>" >&2
   exit 1
 fi
+# Validate PR_NUMBER is strictly numeric before it enters any API path
+if ! [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+  echo "Error: Extracted PR number is not numeric: $PR_NUMBER" >&2
+  exit 1
+fi
+# Use PR_NUMBER (validated) for API paths; PR_URL only for gh pr edit/view comment paths
+# where gh does its own parsing.
+PR_URL_RESOLVED="$PR_NUMBER"
 
 # Parse --fresh flag
 FRESH=false
@@ -96,7 +117,7 @@ if [[ "$FRESH" == "true" ]]; then
   echo "Removing reviewers for fresh review request..."
   REVIEWER_ARGS=$(build_reviewer_args)
   # shellcheck disable=SC2086
-  if ! gh api -X PUT "repos/{owner}/{repo}/pulls/${PR_URL}/requested_reviewers" $REVIEWER_ARGS 2>/dev/null; then
+  if ! gh api -X DELETE "repos/{owner}/{repo}/pulls/${PR_URL_RESOLVED}/requested_reviewers" $REVIEWER_ARGS 2>/dev/null; then
     echo "Warning: Could not remove reviewers via API. Continuing with re-add..." >&2
   fi
 fi
@@ -105,31 +126,44 @@ fi
 echo "Requesting review from: ${REVIEWERS[*]}"
 REVIEWER_ARGS=$(build_reviewer_args)
 # shellcheck disable=SC2086
-if ! gh api -X PUT "repos/{owner}/{repo}/pulls/${PR_URL}/requested_reviewers" $REVIEWER_ARGS 2>/dev/null; then
-  echo "API call failed, trying gh pr edit fallback..." >&2
+if ! gh api -X POST "repos/{owner}/{repo}/pulls/${PR_URL_RESOLVED}/requested_reviewers" $REVIEWER_ARGS 2>/dev/null; then
+  echo "Warning: Primary API call (POST requested_reviewers) failed. Falling back to gh pr edit." >&2
   # Fallback: use gh pr edit
+  fallback_failed=0
   for reviewer in "${REVIEWERS[@]}"; do
     if ! gh pr edit "$PR_URL" --add-reviewer "$reviewer" 2>/dev/null; then
       echo "Warning: Could not add reviewer '$reviewer' via gh pr edit." >&2
+      fallback_failed=1
     fi
   done
+  if [[ "$fallback_failed" -eq 1 ]]; then
+    echo "Warning: Some reviewers could not be added. The request may be incomplete." >&2
+  fi
 fi
 
 # Step 3: If all else fails, post a comment as last resort
 # This handles the case where the bot doesn't have write access
 if [[ "$FRESH" == "true" ]]; then
   # Check if we actually succeeded by verifying reviewers are listed
-  # If gh api failed above, post a comment fallback
+  # If gh api failed above, post a comment fallback.
+  # IMPORTANT: pass reviewer list via env var to avoid shell-injection vulnerability
+  # from interpolating ${REVIEWERS[*]} into a Python string literal.
+  REVIEWER_LIST="${REVIEWERS[*]}"
+  export REVIEWER_LIST
   if ! gh pr view "$PR_URL" --json reviewRequests 2>/dev/null | python3 -c "
-import json, sys
+import json, os, sys
 data = json.load(sys.stdin)
-reviewers = [r.get('login','') for r in data.get('reviewRequests', [])]
-targets = '${REVIEWERS[*]}'.split()
+reviewers = [r.get('login', '') for r in data.get('reviewRequests', [])]
+# Read reviewer targets from env var (safe: no external input interpolated into code)
+targets = [t.strip() for t in os.environ.get('REVIEWER_LIST', '').split() if t]
 if not any(t in reviewers for t in targets):
     sys.exit(1)
 " 2>/dev/null; then
     echo "Posting comment fallback for re-review notification..." >&2
+    unset REVIEWER_LIST
     gh pr comment "$PR_URL" --body "All review findings addressed and resolved. Ready for re-review." 2>/dev/null || true
+  else
+    unset REVIEWER_LIST
   fi
 fi
 

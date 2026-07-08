@@ -20,13 +20,16 @@ teardown() {
     [ -x "$SCRIPT_PATH" ]
 }
 
-@test "script has R8 frontmatter with description" {
-    grep -q 'description:.*Load and query dispatch standards' "$SCRIPT_PATH"
+@test "script has description in header comment" {
+    # R3 frontmatter format: line 2 is "# name -- description"
+    grep -q 'load-dispatch-standards.sh -- Sourceable validation library' "$SCRIPT_PATH"
 }
 
-@test "script has R8 frontmatter with inputs" {
-    grep -q 'inputs:' "$SCRIPT_PATH"
-    grep -q 'name: action' "$SCRIPT_PATH"
+@test "script documents inputs in header comment" {
+    # Inputs are documented in the PURPOSE/INPUTS block of the header
+    grep -q 'INPUTS:' "$SCRIPT_PATH"
+    grep -q 'get_rule <id>' "$SCRIPT_PATH"
+    grep -q 'validate <skill-path>' "$SCRIPT_PATH"
 }
 
 @test "get_dispatch_rule returns text for bootstrap-only rule" {

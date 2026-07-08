@@ -143,15 +143,15 @@ RUN_ID=$(date +%Y%m%d-%H%M%S)-$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' ')
 mkdir -p "/tmp/taegosts-skills/ts-compound/$RUN_ID"
 ```
 
-**Bootstrap dispatch:** For each subagent, read the corresponding agent file from `references/agents/<agent-name>.md` and spawn a generic subagent. Do not use `subagent_type`, typed `Agent` names, or platform-level agent registration. Each subagent receives:
+**Bootstrap dispatch (path-based delegation):** For each agent, the orchestrator reads the corresponding agent file from `references/agents/<agent-name>.md` and delegates work by passing **file paths** — the agent is invoked with its agent contract, the schema files, and the artifact directory. The agent reads its own contract from disk rather than receiving content inline. This eliminates the need for `subagent_type`, typed `Agent` names, or platform-level agent registration. Each agent receives:
 
-1. **Agent file path** — `references/agents/<agent-name>.md` (its operating contract)
+1. **Agent file path** — `references/agents/<agent-name>.md` (its operating contract — read by the agent itself)
 2. **Schema files** — `references/schema.yaml` and `references/yaml-schema.md` (for classification and validation)
 3. **Run ID** — `{run_id}` for artifact file path
 4. **Artifact path** — `/tmp/taegosts-skills/ts-compound/{run_id}/<artifact-name>`
 5. **Task context** — conversation history excerpt, auto memory block (if any)
 
-**Bootstrap-ack requirement:** After reading all files, the subagent emits a plain-text acknowledgment listing each file path and its line count (one line per file, `<path> (<N> lines)`). The orchestrator verifies each expected path appears in the ack before accepting findings. Missing files trigger re-dispatch with an admonition to read all files (up to 3 attempts). If all 3 attempts fail, the orchestrator falls back to inline-content dispatch for that subagent.
+**Bootstrap-ack requirement:** After reading all files, the agent emits a plain-text acknowledgment listing each file path and its line count (one line per file, `<path> (<N> lines)`). The orchestrator verifies each expected path appears in the ack before accepting findings. Missing files trigger re-dispatch with an admonition to read all files (up to 3 attempts). If all 3 attempts fail, the orchestrator logs the failure and aborts the agent (inline-content fallback is removed per the Bootstrap-only dispatch contract).
 
 **Subagent prompt template:**
 
@@ -333,10 +333,10 @@ The orchestrating agent (main conversation) performs these steps:
 
 0. **Verify bootstrap acknowledgments.** For each Phase 1 subagent, verify its bootstrap-ack contains all expected file paths:
    - Context Analyzer: `references/agents/context-analyzer.md`, `references/schema.yaml`, `references/yaml-schema.md`
-   - Solution Extractor: `references/agents/solution-extractor.md`, `references/schema.yaml`
+   - Solution Extractor: `references/agents/solution-extractor.md`, `references/schema.yaml`, `references/yaml-schema.md`, `references/yaml-schema.md`
    - Related Docs Finder: `references/agents/related-docs-finder.md`
 
-   If any expected path is missing from the ack, re-dispatch that subagent with an admonition to read all files (up to 3 attempts). If all 3 attempts fail, fall back to inline-content dispatch for that subagent.
+   If any expected path is missing from the ack, re-dispatch that subagent with an admonition to read all files (up to 3 attempts). If all 3 attempts fail, abort the agent (inline-content fallback is removed per the Bootstrap-only dispatch contract).
 
 1. **Collect Phase 1 results from the run artifacts.** For each Phase 1 subagent, `Read` its artifact file under `/tmp/taegosts-skills/ts-compound/{run_id}/` (`context.json`, `solution.md`, `related.json`, and `session-history.md` when session history ran). The artifact holds the subagent's full output. **Fall back to the subagent's inline return only when its artifact file is absent or empty** (e.g., `{run_id}` did not resolve, or the subagent failed to write). The artifact is authoritative when present — this is what makes the workflow resilient to the issue #956 summary-collapse, where the inline return is only an executive summary.
 2. **Check the overlap assessment** from the Related Docs Finder before deciding what to write:

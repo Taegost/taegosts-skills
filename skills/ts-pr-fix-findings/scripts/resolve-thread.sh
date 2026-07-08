@@ -88,8 +88,10 @@ if [[ "$thread_id" =~ $METACHAR_RE ]]; then
   exit 1
 fi
 
-# Validate --thread-id format (GitHub node IDs are base64-encoded, alphanumeric + underscore)
-if [[ ! "$thread_id" =~ ^[A-Za-z0-9_+=/:-]+$ ]]; then
+# Validate --thread-id format (GitHub node IDs are base64-encoded strings from the GraphQL API)
+# Valid characters: alphanumeric, underscore, hyphen, plus, equals (may include '/' for nested refs)
+# PRRT_xxx and PRRC_xxx are typical formats
+if [[ ! "$thread_id" =~ ^[A-Za-z0-9_+=/.-]+$ ]]; then
   echo '{"ok":false,"error":"--thread-id has invalid format"}' >&2
   exit 1
 fi
@@ -121,11 +123,31 @@ result=$(gh api graphql -f query="mutation { resolveReviewThread(input: {threadI
 }
 
 # Check if the mutation was successful
-resolved=$(echo "$result" | python3 -c "import json,sys; data=json.loads(sys.stdin.read()); print(str(data.get('data',{}).get('resolveReviewThread',{}).get('thread',{}).get('isResolved',False)).lower())" 2>/dev/null) || {
+check_result=$(echo "$result" | python3 -c "
+import json, sys
+data = json.loads(sys.stdin.read())
+
+errors = data.get('errors') or []
+if errors:
+    msg = errors[0].get('message', 'GraphQL error')
+    print('error:' + str(msg))
+    raise SystemExit(0)
+
+resolved = data.get('data', {}).get('resolveReviewThread', {}).get('thread', {}).get('isResolved', False)
+print('resolved:' + str(resolved).lower())
+" 2>/dev/null) || {
   echo '{"ok":false,"error":"failed to parse API response"}' >&2
   exit 1
 }
 
+# Parse the check result
+if [[ "$check_result" == error:* ]]; then
+  error_msg="${check_result#error:}"
+  echo "{\"ok\":false,\"error\":\"GraphQL error: $error_msg\"}" >&2
+  exit 1
+fi
+
+resolved="${check_result#resolved:}"
 if [[ "$resolved" != "true" ]]; then
   echo '{"ok":false,"error":"thread was not resolved"}' >&2
   exit 1

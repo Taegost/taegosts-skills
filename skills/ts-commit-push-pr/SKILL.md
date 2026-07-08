@@ -37,15 +37,18 @@ description: Commit, push, and open a PR. Use when asked to ship/open a PR, or f
 
 ### Context fallback
 
-```bash
 Run the shared git context script:
 
 ```bash
 ../../scripts/context-gather.sh
 ```
 
-Parse the JSON output for: current_branch, default_branch, recent_commits, working_tree (staged/modified/untracked), unpushed_count, is_dirty, has_open_pr.
-```
+Parse the JSON output for:
+- `current_branch` and `default_branch` — determine whether a new feature branch is needed
+- `has_open_pr` — if already open, fetch comments via the PR thread API rather than inline code review
+- `staged` / `modified` / `untracked` — identify files to commit in this push; untracked files must be added with `git add`, and deleted modified files must be added too
+- `is_dirty` — if any changes exist in the working tree, include them in this commit rather than leaving them behind
+- `unpushed_count` — if greater than zero, a commit was made but not pushed, or a commit was committed locally without being pushed to the remote
 
 ---
 

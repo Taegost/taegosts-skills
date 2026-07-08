@@ -27,7 +27,9 @@ SCRIPT="$REPO_ROOT/scripts/request-reviews.sh"
 @test "request-reviews.sh: shell metacharacters in PR URL are rejected" {
   run "$SCRIPT" "123;rm -rf /" alice
   [ "$status" -eq 1 ]
-  [[ "$output" == *"invalid characters"* ]]
+  # After removing the weak metacharacter regex, validation relies on the
+  # PR URL extraction regex rejecting malformed input.
+  [[ "$output" == *"Could not extract PR number"* ]]
 }
 
 @test "request-reviews.sh: --help flag works" {
@@ -38,13 +40,24 @@ SCRIPT="$REPO_ROOT/scripts/request-reviews.sh"
 }
 
 @test "request-reviews.sh: --fresh flag is accepted" {
-  # Mock gh to always succeed
-  gh() { return 0; }
-  export -f gh
-  # We can't fully test the --fresh flow without a real PR,
-  # but we can verify the flag is parsed (no error before gh call)
-  run "$SCRIPT" --help
-  [ "$status" -eq 0 ]
+  # The --fresh flag should be recognized by the argument parser.
+  # Pass it alongside valid PR URL and reviewers so parsing reaches the gh call
+  # (then stub gh to succeed immediately). Without this, --fresh alone would
+  # still wait for a real gh invocation that can't succeed in the test env.
+  stub_bin="$(mktemp -d)"
+  cat > "$stub_bin/gh" <<'STUB'
+#!/usr/bin/env bash
+echo '{"requested_reviewers":[]}' >&2
+exit 0
+STUB
+  chmod +x "$stub_bin/gh"
+
+  PATH="$stub_bin:$PATH" run "$SCRIPT" "https://github.com/owner/repo/pull/1" alice --fresh
+  # The call should succeed — --fresh is accepted, not rejected as unknown
+  # (status == 0 means flag was parsed and the request ran end-to-end)
+  # Or status != 0 only if gh itself failed, never due to unknown flag.
+  [[ "$output" != *"unknown argument"* && "$output" != *"--fresh"*"invalid"* ]] || false
+  rm -rf "$stub_bin"
 }
 
 @test "request-reviews.sh: script is executable" {

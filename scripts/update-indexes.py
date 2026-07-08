@@ -30,16 +30,31 @@ from pathlib import Path
 def extract_title(filepath: Path) -> str | None:
     """Extract the first # heading from a markdown file.
 
+    Properly tracks YAML frontmatter boundaries (opening `---` to closing `---`)
+    to avoid returning headings that appear inside frontmatter content.
+
     Returns the heading text (without the # prefix), or None if not found.
     """
     try:
         with open(filepath, encoding="utf-8") as f:
+            in_frontmatter = False
+            frontmatter_started = False
             for line in f:
-                line = line.strip()
-                # Skip frontmatter
-                if line == "---":
+                stripped = line.strip()
+                # Track frontmatter state: first --- starts it, second --- ends it
+                if stripped == "---":
+                    if not frontmatter_started:
+                        frontmatter_started = True
+                        in_frontmatter = True
+                    else:
+                        in_frontmatter = False
                     continue
-                match = re.match(r"^#\s+(.+)$", line)
+                    continue
+                # Skip any line inside frontmatter
+                if in_frontmatter:
+                    continue
+                # Match first heading outside frontmatter
+                match = re.match(r"^#\s+(.+)$", stripped)
                 if match:
                     return match.group(1).strip()
     except (OSError, UnicodeDecodeError):
@@ -185,7 +200,17 @@ def generate_index_md(entries: list[dict], title: str, description: str,
     for entry in entries:
         name = entry["name"]
         desc = entry["description"]
-        lines.append(f"| [{name}]({name}) | {desc} |")
+        # Build relative path from the INDEX.md location to the target file
+        # For script directories, files live in the same dir as the INDEX.md
+        # For docs directories, files also live in the same dir
+        # Subdirectory INDEX.md files are referenced as "subdir/INDEX.md"
+        if "/" in name:
+            # Subdirectory reference — already relative path
+            link_path = name
+        else:
+            # File in same directory
+            link_path = f"./{name}"
+        lines.append(f"| [{name}]({link_path}) | {desc} |")
 
     lines.append("")  # trailing newline
     return "\n".join(lines)
@@ -235,12 +260,36 @@ def process_directory(directory: Path, repo_root: Path,
         print(content)
         return index_path
 
-    index_path.write_text(content, encoding="utf-8")
+    # Atomic write: write to temp file, then rename to target
+    # This prevents partial writes if the process is interrupted
+    import tempfile
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=directory,
+            delete=False,
+            suffix=".tmp",
+        ) as tmp:
+            tmp.write(content)
+            tmp_path = Path(tmp.name)
+        # os.replace is atomic on POSIX systems
+        tmp_path.replace(index_path)
+    except Exception as e:
+        print(f"Error: Failed to write {index_path}: {e}", file=sys.stderr)
+        # Clean up temp file if it still exists
+        if tmp_path.exists():
+            tmp_path.unlink()
+        sys.exit(1)
+
     return index_path
 
 
 def run_index_scripts(repo_root: Path, dry_run: bool = False) -> None:
-    """Delegate script indexing to index-scripts.py."""
+    """Delegate script indexing to index-scripts.py.
+
+    Exits with error if index-scripts.py fails.
+    """
     script = repo_root / "scripts" / "index-scripts.py"
     if not script.exists():
         print(f"Warning: {script} not found, skipping script indexing.",
@@ -256,6 +305,12 @@ def run_index_scripts(repo_root: Path, dry_run: bool = False) -> None:
         print(result.stdout, end="")
     if result.stderr:
         print(result.stderr, end="", file=sys.stderr)
+
+    # Check return code - don't silently ignore failures
+    if result.returncode != 0:
+        print(f"Error: index-scripts.py failed with exit code {result.returncode}",
+              file=sys.stderr)
+        sys.exit(result.returncode)
 
 
 def main():
