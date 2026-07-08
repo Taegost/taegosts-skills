@@ -51,7 +51,7 @@ Same pipeline for default and `mode:agent`:
 - **Apply locally; never push.** Never push, open PRs, or file tickets in any mode — push is the outward step the user owns. In **default (interactive)** mode the review applies safe, verified fixes and commits them when the pre-review tree was clean (Stage 5c owns the full rule). In **`mode:agent`** it never mutates the tree — it reports and the caller applies.
 - **No blocking prompts.** Never use `AskUserQuestion`, `request_user_input`, `ask_user`, or other blocking question tools. Infer intent, plan, and scope from explicit tokens, git state, PR metadata, and conversation. Note uncertainty in Coverage or the verdict — do not stop to ask.
 - **Explicit mutations only.** Never run `gh pr checkout`, `git checkout`, `git switch`, or similar branch-switch commands. Passing a PR number, URL, or branch name selects **review scope**, not permission to mutate the working tree. To review local uncommitted work on a feature branch, check out that branch yourself (or stay on it) and pass `base:` or no target.
-- **Smart defaults.** Untracked files: review tracked changes only and list excluded paths in Coverage. Plan: use `plan:` when passed; otherwise discover conservatively from PR body or branch keywords. Weak advisory P2/P3 from testing/maintainability alone: demote to `testing_gaps` / `residual_risks` per Stage 5.
+- **Smart defaults.** Untracked files: review tracked changes only and list excluded paths in Coverage. Plan: use `plan:` when passed; otherwise discover conservatively from PR body or branch keywords. Weak advisory P2/P3 from a single non-testing reviewer: demote to `residual_risks` per Stage 5.
 
 ## Dispatch Model
 
@@ -433,15 +433,15 @@ Convert multiple reviewer compact JSON returns into one deduplicated, confidence
 4. **Separate pre-existing.** Pull out findings with `pre_existing: true` into a separate list.
 5. **Resolve disagreements.** When reviewers flag the same code region but disagree on severity, autofix_class, or owner, annotate the Reviewer column with the disagreement (e.g., "security (P0), correctness (P1) -- kept P0").
 6. **Normalize routing.** For each merged finding, set the final `autofix_class`, `owner`, and `requires_verification`. If reviewers disagree, keep the more conservative route. Remap any legacy `safe_auto` or `review-fixer` to `gated_auto` / `downstream-resolver`.
-6b. **Mode-aware demotion of weak general-quality findings.** Some agent output is real signal but does not warrant primary-findings attention. Reroute it to the existing soft buckets so the primary findings table stays focused on actionable issues.
+6b. **Mode-aware demotion of weak single-reviewer findings.** Some agent output is real signal but does not warrant primary-findings attention. Reroute it to the existing soft buckets so the primary findings table stays focused on actionable issues.
 
 A finding qualifies for demotion when **all** of these hold:
    - Severity is P2 or P3 (P0 and P1 always stay in primary findings)
    - `autofix_class` is `advisory` (concrete-fix findings stay in primary)
-   - **All** contributing reviewers are `maintainability` — if any other agent also flagged this finding, cross-reviewer corroboration is present and the finding stays in primary findings regardless of its severity or advisory status (expand the weak-signal list later only with evidence)
+   - **All** contributing reviewers are the same single reviewer, and that reviewer is not `testing` — testing-sourced findings never demote, regardless of severity or advisory status, per an earlier correction (suppressing testing-only findings hid real coverage gaps). If any other agent also flagged this finding, cross-reviewer corroboration is present and the finding stays in primary findings regardless of its severity or advisory status.
 
 When a finding qualifies:
-   - Move demoted findings out of the primary set. If the contributing reviewer is `testing`, append `<file:line> -- <title>` to `testing_gaps`. If `maintainability`, append to `residual_risks`. Use title-only lines (compact return omits `why_it_matters`). Record the demotion count for Coverage.
+   - Move the demoted finding out of the primary set and append `<file:line> -- <title>` to `residual_risks`. Use title-only lines (compact return omits `why_it_matters`). Record the demotion count for Coverage.
 7. **Confidence gate.** After dedup, promotion, and demotion have shaped the primary set, suppress remaining findings below anchor 75. Exception: P0 and P1 findings at anchor 50+ survive the gate -- critical-but-uncertain issues must not be silently dropped. Record the suppressed count by anchor (so Coverage can report "N findings suppressed at anchor 50, M at anchor 25"). The gate runs late deliberately: anchor-50 findings need a chance to be promoted by step 3 (cross-reviewer corroboration) or rerouted by step 6b (mode-aware demotion to soft buckets) before any drop decision.
 8. **Partition the work.** Build two sets:
    - actionable queue: `gated_auto` or `manual` findings whose owner is `downstream-resolver` (hand off to caller)
