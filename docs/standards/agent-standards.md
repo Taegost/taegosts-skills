@@ -50,7 +50,7 @@ After the frontmatter, every agent file must include 1-2 paragraphs of identity 
 
 ## Heading Sub-Templates
 
-Agent files use one of two heading sub-templates based on their role. The heading structure defines the agent's scope boundaries, calibration, and output contract.
+Agent files use one of these heading sub-templates based on their role. The heading structure defines the agent's scope boundaries, calibration, and output contract.
 
 ### Implementer Template
 
@@ -89,7 +89,7 @@ Some skills define specialized heading structures adapted from these base templa
 
 ### Bootstrap (required — all skills)
 
-The orchestrator passes file paths instead of inline content. The subagent reads its own operating contract, role prompt, and schema from disk. This reduces orchestrator dispatch output from ~10k tokens to ~150-300 tokens per reviewer.
+The orchestrator passes file paths instead of inline content. The subagent reads its own operating contract, role prompt, and schema from disk. 
 
 ```text
 Read these files IN FULL before starting:
@@ -123,30 +123,6 @@ The orchestrator seeds agent file content directly into a generic subagent promp
 
 **Why deprecated:** Same token-inflation problem as Template-Wrapped, plus the agent's operating contract is not separated from its task prompt, making updates fragile.
 
-## Migration to Bootstrap
-
-Skills still using Template-Wrapped or Direct-Seed dispatch must migrate to Bootstrap. The migration steps are:
-
-1. **Identify the current dispatch pattern.** Read the skill's SKILL.md for how subagents are spawned. Look for `{agent_file}` substitution (Template-Wrapped) or inline agent content in the dispatch prompt (Direct-Seed).
-
-2. **Replace inline content with file paths.** Instead of injecting the agent file's content into the dispatch prompt, pass the file path. The subagent reads the file itself.
-
-3. **Add bootstrap-ack to the dispatch prompt.** Include the ack instruction: "After reading all files, emit acknowledgment: one line per file, `<path> (<N> lines)`."
-
-4. **Add ack verification to the orchestrator.** After the subagent returns, verify the ack contains all expected file paths. Implement the 3-attempt retry with admonition, then inline-content fallback.
-
-5. **Remove `{agent_file}` substitution.** Delete any template variable substitution logic from the orchestrator.
-
-6. **Test the migration.** Run the skill end-to-end. Verify the subagent reads its own files and the ack is present and correct.
-
-### Skills requiring migration
-
-| Skill | Current pattern | Status |
-|-------|----------------|--------|
-| (none) | — | All skills migrated to Bootstrap |
-
-Skills already on Bootstrap: `ts-code-review`, `ts-doc-review`, `ts-work`, `ts-verify-implementation`, `ts-plan`, `ts-compound`.
-
 ## File Placement
 
 Agent files live in skill-local directories:
@@ -154,9 +130,9 @@ Agent files live in skill-local directories:
 | Location | Purpose |
 |----------|---------|
 | `skills/<skill>/references/agents/` | Skill-specific agents dispatched by that skill |
-| `agents/` | Staging area for agents being developed before placement |
+| `agents/` | Agents used by multiple skills |
 
-Each skill dispatches from its own `references/agents/` directory. Cross-skill deduplication is a separate concern — see the deferred work in Issue #83.
+Each skill dispatches from its own `references/agents/` directory. 
 
 ## Conformance Checklist
 

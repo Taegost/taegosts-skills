@@ -17,8 +17,6 @@ Index of documentation in docs/standards/.
 | Link | Description |
 |------|-------------|
 | [agent-standards.md](./agent-standards.md) | Canonical reference for agent definition format across all taegosts-skills. |
-| [dispatch-standards.md](./dispatch-standards.md) | Canonical reference for how skills dispatch subagents and delegate to other skills. |
-| [index-convention.md](./index-convention.md) | Canonical standard for INDEX.md files across all documentation in taegosts-skills. |
 | [index-standards.md](./index-standards.md) | Every INDEX.md file MUST have YAML frontmatter with: |
 | [link-convention.md](./link-convention.md) | Canonical standard for markdown links across all documentation in taegosts-skills. |
 | [script-frontmatter-convention.md](./script-frontmatter-convention.md) | Canonical reference for the description comment format used in all shell scripts across the repository. |

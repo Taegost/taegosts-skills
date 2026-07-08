@@ -1,18 +1,17 @@
 ---
 title: "INDEX.md Standards"
-description: "Rules and requirements for INDEX.md file format, structure, and placement"
+description: "Rules and requirements for index file format, structure, and placement"
 status: active
 version: "1.0"
 created: 2026-07-07
 last-updated: 2026-07-07
-owner: wave-2-u25-placement-rules
 dependencies: []
 tags: [standards, index, wave-2, r3, r7, r8]
 ---
 
-# INDEX.md Standards
+# Index Standards
 
-## Frontmatter Requirements (R3 Compliance)
+## Frontmatter Requirements
 
 Every INDEX.md file MUST have YAML frontmatter with:
 
@@ -24,7 +23,6 @@ status: active
 version: "1.0"
 created: <YYYY-MM-DD>
 last-updated: <YYYY-MM-DD>
-owner: <plan-or-project-name>
 dependencies: []
 tags: [index, <category-specific-tags>]
 ---
@@ -37,8 +35,18 @@ tags: [index, <category-specific-tags>]
 - `version`: Semantic version string (quoted)
 - `created`: ISO 8601 date
 - `last-updated`: ISO 8601 date
-- `owner`: Plan name or project identifier
 - `tags`: Must include "index"
+
+## Scoping Rules
+
+Each index is scoped to:
+
+1. **Its own folder** — all markdown files directly in the same directory.
+2. **One subfolder deep** — INDEX.md files in immediate subdirectories (e.g., `docs/INDEX.md` may reference `docs/solutions/INDEX.md` but not `docs/solutions/conventions/INDEX.md`).
+
+### Exception: ROUTING.md
+
+Only `docs/ROUTING.md` may reference files outside its parent folder. No INDEX.md may reference files that are not in its own folder or one subfolder deep.
 
 ## Table Structure Requirements
 
@@ -50,7 +58,7 @@ INDEX.md files MUST use a markdown table with these columns:
 | [file2.md](./file2.md) | One-line description of file2 |
 
 **Column requirements:**
-- **Link**: Markdown link with the filename as display text and a relative path from INDEX.md location (e.g. `[file.md](./file.md)`). This is the Wave 1 format and the authoritative standard — generators (index-scripts.py, update-indexes.py) produce this format.
+- **Link**: Markdown link with the filename as display text and a relative path from INDEX.md location (e.g. `[file.md](./file.md)`). Generators (index-scripts.py, update-indexes.py) produce this format.
 - **Description**: One-line description (MUST NOT be empty or vague like "Documentation file")
 
 **Description guidelines:**
@@ -72,9 +80,6 @@ INDEX.md files MUST use a markdown table with these columns:
 ```bash
 # Correct validation
 test -f "$path" && echo "VALID" || echo "BROKEN"
-
-# Do NOT use HTTP-based validation
-curl -I "$url"  # WRONG for local files
 ```
 
 ## Placement Rules
@@ -90,6 +95,7 @@ curl -I "$url"  # WRONG for local files
 - Temporary, scratch, or archive directories
 - Root directories (use ROUTING.md for top-level navigation)
 - Directories where all files are already referenced in another INDEX.md
+- The root `docs/` folder. That is the provenance of ROUTING.md
 
 **Placement decision framework:**
 
@@ -119,7 +125,7 @@ fi
 
 `scripts/update-indexes.py` and `scripts/index-scripts.py` MUST:
 1. Read standards from `standards/index-standards.md`
-2. Generate R3-compliant frontmatter
+2. Generate compliant frontmatter
 3. Generate tables with Path and Description columns
 4. Validate existing INDEX.md files against standards
 5. Exit with non-zero status on validation failure

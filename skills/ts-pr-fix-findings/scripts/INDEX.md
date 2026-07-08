@@ -5,7 +5,7 @@ status: active
 version: "1.0"
 created: 2026-07-08
 last-updated: 2026-07-08
-owner: issue-16-pr-workflow-scripts
+owner: wave-2-dispatch-index-automation
 dependencies: []
 tags: [index, scripts]
 ---
