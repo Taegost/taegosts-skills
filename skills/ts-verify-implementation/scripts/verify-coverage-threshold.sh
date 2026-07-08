@@ -6,6 +6,20 @@
 
 set -euo pipefail
 
+# Normalize a decimal string ("08.0" -> "8", "12.50" -> "12.5") using plain
+# string manipulation. Deliberately avoids `printf "%g"`, which can emit
+# scientific notation (e.g. 1e-05) for small values -- notation `bc -l`'s
+# POSIX grammar cannot parse, silently corrupting downstream comparisons.
+normalize_decimal() {
+  local v="$1"
+  v=$(printf '%s' "$v" | sed -E 's/^0+([0-9])/\1/; s/^0+\./0./')
+  if [[ "$v" == *.* ]]; then
+    v=$(printf '%s' "$v" | sed -E 's/0+$//; s/\.$//')
+  fi
+  [[ -z "$v" ]] && v="0"
+  echo "$v"
+}
+
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'
 Usage: verify-coverage-threshold.sh --coverage-file <path> --threshold <number>
@@ -70,7 +84,7 @@ if ! [[ "$threshold" =~ ^[0-9]*\.?[0-9]+$ ]]; then
   exit 2
 fi
 # Normalize to canonical decimal form ("08.0" -> "8", "12.50" -> "12.5")
-threshold=$(printf "%g" "$threshold")
+threshold=$(normalize_decimal "$threshold")
 
 # Validate threshold is in range 0-100
 if [[ -n "$(echo "$threshold < 0" | bc -l)" && "$(echo "$threshold < 0" | bc -l)" == "1" ]] || \
@@ -119,7 +133,7 @@ if ! [[ "$coverage_value" =~ ^[0-9]+\.?[0-9]*$ ]]; then
   exit 2
 fi
 # Normalize to canonical decimal form ("08.0" -> "8", "12.50" -> "12.5")
-coverage_value=$(printf "%g" "$coverage_value")
+coverage_value=$(normalize_decimal "$coverage_value")
 
 # Compare coverage against threshold using bc for decimal support
 meets_threshold=$(echo "$coverage_value >= $threshold" | bc -l)

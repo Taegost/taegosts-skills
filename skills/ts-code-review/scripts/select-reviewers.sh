@@ -26,7 +26,13 @@ else
   files=$(cat)
 fi
 
-if [[ -n "$files_input" ]]; then echo "$files_input" | grep -qE '[;&|$`]' && echo "invalid characters" >&2 && exit 1; fi
+# Validate the actual file-list CONTENTS (not just the --files path/arg),
+# since this is the data that flows into the matching loop below. Applies
+# to both the --files and stdin input paths.
+if printf '%s' "$files" | grep -qE '[;&|$`]'; then
+  echo "invalid characters" >&2
+  exit 1
+fi
 
 always_on='["correctness","testing","maintainability","project-standards"]'
 conditional=()

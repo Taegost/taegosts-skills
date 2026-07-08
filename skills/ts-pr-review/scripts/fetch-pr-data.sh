@@ -19,7 +19,7 @@ Arguments:
 
 Output: JSON object with PR data including:
   - number, title, body
-  - headRefName, baseRefName
+  - headRefName, baseRefName, headRefOid
   - state, author
   - reviews, mergeable, commits
 
@@ -58,8 +58,8 @@ if [[ "$PR_URL" =~ [\;\&\|\$\`\(\)\{\}\[\>\<] ]]; then
 fi
 
 # Fetch PR data using gh CLI
-# Fields: number, title, body, headRefName, baseRefName, state, author, reviews, mergeable, commits
-if ! gh pr view "$PR_URL" --json number,title,body,headRefName,baseRefName,state,author,reviews,mergeable,commits 2>/dev/null; then
+# Fields: number, title, body, headRefName, baseRefName, headRefOid, state, author, reviews, mergeable, commits
+if ! gh pr view "$PR_URL" --json number,title,body,headRefName,baseRefName,headRefOid,state,author,reviews,mergeable,commits 2>/dev/null; then
   echo "Error: Failed to fetch PR data. Check that the PR exists and you have access." >&2
   exit 1
 fi

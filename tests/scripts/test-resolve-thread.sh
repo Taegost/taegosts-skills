@@ -162,6 +162,31 @@ else
   die "script missing set -euo pipefail"
 fi
 
+# Regression: a GraphQL error message containing a double quote must not
+# break the emitted JSON error object.
+MOCK_DIR="$(mktemp -d)"
+cat > "$MOCK_DIR/gh" <<'MOCKEOF'
+#!/usr/bin/env bash
+if [[ "$1" == "auth" ]]; then
+  exit 0
+fi
+if [[ "$1" == "api" ]]; then
+  cat <<'JSONEOF'
+{"errors":[{"message":"Could not resolve to a node with the global id of \"BAD_ID\""}]}
+JSONEOF
+  exit 0
+fi
+exit 1
+MOCKEOF
+chmod +x "$MOCK_DIR/gh"
+output=$(PATH="$MOCK_DIR:$PATH" "$SCRIPT" --pr-url "https://github.com/owner/repo/pull/123" --thread-id "PRRT_test123" --reviewer alice 2>&1) && rc=0 || rc=$?
+rm -rf "$MOCK_DIR"
+if [[ $rc -eq 1 ]] && echo "$output" | python3 -c "import json,sys; json.load(sys.stdin)" >/dev/null 2>&1; then
+  ok "GraphQL error message with embedded quote produces valid JSON"
+else
+  die "GraphQL error message with embedded quote (rc=$rc, output=$output)"
+fi
+
 echo ""
 echo "Results: $pass passed, $fail failed"
 [[ $fail -eq 0 ]] && exit 0 || exit 1

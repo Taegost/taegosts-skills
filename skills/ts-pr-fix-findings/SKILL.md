@@ -240,10 +240,12 @@ Then:
 After pushing fixes and resolving threads, request re-review from the original reviewer(s). Do not assume they will notice the push:
 
 ```bash
-./scripts/request-re-review.sh --pr-url <pr-url> --reviewer <reviewer>
+scripts/request-reviews.sh <pr-url> --fresh <reviewer1> [reviewer2 ...]
 ```
 
 This is easy to forget — if the PR shows "Changes Requested" and you have pushed fixes, the reviewer needs to know to look again. The script handles the remove-then-add flow (via `--fresh`), falls back to `gh pr edit` if the API call fails, and posts a comment if the bot lacks write access.
+
+For a single reviewer with no need to force a fresh notification, `skills/ts-pr-fix-findings/scripts/request-re-review.sh --pr-url <pr-url> --reviewer <reviewer>` is also available as a simpler, structured-JSON-output alternative (single `gh pr edit --add-reviewer` call, no remove-then-add or comment fallback).
 
 ### 9. Display a summary to the user
 

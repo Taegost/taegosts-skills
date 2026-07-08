@@ -34,7 +34,7 @@ When locating scripts, consult `docs/ROUTING.md` first to find the correct paths
 ### 1. Determine base branch
 
 ```bash
-base_branch=$(../../scripts/context-gather.sh | python3 -c "import sys, json; print(json.load(sys.stdin)['default_branch'])")
+base_branch=$(scripts/context-gather.sh | python3 -c "import sys, json; print(json.load(sys.stdin)['default_branch'])")
 ```
 
 ### 2. Load the plan

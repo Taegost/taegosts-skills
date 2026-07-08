@@ -38,7 +38,7 @@ Run the shared git context script to gather all context as JSON:
 ../../scripts/context-gather.sh
 ```
 
-Parse the JSON output for: current_branch, default_branch, recent_commits, working_tree (staged/modified/untracked), unpushed_count, is_dirty, has_open_pr.
+Parse the JSON output for: current_branch, default_branch, recent_commits, working_tree (staged/modified/untracked), unpushed_count, is_dirty, has_open_pr, has_open_pr_error.
 
 ---
 

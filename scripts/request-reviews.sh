@@ -103,30 +103,37 @@ fi
 
 REVIEWERS=("$@")
 
-# Build -f arguments for gh api
+# Validate reviewer username format (GitHub usernames: alphanumeric + hyphens,
+# cannot start/end with hyphen) before any value reaches a gh api/CLI call.
+for reviewer in "${REVIEWERS[@]}"; do
+  if [[ ! "$reviewer" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$ ]]; then
+    echo "Error: Invalid reviewer username format: $reviewer" >&2
+    exit 1
+  fi
+done
+
+# Build -f arguments for gh api as an array (not a flattened string) so a
+# malformed reviewer value can't word-split into extra/corrupted gh api args.
 build_reviewer_args() {
-  local args=()
+  REVIEWER_ARGS=()
   for reviewer in "${REVIEWERS[@]}"; do
-    args+=("-f" "reviewers[]=${reviewer}")
+    REVIEWER_ARGS+=("-f" "reviewers[]=${reviewer}")
   done
-  echo "${args[@]}"
 }
 
 # Step 1: If --fresh, remove reviewers first to force a fresh review cycle
 if [[ "$FRESH" == "true" ]]; then
   echo "Removing reviewers for fresh review request..."
-  REVIEWER_ARGS=$(build_reviewer_args)
-  # shellcheck disable=SC2086
-  if ! gh api -X DELETE "repos/{owner}/{repo}/pulls/${PR_URL_RESOLVED}/requested_reviewers" $REVIEWER_ARGS 2>/dev/null; then
+  build_reviewer_args
+  if ! gh api -X DELETE "repos/{owner}/{repo}/pulls/${PR_URL_RESOLVED}/requested_reviewers" "${REVIEWER_ARGS[@]}" 2>/dev/null; then
     echo "Warning: Could not remove reviewers via API. Continuing with re-add..." >&2
   fi
 fi
 
 # Step 2: Re-add reviewers to trigger fresh review notification
 echo "Requesting review from: ${REVIEWERS[*]}"
-REVIEWER_ARGS=$(build_reviewer_args)
-# shellcheck disable=SC2086
-if ! gh api -X POST "repos/{owner}/{repo}/pulls/${PR_URL_RESOLVED}/requested_reviewers" $REVIEWER_ARGS 2>/dev/null; then
+build_reviewer_args
+if ! gh api -X POST "repos/{owner}/{repo}/pulls/${PR_URL_RESOLVED}/requested_reviewers" "${REVIEWER_ARGS[@]}" 2>/dev/null; then
   echo "Warning: Primary API call (POST requested_reviewers) failed. Falling back to gh pr edit." >&2
   # Fallback: use gh pr edit
   fallback_failed=0

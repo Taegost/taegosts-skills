@@ -11,13 +11,24 @@ Tests:
 - --skip-scripts flag works
 """
 
+import importlib.util
 import subprocess
 import sys
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
 SCRIPT = Path(__file__).resolve().parent.parent.parent / "scripts" / "update-indexes.py"
+
+
+def _load_module():
+    """Import update-indexes.py directly (hyphenated filename, not a valid
+    module name) so its functions can be unit-tested without subprocess."""
+    spec = importlib.util.spec_from_file_location("update_indexes", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def run_updater(*args, cwd=None):
@@ -184,3 +195,91 @@ class TestDelegation:
         assert rc == 0
         # Should not see script indexing output
         assert "scripts/INDEX.md" not in stdout
+
+
+class TestStagesGeneratedFiles:
+    """Generated INDEX.md files are git-staged so a pre-commit run needs no
+    manual re-add (regression test for the hook silently missing regenerated
+    indexes).
+
+    update-indexes.py derives repo_root from its own __file__ location, so
+    to test staging in isolation the script itself must be copied into a
+    throwaway git repo rather than invoked against a foreign path.
+    """
+
+    def _make_isolated_repo(self, tmp_path):
+        repo = tmp_path / "repo"
+        (repo / "scripts").mkdir(parents=True)
+        (repo / "scripts" / "update-indexes.py").write_text(
+            SCRIPT.read_text(encoding="utf-8"), encoding="utf-8"
+        )
+        docs_dir = repo / "docs" / "standards"
+        docs_dir.mkdir(parents=True)
+        (docs_dir / "example.md").write_text(
+            "# Example Standard\n\nThis is an example standard document.\n"
+        )
+        subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+        subprocess.run(
+            ["git", "-c", "user.email=t@t.com", "-c", "user.name=t",
+             "add", "-A"],
+            cwd=repo, check=True,
+        )
+        subprocess.run(
+            ["git", "-c", "user.email=t@t.com", "-c", "user.name=t",
+             "commit", "-q", "-m", "init"],
+            cwd=repo, check=True,
+        )
+        return repo, docs_dir
+
+    def test_generated_index_is_staged_in_git_repo(self, tmp_path):
+        """Running inside a git repo should `git add` the generated INDEX.md."""
+        repo, docs_dir = self._make_isolated_repo(tmp_path)
+
+        result = subprocess.run(
+            [sys.executable, str(repo / "scripts" / "update-indexes.py"),
+             "--dir", str(docs_dir), "--skip-scripts"],
+            cwd=repo, capture_output=True, text=True, check=False,
+        )
+        assert result.returncode == 0, f"stderr: {result.stderr}"
+
+        status = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=repo, capture_output=True, text=True, check=True,
+        ).stdout
+        assert "A  docs/standards/INDEX.md" in status.replace("\\", "/"), (
+            f"Expected generated INDEX.md to be staged, got:\n{status}"
+        )
+
+    def test_outside_repo_dir_does_not_error(self, tmp_path):
+        """--dir pointing outside any git repo should still succeed (staging
+        is silently skipped rather than failing the run)."""
+        docs_dir = tmp_path / "docs" / "standards"
+        docs_dir.mkdir(parents=True)
+        (docs_dir / "example.md").write_text("# Example\n\nText.\n")
+
+        stdout, stderr, rc = run_updater("--dir", str(docs_dir))
+        assert rc == 0, f"stderr: {stderr}"
+
+
+class TestTempFileFailureHandling:
+    """process_directory's atomic-write error path must not crash with
+    NameError if NamedTemporaryFile itself raises before tmp_path is
+    assigned (regression test)."""
+
+    def test_named_temp_file_failure_exits_cleanly(self, tmp_path, capsys):
+        module = _load_module()
+        docs_dir = tmp_path / "docs" / "standards"
+        docs_dir.mkdir(parents=True)
+        (docs_dir / "example.md").write_text("# Example\n\nText.\n")
+
+        with mock.patch(
+            "tempfile.NamedTemporaryFile",
+            side_effect=OSError("simulated disk failure"),
+        ):
+            with pytest.raises(SystemExit) as exc_info:
+                module.process_directory(docs_dir, tmp_path, dry_run=False)
+
+        assert exc_info.value.code == 1
+        captured = capsys.readouterr()
+        assert "simulated disk failure" in captured.err
+        assert "NameError" not in captured.err

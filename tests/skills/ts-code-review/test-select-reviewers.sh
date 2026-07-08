@@ -45,5 +45,21 @@ if echo "$output" | python3 -c "import sys,json; d=json.load(sys.stdin); assert 
   echo "PASS: pure backend file activates only performance"; pass=$((pass+1))
 else echo "FAIL: pure backend detection"; fail=$((fail+1)); fi
 
+# Regression: metacharacters in stdin file-list CONTENTS must be rejected,
+# not just metacharacters in the --files path argument
+if output=$(printf 'src/auth/login.js;touch /tmp/select-reviewers-marker\n' | "$SCRIPT" 2>&1); then rc=0; else rc=$?; fi
+if [[ $rc -ne 0 ]] && echo "$output" | grep -q "invalid characters"; then
+  echo "PASS: rejects metacharacters in stdin file-list contents"; pass=$((pass+1))
+else echo "FAIL: metacharacters in stdin contents were not rejected (rc=$rc, output=$output)"; fail=$((fail+1)); fi
+
+# Regression: metacharacters in --files FILE CONTENTS (not just the path) must be rejected
+tmp_list="$(mktemp)"
+printf 'src/auth/login.js;touch /tmp/select-reviewers-marker\n' > "$tmp_list"
+if output=$("$SCRIPT" --files "$tmp_list" 2>&1); then rc=0; else rc=$?; fi
+rm -f "$tmp_list"
+if [[ $rc -ne 0 ]] && echo "$output" | grep -q "invalid characters"; then
+  echo "PASS: rejects metacharacters in --files file contents"; pass=$((pass+1))
+else echo "FAIL: metacharacters in --files contents were not rejected (rc=$rc, output=$output)"; fail=$((fail+1)); fi
+
 echo "Results: $pass passed, $fail failed"
 [[ $fail -eq 0 ]] && exit 0 || exit 1

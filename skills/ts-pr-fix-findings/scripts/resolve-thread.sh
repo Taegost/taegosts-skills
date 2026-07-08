@@ -143,7 +143,12 @@ print('resolved:' + str(resolved).lower())
 # Parse the check result
 if [[ "$check_result" == error:* ]]; then
   error_msg="${check_result#error:}"
-  echo "{\"ok\":false,\"error\":\"GraphQL error: $error_msg\"}" >&2
+  # Pass error_msg via argv (not source interpolation) so json.dumps can
+  # safely escape any quotes/backslashes GitHub's error text may contain.
+  python3 -c "
+import json, sys
+print(json.dumps({'ok': False, 'error': 'GraphQL error: ' + sys.argv[1]}))
+" "$error_msg" >&2
   exit 1
 fi
 

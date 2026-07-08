@@ -144,6 +144,17 @@ else
   die "unknown argument (rc=$rc, output=$output)"
 fi
 
+# Regression: a very small decimal value must not be normalized into
+# scientific notation (e.g. "1e-05"), which bc -l's POSIX grammar can't
+# parse and would corrupt the comparison and JSON output.
+echo "0.00001" > "$tmpdir/coverage.txt"
+output=$("$SCRIPT" --coverage-file "$tmpdir/coverage.txt" --threshold 0.000001 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 0 ]] && echo "$output" | grep -q '"coverage":0.00001' && ! echo "$output" | grep -qi "e-"; then
+  ok "small decimal coverage value avoids scientific notation"
+else
+  die "small decimal coverage value (rc=$rc, output=$output)"
+fi
+
 echo ""
 echo "Results: $pass passed, $fail failed"
 [[ $fail -eq 0 ]] && exit 0 || exit 1

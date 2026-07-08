@@ -78,7 +78,7 @@ Each finding MUST be a separate inline review comment (conversation thread), not
 Fetch PR metadata in a single call (if not already available from earlier in the session):
 
 ```bash
-PR_DATA=$(scripts/fetch-pr-data.sh "$PR_URL")
+PR_DATA=$(skills/ts-pr-review/scripts/fetch-pr-data.sh "$PR_URL")
 ```
 
 Parse the result with `jq` to extract individual fields:
@@ -96,7 +96,7 @@ PR_TITLE=$(echo "$PR_DATA" | jq -r '.title')
 Findings in `review.json` already carry `file` and `line` (new-file line numbers). Before posting, verify each finding's line is commentable — i.e., it appears as an added or context line in the PR diff. Save the diff once and build the verification map from it:
 
 ```bash
-gh pr diff "$PR_URL" -- | scripts/map-diff-lines.sh > /tmp/ts-pr-review-linemap.txt
+gh pr diff "$PR_URL" | skills/ts-pr-review/scripts/map-diff-lines.sh > /tmp/ts-pr-review-linemap.txt
 ```
 
 This outputs `file:new-file-line` for every added line. For each finding:

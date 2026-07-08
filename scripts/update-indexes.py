@@ -263,6 +263,7 @@ def process_directory(directory: Path, repo_root: Path,
     # Atomic write: write to temp file, then rename to target
     # This prevents partial writes if the process is interrupted
     import tempfile
+    tmp_path = None
     try:
         with tempfile.NamedTemporaryFile(
             mode="w",
@@ -278,23 +279,25 @@ def process_directory(directory: Path, repo_root: Path,
     except Exception as e:
         print(f"Error: Failed to write {index_path}: {e}", file=sys.stderr)
         # Clean up temp file if it still exists
-        if tmp_path.exists():
+        if tmp_path is not None and tmp_path.exists():
             tmp_path.unlink()
         sys.exit(1)
 
     return index_path
 
 
-def run_index_scripts(repo_root: Path, dry_run: bool = False) -> None:
+def run_index_scripts(repo_root: Path, dry_run: bool = False) -> list:
     """Delegate script indexing to index-scripts.py.
 
-    Exits with error if index-scripts.py fails.
+    Exits with error if index-scripts.py fails. Returns the list of
+    generated file paths (one per non-dry-run stdout line) so the caller
+    can stage them.
     """
     script = repo_root / "scripts" / "index-scripts.py"
     if not script.exists():
         print(f"Warning: {script} not found, skipping script indexing.",
               file=sys.stderr)
-        return
+        return []
 
     cmd = [sys.executable, str(script)]
     if dry_run:
@@ -311,6 +314,38 @@ def run_index_scripts(repo_root: Path, dry_run: bool = False) -> None:
         print(f"Error: index-scripts.py failed with exit code {result.returncode}",
               file=sys.stderr)
         sys.exit(result.returncode)
+
+    if dry_run:
+        return []
+    return [Path(line) for line in result.stdout.splitlines() if line.strip()]
+
+
+def stage_generated_files(repo_root: Path, paths: list) -> None:
+    """Git-stage generated files so a pre-commit hook run picks them up
+    automatically, without requiring the user to re-add and re-commit.
+
+    Silently skips paths outside repo_root (e.g. when --dir points at a
+    directory outside the repo, as in tests) since those can't be staged.
+    """
+    repo_root = repo_root.resolve()
+    in_repo = []
+    for p in paths:
+        if not p.exists():
+            continue
+        try:
+            p.resolve().relative_to(repo_root)
+        except ValueError:
+            continue
+        in_repo.append(str(p))
+    if not in_repo:
+        return
+    result = subprocess.run(
+        ["git", "add", "--"] + in_repo,
+        cwd=repo_root, capture_output=True, text=True, check=False,
+    )
+    if result.returncode != 0:
+        print(f"Warning: failed to stage generated index files: {result.stderr}",
+              file=sys.stderr)
 
 
 def main():
@@ -381,13 +416,16 @@ markdown files. Also delegates to index-scripts.py for script indexing.
 
         # Delegate to index-scripts.py for script directories
         if not args.skip_scripts:
-            run_index_scripts(repo_root, args.dry_run)
+            generated.extend(run_index_scripts(repo_root, args.dry_run))
 
     if not generated and not args.skip_scripts:
         print("No documentation directories found to index.", file=sys.stderr)
 
     for path in generated:
         print(path)
+
+    if not args.dry_run and generated:
+        stage_generated_files(repo_root, generated)
 
     sys.exit(0)
 
