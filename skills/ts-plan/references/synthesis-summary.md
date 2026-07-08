@@ -2,16 +2,16 @@
 
 **Scoping synthesis ≠ plan doc.** The scoping synthesis is the scope/decisions checkpoint that plan-write (Phase 5.2) consumes as input. It surfaces decisions the agent CAN make at synthesis time: scope-level (does this plan cover the full brainstorm or narrow to a subset?), posture (extend existing pattern vs. introduce new abstraction), test approach. It does NOT surface decisions plan-write produces: PR count, commit/branch sequencing, effort or time estimates, Implementation Unit lists, exact file paths, test command recipes. If the synthesis claims any of those, it has leaked plan-write thinking and must be re-cut to scope-decisions only. Even when the agent has formed plan-write opinions earlier in the session, the synthesis stays at scope altitude — the user is being asked to affirm scope, not to rubber-stamp implementation.
 
-**Two-stage shape: internal draft, then chat-time synthesis.** The synthesis is composed in two stages. Stage 1 is an internal three-bucket draft (Stated / Inferred / Out of scope) the agent uses to think comprehensively about scope. Stage 2 is the compressed chat-time output: a tier-shaped summary plus "Call outs" (zero or more, capped by plan depth — see the cap table under "How many call-outs are right?") — the specific forks where the user might redirect. The user only sees stage 2. The internal draft still informs the plan body via the doc-shape routing below; it just doesn't reach the user verbatim. This split exists because the comprehensive audit shape produced too much detail for the user to weigh in on, even when the granularity rules were followed.
+**Two-stage shape: internal draft, then chat-time synthesis.** Stage 1 is an internal three-bucket draft (Stated / Inferred / Out of scope) the agent uses to think comprehensively about scope. Stage 2 is the compressed chat-time output the user actually sees: a tier-shaped summary plus "Call outs" (zero or more, capped by plan depth — see "How many call-outs are right?") — the specific forks where the user might redirect. This split exists because the comprehensive audit shape produced too much detail for the user to weigh in on, even when the granularity rules were followed. The internal draft still informs the plan body via the doc-shape routing below; it just doesn't reach the user verbatim.
 
-**Three-bucket structure is the internal draft, not the user-facing artifact.** It does its scope-thinking job during stage 1 and dissolves when Phase 5.2 writes the plan: Stated content informs Requirements, Inferred content informs Key Technical Decisions / Implementation Units (interactive mode) or `## Assumptions` (non-interactive mode), Out-of-scope content informs Scope Boundaries. The plan has no parallel `## Synthesis` section — only the stage-2 summary embeds, as `## Summary`. See "Doc shape after confirmation" below for the routing.
+**The three-bucket draft dissolves when Phase 5.2 writes the plan** — it has no parallel `## Synthesis` section in the artifact: Stated informs Requirements, Inferred informs Key Technical Decisions / Implementation Units (interactive mode) or `## Assumptions` (non-interactive mode), Out-of-scope informs Scope Boundaries. Only the stage-2 summary embeds, as `## Summary`. See "Doc shape after confirmation" below for the full routing.
 
 This content is loaded when a synthesis-summary phase fires in ts-plan. There are two variants — they share structure but differ in timing and content focus:
 
 - **Solo variant** (Phase 0.7): fires after Phase 0.4 bootstrap and Phase 0.6 depth classification, before Phase 1 research begins. Catches scope misinterpretation before sub-agent dispatch is spent. Full breadth — problem frame, intended behavior, success criteria, in/out scope.
 - **Brainstorm-sourced variant** (Phase 5.1.5): fires after Phase 1 research, before Phase 5.2 plan-write. Focuses on plan-time decisions (which files/modules to touch, which patterns extended vs. introduced new, test scope, refactor scope). Brainstorm-validated WHAT is assumed and not re-stated.
 
-Both variants share the two-stage shape, the keep test for call-outs, soft-cut behavior, and the doc-shape routing. In non-interactive (headless) mode, both compose the internal draft and skip stage 2 — the user-facing compression is moot when there is no synchronous user. The internal draft dissolves into the plan body the same way, with Inferred bets routing to a `## Assumptions` section. See "Headless mode (shared)" below for the full routing.
+Both variants share the two-stage shape, the keep test for call-outs, soft-cut behavior, and the doc-shape routing. In non-interactive (headless) mode, both compose the internal draft and skip stage 2 — the user-facing compression is moot when there is no synchronous user. See "Headless mode (shared)" below.
 
 ---
 
@@ -20,7 +20,7 @@ Both variants share the two-stage shape, the keep test for call-outs, soft-cut b
 The internal draft is structured in three labeled buckets. Items may appear in two buckets when meaningfully both — flag the inclusion-then-exclusion as Inferred so the reasoning is captured.
 
 - **Stated** — what the user said directly (in the original prompt, prior conversation, dialogue answers, or the upstream brainstorm doc when present). Items here have explicit user-language anchors.
-- **Inferred** — what the agent assumed to fill gaps. Scope boundaries the user never explicitly named, success criteria extrapolated from intent, technical assumptions made because the brief interview didn't probe them. The Inferred list is the most actionable bucket — items here are the agent's bets that the user can correct.
+- **Inferred** — what the agent assumed to fill gaps. Scope boundaries the user never explicitly named, success criteria extrapolated from intent, technical assumptions made because the brief interview didn't probe them. The most actionable bucket — items here are the agent's bets that the user can correct.
 - **Out of scope** — deliberately excluded items. Adjacent work the agent considered but decided not to include, refactors, nice-to-haves, future-work items.
 
 This draft is internal. Do not paste it verbatim into chat. Compose it as a thinking step, then derive stage 2 from it.
@@ -31,13 +31,15 @@ This draft is internal. Do not paste it verbatim into chat. Compose it as a thin
 
 Stage 2 is what the user actually sees. The shape differs between variants because they serve different purposes — brainstorm-sourced plans inherit a validated WHAT and surface plan-specific HOW; solo plans have no upstream and the synthesis is the WHAT.
 
+**Shared anti-pattern across both variants: do NOT enumerate the touch surface.** Sentences like "The touch surface is...", "This plan touches...", "The implementation reaches into...", "Files modified include..." are plan-pitch leaks. File paths, module names, directory introductions, and per-file change descriptions belong in the plan body (Implementation Units), not the synthesis. The synthesis names *what* the plan targets, not *where* the code lives.
+
 ### Brainstorm-sourced shape (Phase 5.1.5)
 
 Two content sections plus call-outs:
 
 1. **Brainstorm-scope restatement** (1-2 sentences, prose). Restates the brainstorm's scope as orientation. The user wrote this content, but the synthesis may be read days later or in parallel with other plans — the restatement is the topic anchor that says "this is the artifact we're planning against." Stay in the brainstorm's own vocabulary. Do NOT enumerate Implementation Units, restate constraints back at the user, or list acceptance examples.
 
-2. **Plan-specific scoping decisions** (prose, or bullets when multi-faceted). Scope-level commitments the agent made that the brainstorm did not: does this plan cover the full brainstorm scope or narrow to a subset; are adjacent refactors pulled in or held out; what test scope at scenario level (which sites, which acceptance examples). Each item must pass the **affirmability test** — the user can affirm or redirect it without reading code. This section is scope claims at affirm-or-redirect level, NOT a description of where the implementation reaches, NOT PR count or commit sequencing, NOT Implementation Unit lists, NOT exact file paths or test commands — those are all plan-write outputs the synthesis cannot honestly claim. **Do NOT enumerate the touch surface.** Sentences like "The touch surface is...", "This plan touches...", "The implementation reaches into...", "Files modified include..." are plan-pitch leaks. File paths, module names, directory introductions, and per-file change descriptions belong in the plan body (Implementation Units), not the synthesis. If the plan covers the full brainstorm scope with no narrowing, expansions, or adjacent work, this section stays short ("This plan covers the full brainstorm scope; test scope is X").
+2. **Plan-specific scoping decisions** (prose, or bullets when multi-faceted). Scope-level commitments the agent made that the brainstorm did not: does this plan cover the full brainstorm scope or narrow to a subset; are adjacent refactors pulled in or held out; what test scope at scenario level (which sites, which acceptance examples). Each item must pass the **affirmability test** — the user can affirm or redirect it without reading code. This is scope claims at affirm-or-redirect level, NOT a description of where the implementation reaches, NOT PR count or commit sequencing, NOT Implementation Unit lists, NOT exact file paths or test commands — those are all plan-write outputs the synthesis cannot honestly claim. If the plan covers the full brainstorm scope with no narrowing, expansions, or adjacent work, this section stays short ("This plan covers the full brainstorm scope; test scope is X").
 
 3. **Call outs** (zero or more, capped by plan depth — see "How many call-outs are right?" below). Each a real fork where the user's input materially changes the plan. Omit the "Call outs:" header entirely when zero forks survived the keep test.
 
@@ -45,7 +47,7 @@ Two content sections plus call-outs:
 
 No upstream document; the synthesis itself is the scope claim:
 
-1. **Scope claim** (prose, or bullets when multi-faceted). What the agent is planning to build, at affirm-or-redirect level — names what's in and what's out. NOT an enumeration of Implementation Units the plan will contain. **Do NOT enumerate the touch surface.** Sentences like "The touch surface is...", "This plan touches...", "The implementation reaches into..." are plan-pitch leaks. File paths, module names, directory introductions, and per-file change descriptions belong in the plan body (Implementation Units), not the synthesis. The synthesis names *what* the plan targets, not *where* the code lives.
+1. **Scope claim** (prose, or bullets when multi-faceted). What the agent is planning to build, at affirm-or-redirect level — names what's in and what's out. NOT an enumeration of Implementation Units the plan will contain. The synthesis names *what* the plan targets, not *where* the code lives.
 
 2. **Call outs** (zero or more, capped by plan depth). Same as brainstorm-sourced.
 
@@ -66,10 +68,7 @@ Form within each section (prose, bullets, mix) follows whatever communicates bes
 - **No "Stated" bucket in chat** (the orientation or scope-claim covers it).
 - **No "Out of scope" bucket as a separate list** — fold a non-obvious exclusion into a call-out when it survives the keep test, otherwise drop it.
 - **Source-document vocabulary.** When a brainstorm exists, use its terms. Don't invent agent-coded shorthand (e.g., "skill-instruction shape", "hooks engine selection at Step 2a entry"). When referencing acceptance examples, requirements, or flows, name them in plain terms ("the install-prompt acceptance case") — never use bare IDs.
-
-- **Pre-emit mechanical checks.** Before emitting the synthesis, scan the output:
-  - **Bare ID references** (`AE\d+`, `R\d+`, `F\d+`, `A\d+`, `U\d+`) → replace with plain names. Mixed forms (case named AND ID cited) still violate the rule because the ID adds noise without information.
-  - **File paths** (`path/like.md`, `path/like.py`, `internal/cli/...`, `skills/.../...`, etc.) → cut unless the path IS the topic of an explicit fork in the call-outs. Allowed: "cleanup hook in the existing archive step vs. a new dedicated phase" (where the path is implicit in the decision). Forbidden: paths listed to demonstrate completeness, preview Implementation Units, or describe where the implementation reaches. The synthesis names *what* the plan targets, not *where* the code lives.
+- **Pre-emit mechanical checks.** Before emitting the synthesis, scan the output for bare ID references (`AE\d+`, `R\d+`, `F\d+`, `A\d+`, `U\d+` — replace with plain names, even when a plain name is also present) and file paths (`path/like.md`, `internal/cli/...` — cut unless the path IS the topic of an explicit fork in the call-outs, e.g. "cleanup hook in the existing archive step vs. a new dedicated phase" is fine because the path is implicit in the decision, not listed to demonstrate completeness).
 
 ### The keep test for each call-out
 
@@ -80,11 +79,7 @@ Before keeping a candidate call-out from the internal draft, run the **affirmabi
 - **Non-obvious exclusion**: an item was deliberately excluded that the user might want to add back in
 - **Cheap-now-expensive-later correction**: a bet the user is well-placed to redirect now that would be expensive to undo after research or plan-write
 
-Cut anything else, including:
-
-- Mechanical items where there is no real alternative (e.g., "no new dependencies" when the work clearly does not need any)
-- Implementation choices that will be settled during the work (e.g., regex precision tuned during impl)
-- Items already implied by the summary
+Cut anything else, including: mechanical items with no real alternative (e.g., "no new dependencies" when the work clearly does not need any), implementation choices that will be settled during the work (e.g., regex precision tuned during impl), and items already implied by the summary.
 
 ### The detail test (per call-out and per summary bullet)
 
@@ -146,7 +141,7 @@ Both variants share these structural rules. They address failure modes where the
 
 **Summary leads, call-outs follow** — not the reverse, and no separate framing block above. Putting extensive content ABOVE the synthesis (an approach pitch, files-touched bullets, rationale block) inverts the structure: the synthesis becomes a footnote to the proposal instead of the proposal being a tier-budgeted summary the call-outs depend on.
 
-**Anti-pattern: synthesis as plan-pitch.** Plan-body content — file paths, code shapes, sentinel strings, exact error messages, "Recommendation" / "Behavior when X" / "Why this shape" rationale — does not belong in chat output regardless of where it appears: not in a block above the call-outs, not inside the summary, and not nested in a call-out's commentary or sub-bullets. The position rule and the content rule are independent: a structurally-legal placement (inside a call-out bullet) does not legitimize plan-body content. If you find yourself writing it anywhere, stop. That content is Phase 5.2 (plan-write) territory — it belongs in the plan body the next phase will write, not in the synthesis presentation. The synthesis is a scope/decisions checkpoint: a tier-budgeted summary plus call-outs bounded by the tiered cap (see "How many call-outs are right?"). Implementation detail leaking into the synthesis (anywhere) is a sign Phases 1-4 (research and structuring) and Phase 5.2 (plan-write) have collapsed into the synthesis-confirmation step.
+**Plan-body content never belongs in chat output, regardless of position.** File paths, code shapes, sentinel strings, exact error messages, "Recommendation" / "Behavior when X" / "Why this shape" rationale — none of it belongs in the summary, in a block above the call-outs, or nested in a call-out's commentary or sub-bullets. A structurally-legal placement (inside a call-out bullet) does not legitimize plan-body content. If you find yourself writing it anywhere, stop — that content is Phase 5.2 territory. Implementation detail leaking into the synthesis (anywhere) is a sign Phases 1-4 (research and structuring) and Phase 5.2 (plan-write) have collapsed into the synthesis-confirmation step.
 
 **Anti-pattern: numerical attestation.** "All nine requirements covered," "all three flows in scope," "five acceptance examples addressed," counts of files or test scenarios. These are the agent showing its work or attesting completeness, not naming scope decisions. "Covers the full brainstorm scope" already conveys the claim; the count adds nothing the user can affirm or redirect. Cut the numbers; keep the scope claim.
 
@@ -157,6 +152,8 @@ Both variants share these structural rules. They address failure modes where the
 3. User revises → integrate, re-present revised stage 2, return to step 1
 
 Plan-write (Phase 5.2) fires only on explicit confirm or after the soft-cut blocking question's "proceed" option. Never write immediately after a revision, even when the revision is small enough that the agent feels it understood — the confirmation step is what makes the synthesis **confirmed** rather than "agent's last proposal."
+
+**Open questions never float free of stage 2.** By synthesis time, every scope-shaping question must already be resolved into Stated, Inferred, or Out (there is no fourth status). If a question genuinely cannot be defaulted, pause synthesis and resolve it first — a blocking multiple-choice tool when options are bounded, prose otherwise — then present stage 2. Never present stage 2 with adjacent floating questions; that gives the user no clear resolution path.
 
 ---
 
@@ -181,41 +178,32 @@ Each call-out should be affirmable or rejectable by the user **without reading c
 
 The line is drawn slightly differently per variant. **Solo (Phase 0.7)** stays at the higher level — brainstorm's WHAT hasn't been validated yet, so file/module names are usually too specific; talk in terms of "the rule entity," not "syncRules table." **Brainstorm-sourced (Phase 5.1.5)** allows the file / module / pattern / column level when those ARE plan-time decisions, but not implementation flow specifics.
 
-### Bad-vs-good examples
+### Bad-vs-good example
 
 | Plan-body in call-out (wrong) | Decision-level (right) |
 |---|---|
 | Timezone source: `users.timezone` (IANA), fallback to destination calendar TZ if null. Research found `useTimezoneSync` and `ProtectionStatsCalculator` establish the pattern. | Timezone source: user-TZ (reverses brainstorm's tentative lean — research found established infra and pattern precedent) |
 | Skip filter goes in `RuleMatcher.eventMatchesRule` at the top, before include/exclude evaluation, using the existing `filteredReason` mechanism. | Skip filter extends the existing event-skip pattern in the matcher (vs. introducing a new mechanism) |
-| Reactivation guard: explicit safety in `[ruleId]/route.ts` PATCH — when `isActive: false → true`, the existing handler clears `status/pausedAt/pausedReason`. | Reactivation guard: pause window state preserved through the isActive toggle's existing system-pause-clearing path |
 | Partial cleanup failure response: `{pause, cleanup: {eventsDeleted, eventsFailed, errors}}`; pause window persists regardless of cleanup outcome. | Partial cleanup failure: pause window persists; partial-failure response mirrors the existing rule-edit precedent |
 
 The test: a scanner reading a call-out should affirm or reject it without needing to read code. If they would have to look up a column name, method name, or call graph to evaluate the call-out, the granularity is wrong — that's plan-body content.
 
 ### Worked example: compression from internal draft to call-outs
 
-For a PII redaction gate proposal where the internal draft had 4 Stated items, 7 Inferred items, and 3 Out-of-scope items, the compressed stage 2 looks like:
+For a PII redaction gate proposal, the internal draft had 4 Stated items, 7 Inferred items, and 3 Out-of-scope items. The compressed stage 2:
 
 ```
 Planning a mechanical PII redaction gate before promote (the unguarded leak path from the amazon-orders retro) and alongside the existing vendor-prefix scanner at publish. Phase-1 detectors are shape-only — card last-4, postal address, JSON person names. Default halts; per-finding ack via flag.
 
 **Call outs:**
-- Person-name filter works by JSON key (allowlist of attribution keys: `printer`, `printer_name`, `owner_name`, `author`), not by name value.
+- Person-name filter works by JSON key (allowlist of attribution keys), not by name value.
 - Promote scans the working-dir snapshot before the copy step, not the staged copy.
 - Publish combines PII + vendor-prefix findings into one report, not fail-fast on first.
 
 Confirm and I'll proceed to research, drawing on this scope.
 ```
 
-What got cut from the internal draft and why:
-
-- "Module name: `internal/artifacts/pii.go`" — plan-body content (file path), fails affirmability test
-- "Flag name: `--accept-redaction-list=<finding-id,...>`" — plan-body content (exact flag string), fails affirmability test
-- "No new dependencies — stdlib regexp + filepath.WalkDir only" — mechanical, no real alternative
-- "Detector regex precision tuned during implementation" — deferred-impl, not a plan-time fork
-- All three Out-of-scope items — either restated in prose ("defer to #960") or implicitly excluded by scope
-
-What survived: three real forks where another reasonable agent might choose differently and the user can correct cheaply now. Each is affirmable in one sentence without reading code.
+What got cut and why: the module name and exact flag string (plan-body, fail affirmability), "no new dependencies" (mechanical, no real alternative), "regex precision tuned during implementation" (deferred-impl, not a plan-time fork), and all three Out-of-scope items (either restated in prose or implicitly excluded by scope). What survived: three real forks where another reasonable agent might choose differently and the user can correct cheaply now — each affirmable in one sentence without reading code.
 
 ---
 
@@ -227,17 +215,17 @@ Fires only when:
 - AND Phase 0.5 cleared (no unresolved blockers)
 - AND not on Phase 0.1 fast paths (resume normal, deepen-intent)
 
-Each guard is an explicit conditional in SKILL.md, not implicit. R2 solo does NOT fire on resume/deepen, route-out, or brainstorm-sourced paths.
+Each guard is an explicit conditional in SKILL.md, not implicit. The solo variant does NOT fire on resume/deepen, route-out, or brainstorm-sourced paths.
 
-**Content focus**: full-breadth internal draft. Phase 0.4 bootstrap is brief by design ("ask one or two clarifying questions"), so the agent has made substantial inferences before Phase 0.7 fires. The Inferred bucket in the internal draft is especially load-bearing here — the agent's bets are widest. Stage 2 compression still applies: most of those inferences will not survive the keep test, and that is correct — the user should only see the forks they can meaningfully redirect.
+**Content focus**: full-breadth internal draft. Phase 0.4 bootstrap is brief by design ("ask one or two clarifying questions"), so the agent has made substantial inferences before Phase 0.7 fires. The Inferred bucket is especially load-bearing here — the agent's bets are widest. Stage 2 compression still applies: most of those inferences will not survive the keep test, and that is correct — the user should only see the forks they can meaningfully redirect.
 
-**Counter-warning for rich-context invocations.** When the inference source is *not* just Phase 0.4 bootstrap — e.g., a prior in-conversation validation agent, completed sibling work units earlier in the same session, or a planning artifact already in the conversation — the temptation is to dump that material into call-outs verbatim. The granularity rules tighten in this case, not loosen: the agent has more material to compress, not more material to expose. A bet that's already been validated upstream is **Stated** (internal), not Inferred (internal); a bet whose specifics belong in plan-body is named at decision-level in the call-out regardless of how much detail upstream context provided. If recent turns produced detailed code, file paths, or research artifacts, expect the internal draft to over-share and compress proactively before stage 2.
+**Counter-warning for rich-context invocations.** When the inference source is *not* just Phase 0.4 bootstrap — e.g., a prior in-conversation validation agent, completed sibling work units earlier in the same session, or a planning artifact already in the conversation — the temptation is to dump that material into call-outs verbatim. The granularity rules tighten in this case, not loosen: the agent has more material to compress, not more material to expose. A bet that's already been validated upstream is **Stated** (internal), not Inferred; a bet whose specifics belong in plan-body is named at decision-level in the call-out regardless of how much detail upstream context provided.
 
 **Why pre-research, not pre-write**: research effort would be wasted if scope is wrong. Catching scope errors before sub-agent dispatch (Phase 1.1's repo-research-analyst, learnings-researcher, etc.) saves token and time cost.
 
 ### Stage 2 template (solo)
 
-**Summary discipline (required):** describe **what scope the plan will target**, forward-looking (what *will* be planned), not retrospective. The summary's job is to help the user pattern-match against intent before reading call-outs — solo invocation has minimal pre-write dialogue, so the summary is especially load-bearing here. Form (prose, bullets, mix) and length follow the tier budget in "Stage 2: chat-time scoping synthesis" above; detail test applies per bullet.
+**Summary discipline (required):** describe **what scope the plan will target**, forward-looking (what *will* be planned), not retrospective. Solo invocation has minimal pre-write dialogue, so the summary is especially load-bearing here. Form and length follow the tier budget above; detail test applies per bullet.
 
 **Anti-fluff guidance:** lead with the actual thing being planned in plain words. No qualifiers ("comprehensive," "thoughtful," "substantive"). No re-stating the user's prompt. If the scope cannot be said within the tier budget without filler, the synthesis isn't ready yet.
 
@@ -276,7 +264,7 @@ Fires only when:
 
 Items to surface in the internal draft:
 - **Files/modules to touch (and not touch)** — what the implementation reaches into
-- **Patterns extended vs. introduced new** — architectural decisions the agent made within confirmed scope (R2's content focus, not bias toward either direction)
+- **Patterns extended vs. introduced new** — architectural decisions the agent made within confirmed scope (this variant's content focus, not bias toward either direction)
 - **Test scope** — which existing-but-untested code is in/out of test scope for this work
 - **Refactor scope** — adjacent cleanup, if any, going to deferred items vs. active diff
 - **Cross-cutting impact** — auth, migrations, shared types when they're touched
@@ -289,7 +277,7 @@ Most of these will not survive the keep test as separate call-outs. Surface only
 
 ### Stage 2 template (brainstorm-sourced)
 
-**Summary discipline (required):** describe **how the implementation approaches the work** at a high level — files/modules touched, patterns extended vs. introduced, scope boundaries the plan honors. Forward-looking (what *will* be in the plan), not retrospective. Brainstorm-validated WHAT is assumed; the summary covers HOW. Form (prose, bullets, mix) and length follow the tier budget in "Stage 2: chat-time scoping synthesis" above; detail test applies per bullet.
+**Summary discipline (required):** describe **how the implementation approaches the work** at a high level — files/modules touched, patterns extended vs. introduced, scope boundaries the plan honors. Forward-looking (what *will* be in the plan), not retrospective. Brainstorm-validated WHAT is assumed; the summary covers HOW. Form and length follow the tier budget above; detail test applies per bullet.
 
 **Anti-fluff guidance:** lead with the actual implementation shape in plain words. No qualifiers, no re-stating the brainstorm's WHAT. If the summary just restates the brainstorm's Problem Frame, rewrite it to focus on plan-time decisions.
 
@@ -339,22 +327,19 @@ When the skill is invoked from an automated workflow such as LFG or any `disable
 
 **Stage 2 is moot in headless mode.** Compose the internal draft (stage 1) as usual, but skip the chat-time compression — there is no synchronous user to confirm to, no call-outs to derive, no auto-proceed announcement. Route the internal draft directly into the plan body via the doc-shape table below.
 
-**Per-variant behavior** (the timing matters for which phases follow):
-
-- **Solo variant (Phase 0.7)**: fires *before* research. Compose the internal draft and continue to Phase 1 research as normal. Inferred content is held until plan-write (Phase 5.2), where it routes to `## Assumptions`.
-- **Brainstorm-sourced variant (Phase 5.1.5)**: fires *after* research, before plan-write. Compose the internal draft and proceed to Phase 5.2 plan-write. Inferred content routes to `## Assumptions`.
+**Per-variant timing:**
+- **Solo variant (Phase 0.7)**: fires *before* research. Compose the internal draft and continue to Phase 1 research as normal.
+- **Brainstorm-sourced variant (Phase 5.1.5)**: fires *after* research, before plan-write. Compose the internal draft and proceed to Phase 5.2.
 
 **Shared behavior across both variants:**
 
-- **No user prompt; no stage 2; no auto-proceed announcement.** All three are moot.
-- **Route internal-draft content with mode-aware shape:**
-  - **Stated** content → Requirements (user-stated constraints, traced to origin's R-IDs when present)
-  - **Out-of-scope** content → Scope Boundaries
-  - **Inferred** content → `## Assumptions` section in the plan — explicitly labeled as un-validated agent bets. Do NOT route Inferred items into Key Technical Decisions or Implementation Units; that would make un-validated bets indistinguishable from user-confirmed decisions.
+- No user prompt, no stage 2, no auto-proceed announcement — all three are moot.
+- Route internal-draft content with mode-aware shape:
+  - **Stated** → Requirements (user-stated constraints, traced to origin's R-IDs when present)
+  - **Out-of-scope** → Scope Boundaries
+  - **Inferred** → `## Assumptions` section in the plan — explicitly labeled as un-validated agent bets. Do NOT route Inferred items into Key Technical Decisions or Implementation Units; that would make un-validated bets indistinguishable from user-confirmed decisions.
 
-The `## Assumptions` section appears in non-interactive plans only. Interactive plans don't need it (Inferred bets either get user-corrected via call-outs and become Key Technical Decisions, are revised away, or were judged not-fork material by the keep test and dissolved into Implementation Units silently).
-
-This restores the audit visibility the original design intended (un-validated bets must not propagate as authoritative content), but surfaces them under their own label rather than hiding them. Downstream review (ts-doc-review, ts-work, human PR review) can scrutinize Assumptions specifically.
+The `## Assumptions` section appears in non-interactive plans only. Interactive plans don't need it (Inferred bets either get user-corrected via call-outs and become Key Technical Decisions, are revised away, or were judged not-fork material by the keep test and dissolved into Implementation Units silently). This restores audit visibility (un-validated bets must not propagate as authoritative content) while surfacing them under their own label. Downstream review (ts-doc-review, ts-work, human PR review) can scrutinize Assumptions specifically.
 
 ---
 
@@ -383,14 +368,3 @@ After user confirmation (or after the soft-cut decision proceeds), Phase 5.2 wri
 No italic capture-context note (e.g., "Captured at Phase 0.7..."). It would leak engineering process into an artifact whose readers do not need that signal.
 
 The plan's `## Summary` and `## Problem Frame` must serve distinct purposes: Summary answers "what is this plan proposing?" (forward-looking, 1-3 lines); Problem Frame answers "why does this proposal exist?" (backward-looking, paragraphs). Don't restate the proposal in Problem Frame; don't pad Summary with situational context.
-
----
-
-## What does NOT belong in the synthesis
-
-- Implementation code (no imports, exact method signatures, framework-specific syntax, JSON shapes, exact error message wording) — in chat output OR in the internal draft
-- Re-statement of the entire brainstorm doc — the synthesis is plan-perspective, not a copy
-- Defensive what-ifs and hedges — if a concern is real, state it as Inferred (internal); if speculation, drop it
-- The internal three-bucket draft pasted into chat as a verbatim user-facing artifact — that was the old shape and the volume problem it produced is why stage 2 exists. Compose internally, derive call-outs, present compressed
-- Open questions surfaced outside the buckets/call-outs — by synthesis time, every scope-shaping question must be in **Stated** (internal — asked and answered earlier), **Inferred** (internal — agent's bet for correction, surfaces as a call-out if it survives the keep test), or **Out** (internal — deliberately excluded). There is no fourth status
-- Floating questions adjacent to stage 2 — if a question genuinely cannot be defaulted, pause synthesis and resolve it before presenting. Pick the question shape that matches: a blocking multiple-choice tool when options are bounded and meaningfully distinct, prose when option sets would bias the answer per Interaction Rule 5(a). Integrate the answer, then present stage 2. Never present stage 2 with adjacent floating questions — that gives the user no clear resolution path

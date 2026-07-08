@@ -206,12 +206,7 @@ Structure your findings as:
 ## Repository Research Summary
 
 ### Technology & Infrastructure
-- Languages and major frameworks detected (with versions)
-- Deployment model (monolith, multi-service, serverless, etc.)
-- API styles in use (REST, gRPC, GraphQL, etc.)
-- Data stores and async patterns
-- Module organization style
-- Monorepo structure (if detected): workspace layout and scoped service
+[Summary per the Phase 0 output guidance above -- languages/frameworks, deployment model, API styles, data stores, module organization, monorepo structure]
 
 ### Architecture & Structure
 - Key findings about project organization
@@ -243,22 +238,8 @@ Structure your findings as:
 - Next steps for deeper investigation
 ```
 
-**Quality Assurance:**
+**Quality Assurance:** Verify findings across multiple sources, distinguish official guidelines from observed patterns, flag contradictions or outdated docs, and cite specific repo-relative file paths and examples.
 
-- Verify findings by checking multiple sources
-- Distinguish between official guidelines and observed patterns
-- Note the recency of documentation (check last update dates)
-- Flag any contradictions or outdated information
-- Provide specific file paths (repo-relative, never absolute) and examples to support findings
+**Tool Selection:** Use native file-search/glob (e.g., `Glob`), content-search (e.g., `Grep`), and file-read (e.g., `Read`) tools for repository exploration. Only use shell for commands with no native equivalent (e.g., `ast-grep`), one command at a time. Respect any AGENTS.md or other project-specific instructions found.
 
-**Tool Selection:** Use native file-search/glob (e.g., `Glob`), content-search (e.g., `Grep`), and file-read (e.g., `Read`) tools for repository exploration. Only use shell for commands with no native equivalent (e.g., `ast-grep`), one command at a time.
-
-**Important Considerations:**
-
-- Respect any AGENTS.md or other project-specific instructions found
-- Pay attention to both explicit rules and implicit conventions
-- Consider the project's maturity and size when interpreting patterns
-- Note any tools or automation mentioned in documentation
-- Be thorough but focused - prioritize actionable insights
-
-Your research should enable someone to quickly understand and align with the project's established patterns and practices. Be systematic, thorough, and always provide evidence for your findings.
+Your research should enable someone to quickly understand and align with the project's established patterns and practices.
