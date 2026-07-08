@@ -2,7 +2,7 @@
 
 This reference describes what makes a great brainstorm requirements document.
 It does NOT prescribe how the doc looks on the page — rendering is handled by
-the format-specific references (`markdown-rendering.md`, `html-rendering.md`).
+`references/markdown-rendering.md`.
 
 ## The outcome
 
@@ -217,17 +217,13 @@ about the same thing, with continuous R-IDs across groups.)
 ## Brainstorm metadata fields
 
 Every brainstorm carries a small set of stable metadata fields that
-downstream tooling depends on. The contract is format-independent: in
-markdown these fields appear as YAML frontmatter at the top of the file; in
-HTML they appear as visible header text (typically a `<dl>` of `<dt>`/`<dd>`
-pairs or a stats strip). Field names and semantics are the same across both
-formats so consumers can locate them without knowing which format produced
-the brainstorm.
+downstream tooling depends on. These fields appear as YAML frontmatter at
+the top of the file.
 
 ### Required
 
 - **`date`** — creation date in ISO 8601 (`YYYY-MM-DD`), ASCII digits only.
-  Used in the filename (`docs/brainstorms/YYYY-MM-DD-<topic>-requirements.<md|html>`).
+  Used in the filename (`docs/brainstorms/YYYY-MM-DD-<topic>-requirements.md`).
 - **`topic`** — kebab-case slug identifying the brainstorm subject (e.g.,
   `surface-scope-earlier`, `demo-reel-local-save`). Used in the filename
   alongside `date` and as the resume-detection key when `ts-brainstorm`'s
@@ -287,14 +283,8 @@ to different purposes:
 
 ## Rendering
 
-The format-specific references describe how to render these sections in each
-output format:
-
-- **Markdown rendering:** `references/markdown-rendering.md`
-- **HTML rendering:** `references/html-rendering.md`
+`references/markdown-rendering.md` describes how to render these sections in
+markdown.
 
 This reference (`brainstorm-sections.md`) is about WHAT the brainstorm
-contains; rendering references are about HOW each format presents it. The
-brainstorm is written in one format — markdown OR HTML, never both — based
-on the resolved output mode. The section catalog is the same regardless of
-format.
+contains; the rendering reference is about HOW markdown presents it.

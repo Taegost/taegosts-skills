@@ -106,7 +106,7 @@ Otherwise, read `references/universal-planning.md` and follow that workflow inst
 
 #### 0.2 Find Upstream Requirements Document
 
-Before asking planning questions, search `docs/brainstorms/` for files matching `*-requirements.md` or `*-requirements.html` (ts-brainstorm emits whichever extension matches its resolved output format; both are valid upstream requirements docs and either may be carried as the plan's `origin:`).
+Before asking planning questions, search `docs/brainstorms/` for files matching `*-requirements.md` (the plan's `origin:` may carry this path).
 
 **Relevance criteria:** A requirements document is relevant if:
 - The topic semantically matches the feature description
