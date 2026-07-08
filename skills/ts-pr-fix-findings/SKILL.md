@@ -255,6 +255,8 @@ For a single reviewer with no need to force a fresh notification, `skills/ts-pr-
 | # | Severity | File | Remediation |
 |---|----------|------|-------------|
 
+**Remediation column content:** one clause naming what actually changed and why — drawn from the Step 3 fix plan for that finding, not the disposition label. State the concrete change (e.g., "Added null check before `.map()` call — reviewer flagged unguarded array access") or, for a declined finding, the reason it wasn't changed (e.g., "Declined — behavior matches KTD2, reviewer's suggestion would violate the spec"). A bare disposition word like "fix", "fixed", or "done" with no detail is not acceptable — the reader must be able to tell what happened without opening the fix plan doc.
+
 Group by severity (Critical -> High -> Moderate -> Minor -> Info)
 - Include a final verdict
 
