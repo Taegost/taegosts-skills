@@ -6,7 +6,7 @@ user_invocable: true
 
 # Verify Implementation Skill
 
-Reviews a feature branch against its plan by launching 4 parallel review subagents: correctness, completeness, scope, and standards.
+Reviews a feature branch against its plan by delegating to 4 parallel review agents via bootstrap dispatch (file paths, not inline content): correctness, completeness, scope, and standards.
 
 ## Usage
 
@@ -18,15 +18,23 @@ Reviews a feature branch against its plan by launching 4 parallel review subagen
 
 If no argument is provided, list available plans and prompt the user to specify one.
 
+## Dispatch Model
+
+This skill uses the **bootstrap dispatch pattern** — reviewers receive file paths, not inline content. Each reviewer reads its own operating contract, role prompt, and schema from disk.
+
+**Bootstrap pattern:** load skill → execute → return result.
+
+When locating scripts, consult `docs/ROUTING.md` first to find the correct paths via INDEX.md files:
+- Core scripts: `scripts/INDEX.md`
+- Skill-specific scripts: `skills/ts-verify-implementation/scripts/INDEX.md`
+- Reviewer agents: `references/agents/` (read directly)
+
 ## Process
 
 ### 1. Determine base branch
 
 ```bash
-base_branch=$(git remote show origin 2>/dev/null | grep 'HEAD branch' | awk '{print $NF}')
-if [ -z "$base_branch" ]; then
-  base_branch=$(git branch --list main master develop trunk | head -1 | sed 's/^[* ]*//')
-fi
+base_branch=$(../../scripts/context-gather.sh | python3 -c "import sys, json; print(json.load(sys.stdin)['default_branch'])")
 ```
 
 ### 2. Load the plan

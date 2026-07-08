@@ -6,7 +6,7 @@ argument-hint: "[mode:agent] [blank to review current branch, or provide PR link
 
 # Code Review
 
-Reviews code changes using dynamically selected reviewer agents. Spawns parallel sub-agents that return structured JSON, then merges and deduplicates findings into a single report.
+Reviews code changes using dynamically selected reviewer agents. Delegates to reviewers via bootstrap dispatch (file paths, not inline content), then merges and deduplicates findings into a single report.
 
 ## When to Use
 
@@ -52,6 +52,19 @@ Same pipeline for default and `mode:agent`:
 - **No blocking prompts.** Never use `AskUserQuestion`, `request_user_input`, `ask_user`, or other blocking question tools. Infer intent, plan, and scope from explicit tokens, git state, PR metadata, and conversation. Note uncertainty in Coverage or the verdict — do not stop to ask.
 - **Explicit mutations only.** Never run `gh pr checkout`, `git checkout`, `git switch`, or similar branch-switch commands. Passing a PR number, URL, or branch name selects **review scope**, not permission to mutate the working tree. To review local uncommitted work on a feature branch, check out that branch yourself (or stay on it) and pass `base:` or no target.
 - **Smart defaults.** Untracked files: review tracked changes only and list excluded paths in Coverage. Plan: use `plan:` when passed; otherwise discover conservatively from PR body or branch keywords. Weak advisory P2/P3 from testing/maintainability alone: demote to `testing_gaps` / `residual_risks` per Stage 5.
+
+## Dispatch Model
+
+This skill uses the **bootstrap dispatch pattern** — reviewers receive file paths, not inline content. Each reviewer reads its own operating contract, role prompt, and schema from disk.
+
+**Bootstrap pattern:** load skill → execute → return result.
+
+When locating scripts or reviewer agents, consult `docs/ROUTING.md` first to find the correct paths via INDEX.md files. The ROUTING.md is the central navigation hub for the repository.
+
+**Script resolution:**
+- Core scripts: `scripts/INDEX.md`
+- Skill-specific scripts: `skills/ts-code-review/scripts/INDEX.md`
+- Reviewer agents: `references/agents/` (read directly, no INDEX.md needed)
 
 ## Output format
 

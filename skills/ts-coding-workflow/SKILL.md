@@ -59,6 +59,14 @@ This is the required process for ALL coding tasks across ALL projects. Do not sk
 - **Each PR is a separate piece of work.** Don't carry implementation from one PR into the next without going through Phase 1 again.
 - **This applies to ALL coding tasks**, not just taegosts-skills. Homelab-k8s, personal projects, work repos — same process.
 
+## Dispatch Model
+
+This skill delegates to other skills by loading them via their file paths. The skill file path is the single source of truth — load, don't re-derive.
+
+**Bootstrap pattern:** load skill → execute → return result.
+
+When invoking sub-skills (`/ts-plan`, `/ts-doc-review`, `/ts-do-work-loop`, `/ts-pr-fix-findings`), use the bootstrap dispatch pattern: pass file paths, not inline content. The target skill reads its own operating contract from disk.
+
 ## Why This Exists
 
 Mike has ADHD. Follow-through is hard. The plan-review-doc-review cycle creates external structure that prevents:

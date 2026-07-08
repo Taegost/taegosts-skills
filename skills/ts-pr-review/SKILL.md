@@ -78,7 +78,14 @@ Each finding MUST be a separate inline review comment (conversation thread), not
 Fetch PR metadata in a single call (if not already available from earlier in the session):
 
 ```bash
-gh pr view NUMBER --json title,state,headRefOid,comments,reviews
+PR_DATA=$(scripts/fetch-pr-data.sh "$PR_URL")
+```
+
+Parse the result with `jq` to extract individual fields:
+
+```bash
+HEAD_SHA=$(echo "$PR_DATA" | jq -r '.headRefOid')
+PR_TITLE=$(echo "$PR_DATA" | jq -r '.title')
 ```
 
 - `headRefOid` is the `commit_id` for the review. Cross-check it against `scope.head_sha` / `scope.pr_url` in `review.json` — if the PR head has moved since the review ran, warn the user and ask whether to re-run rather than posting stale line numbers.
@@ -89,12 +96,7 @@ gh pr view NUMBER --json title,state,headRefOid,comments,reviews
 Findings in `review.json` already carry `file` and `line` (new-file line numbers). Before posting, verify each finding's line is commentable — i.e., it appears as an added or context line in the PR diff. Save the diff once and build the verification map from it:
 
 ```bash
-gh pr diff NUMBER > /tmp/ts-pr-review-diff.txt
-
-awk '/^\+\+\+ /{file=substr($2,3); next}
-     /^@@/{match($0, /\+[0-9]+/); line=substr($0, RSTART+1, RLENGTH-1)+0; next}
-     /^\+/{print file ":" line; line++; next}
-     /^ /{line++}' /tmp/ts-pr-review-diff.txt > /tmp/ts-pr-review-linemap.txt
+gh pr diff "$PR_URL" -- | scripts/map-diff-lines.sh > /tmp/ts-pr-review-linemap.txt
 ```
 
 This outputs `file:new-file-line` for every added line. For each finding:

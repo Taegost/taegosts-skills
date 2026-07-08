@@ -229,9 +229,9 @@ Then:
 - For each finding, make a brief note about what your remediation was for it.
   - If you deemed it to be an invalid finding, then include your reasoning why.
   - If there is additional context required (such as an explanation as to why your remediation doesn't meet the reviewer's criteria), make sure it is added
-- If the finding was part of a threaded conversation, mark that conversation as Resolved using the GraphQL API:
+- If the finding was part of a threaded conversation, mark that conversation as Resolved:
     ```bash
-    gh api graphql -f query='mutation { resolveReviewThread(input: {threadId: "THREAD_ID"}) { thread { isResolved } } }'
+    ./scripts/resolve-thread.sh --pr-url "$PR_URL" --thread-id "$THREAD_ID" --reviewer "$REVIEWER"
     ```
 - If necessary, mark the PR and/or reviewer as ready for review again
 
@@ -240,20 +240,10 @@ Then:
 After pushing fixes and resolving threads, request re-review from the original reviewer(s). Do not assume they will notice the push:
 
 ```bash
-gh api -X PUT repos/{owner}/{repo}/pulls/{pr_number}/requested_reviewers -f reviewers[]='{reviewer}'
+scripts/request-re-review.sh {pr_number} --fresh {reviewer1} [{reviewer2} ...]
 ```
 
-Or use the simpler fallback:
-```bash
-gh pr edit {pr_number} --add-reviewer {reviewer}
-```
-
-This is easy to forget — if the PR shows "Changes Requested" and you have pushed fixes, the reviewer needs to know to look again.
-
-**Permission fallback:** If the bot account does not have write access to the main repo (external contributor), the review request API will return 404 or permission denied. In that case, post a comment instead:
-```bash
-gh pr comment {pr_number} --body "All review findings addressed and resolved. Ready for re-review."
-```
+This is easy to forget — if the PR shows "Changes Requested" and you have pushed fixes, the reviewer needs to know to look again. The script handles the remove-then-add flow (via `--fresh`), falls back to `gh pr edit` if the API call fails, and posts a comment if the bot lacks write access.
 
 ### 9. Display a summary to the user
 

@@ -38,7 +38,13 @@ description: Commit, push, and open a PR. Use when asked to ship/open a PR, or f
 ### Context fallback
 
 ```bash
-printf '=== STATUS ===\n'; git status; printf '\n=== DIFF ===\n'; git diff HEAD; printf '\n=== BRANCH ===\n'; git branch --show-current; printf '\n=== LOG ===\n'; git log --oneline -10; printf '\n=== DEFAULT_BRANCH ===\n'; git rev-parse --abbrev-ref origin/HEAD 2>/dev/null || echo 'DEFAULT_BRANCH_UNRESOLVED'; printf '\n=== PR_CHECK ===\n'; gh pr view --json url,title,state 2>/dev/null || echo 'NO_OPEN_PR'
+Run the shared git context script:
+
+```bash
+../../scripts/context-gather.sh
+```
+
+Parse the JSON output for: current_branch, default_branch, recent_commits, working_tree (staged/modified/untracked), unpushed_count, is_dirty, has_open_pr.
 ```
 
 ---

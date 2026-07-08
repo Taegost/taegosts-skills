@@ -1,6 +1,13 @@
 ---
+title: "Plans Index"
+description: "Index of documentation in docs/plans/."
+status: active
+version: "1.0"
+created: 2026-07-07
+last-updated: 2026-07-07
+owner: wave-2-dispatch-index-automation
+dependencies: []
 tags: [index]
-description: Index of documentation in docs/plans/.
 ---
 
 # Plans Index
@@ -24,5 +31,7 @@ Index of documentation in docs/plans/.
 | [2026-07-04-001-feat-agent-profiles-standardization-plan.md](2026-07-04-001-feat-agent-profiles-standardization-plan.md) | Standardize agent/persona definitions across all taegosts-skills into a uniform agent profile format. Migrates 21 persona files from `references/personas/` to `references/agents/`, adds YAML frontm... |
 | [2026-07-04-002-feat-pr-fix-findings-verification-loop-plan.md](2026-07-04-002-feat-pr-fix-findings-verification-loop-plan.md) | After `ts-pr-fix-findings` fixes PR review findings, it has two verification gaps: (1) Step 6 lets implementers skip resolution checking when a fix diverges from the reviewer's approach, so fixes c... |
 | [2026-07-04-003-feat-wave-1-foundation-critical-fixes-plan.md](2026-07-04-003-feat-wave-1-foundation-critical-fixes-plan.md) | Establish foundational documentation standards (link conventions, index standards, script frontmatter), update all relevant existing files to comply, and fix critical bugs in ts-verify-implementati... |
+| [2026-07-05-001-extraction-enumeration.md](2026-07-05-001-extraction-enumeration.md) | **Date:** 2026-07-07 **Scope:** Inline bash blocks in 5 target skills for Wave 2 extraction |
 | [2026-07-05-001-feat-test-coverage-token-efficiency-plan.md](2026-07-05-001-feat-test-coverage-token-efficiency-plan.md) | Close the test-coverage blind spot where changed scripts ship without automated tests (Issue 102), reduce token consumption in ts-plan and ts-doc-review by standardizing subagent dispatch and restr... |
 | [2026-07-05-001-feat-wave-2-script-extraction-index-infrastructure-plan.md](2026-07-05-001-feat-wave-2-script-extraction-index-infrastructure-plan.md) | Extract inline scripts from six skills into reusable script files, build automated index infrastructure (index-scripts.py, update-indexes.py, ROUTING.md), unify the dispatch pattern to Bootstrap ac... |
+| [wave-2-verification-report.md](wave-2-verification-report.md) | **Completion Date:** 2026-07-07 **Plan:** `docs/plans/2026-07-05-001-feat-wave-2-script-extraction-index-infrastructure-plan.md` **Issue:** #94 |

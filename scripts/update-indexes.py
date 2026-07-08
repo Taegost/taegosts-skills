@@ -145,21 +145,33 @@ def collect_docs(directory: Path) -> list[dict]:
     return entries
 
 
-def generate_index_md(entries: list[dict], title: str, description: str) -> str:
-    """Generate INDEX.md content in R8 format.
+def generate_index_md(entries: list[dict], title: str, description: str,
+                      owner: str = "wave-2-dispatch-index-automation") -> str:
+    """Generate INDEX.md content in R3/R8 format.
 
     Args:
         entries: List of entry dicts (from collect_docs).
         title: Top-level heading text.
         description: Frontmatter description text.
+        owner: Plan or project identifier.
 
     Returns:
         Markdown content string.
     """
+    from datetime import date
+    today = date.today().isoformat()
+
     lines = [
         "---",
+        f'title: "{title}"',
+        f'description: "{description}"',
+        "status: active",
+        'version: "1.0"',
+        f"created: {today}",
+        f"last-updated: {today}",
+        f"owner: {owner}",
+        "dependencies: []",
         "tags: [index]",
-        f"description: {description}",
         "---",
         "",
         f"# {title}",

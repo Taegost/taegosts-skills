@@ -1,6 +1,13 @@
 ---
+title: "Tooling Decisions Index"
+description: "Index of documentation in docs/solutions/tooling-decisions/."
+status: active
+version: "1.0"
+created: 2026-07-07
+last-updated: 2026-07-07
+owner: wave-2-dispatch-index-automation
+dependencies: []
 tags: [index]
-description: Index of documentation in docs/solutions/tooling-decisions/.
 ---
 
 # Tooling Decisions Index

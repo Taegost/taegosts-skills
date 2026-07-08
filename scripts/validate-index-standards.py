@@ -4,6 +4,7 @@ Validate R7/R8 compliance for documentation files.
 
 R7: Verify all markdown links use [name](uri) format.
 R8: Verify INDEX.md files have correct structure and scoping.
+R3: Verify INDEX.md files have complete frontmatter with all required fields.
 
 Usage:
     python3 scripts/validate-index-standards.py <file-or-directory> [...]
@@ -20,6 +21,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
@@ -142,8 +144,9 @@ def check_r7_links(content: str) -> list[dict]:
 
 
 def check_r8_frontmatter(content: str, filepath: Path) -> list[dict]:
-    """R8: Verify INDEX.md has YAML frontmatter with tags and description.
+    """R8: Verify INDEX.md has YAML frontmatter with all required R3 fields.
 
+    Required fields: title, description, status, version, created, last-updated, owner, tags.
     Returns a list of violations.
     """
     violations = []
@@ -154,25 +157,60 @@ def check_r8_frontmatter(content: str, filepath: Path) -> list[dict]:
             'rule': 'R8',
             'line': 1,
             'message': 'Missing YAML frontmatter (expected --- delimited block at start of file)',
-            'fix': 'Add YAML frontmatter with tags and description fields'
+            'fix': 'Add YAML frontmatter with all required R3 fields'
         })
         return violations
 
-    if 'tags' not in frontmatter:
-        violations.append({
-            'rule': 'R8',
-            'line': 1,
-            'message': 'Frontmatter missing required "tags" field',
-            'fix': 'Add tags: [index] to frontmatter'
-        })
+    # Required fields per R3 standard
+    required_fields = ['title', 'description', 'status', 'version', 'created', 'last-updated', 'owner', 'tags']
+    for field in required_fields:
+        if field not in frontmatter:
+            violations.append({
+                'rule': 'R3',
+                'line': 1,
+                'message': f'Frontmatter missing required "{field}" field',
+                'fix': f'Add {field}: <value> to frontmatter'
+            })
 
-    if 'description' not in frontmatter:
-        violations.append({
-            'rule': 'R8',
-            'line': 1,
-            'message': 'Frontmatter missing required "description" field',
-            'fix': 'Add description: <brief description> to frontmatter'
-        })
+    # Check description is non-empty
+    if 'description' in frontmatter:
+        desc = frontmatter['description'].strip().strip('"').strip("'")
+        if not desc:
+            violations.append({
+                'rule': 'R3',
+                'line': 1,
+                'message': 'Frontmatter "description" field is empty',
+                'fix': 'Add a meaningful description of what this index covers'
+            })
+
+    # Check version is quoted
+    if 'version' in frontmatter:
+        version = frontmatter['version'].strip()
+        if not (version.startswith('"') and version.endswith('"')) and not (version.startswith("'") and version.endswith("'")):
+            violations.append({
+                'rule': 'R3',
+                'line': 1,
+                'message': 'Frontmatter "version" field must be quoted (e.g., "1.0")',
+                'fix': 'Quote the version value: version: "1.0"'
+            })
+
+    # Check tags is an array containing "index"
+    if 'tags' in frontmatter:
+        tags = frontmatter['tags'].strip()
+        if not tags.startswith('['):
+            violations.append({
+                'rule': 'R3',
+                'line': 1,
+                'message': 'Frontmatter "tags" field must be an array',
+                'fix': 'Use array format: tags: [index, ...]'
+            })
+        elif 'index' not in tags:
+            violations.append({
+                'rule': 'R3',
+                'line': 1,
+                'message': 'Frontmatter "tags" array must include "index"',
+                'fix': 'Add "index" to tags array: tags: [index, ...]'
+            })
 
     return violations
 
@@ -185,7 +223,7 @@ def check_r8_table(content: str) -> list[dict]:
     violations = []
     lines = content.splitlines()
 
-    # Look for a table with Link and Description columns
+    # Look for a table with Path and Description columns
     found_table = False
     for i, line in enumerate(lines):
         # Check for table header row
@@ -299,15 +337,171 @@ def check_r8_scope(content: str, filepath: Path) -> list[dict]:
     return violations
 
 
-def validate_file(filepath: Path) -> dict:
+def check_placement(filepath: Path) -> list[dict]:
+    """Check if INDEX.md placement is appropriate.
+
+    Warns if:
+    - Directory has fewer than 2 markdown/script files
+    - Files in directory have no logical grouping (different extensions, unrelated names)
+
+    Returns a list of warnings (not errors).
+    """
+    warnings = []
+    parent_dir = filepath.parent
+
+    # Count relevant files (markdown, python, shell) excluding INDEX.md itself
+    relevant_extensions = {'.md', '.py', '.sh'}
+    sibling_files = [
+        f for f in parent_dir.iterdir()
+        if f.is_file() and f.suffix in relevant_extensions and f.name != 'INDEX.md'
+    ]
+
+    if len(sibling_files) < 2:
+        warnings.append({
+            'rule': 'PLACEMENT',
+            'line': 1,
+            'message': f'INDEX.md in directory with only {len(sibling_files)} indexed file(s) ({parent_dir})',
+            'fix': 'Consider removing INDEX.md for directories with fewer than 2 related files'
+        })
+
+    # Check for logical grouping: files should share at least one common trait
+    if len(sibling_files) >= 2:
+        extensions = {f.suffix for f in sibling_files}
+        # If all files have different extensions and there are 3+ extensions, likely ungrouped
+        if len(extensions) >= 3 and len(extensions) == len(sibling_files):
+            warnings.append({
+                'rule': 'PLACEMENT',
+                'line': 1,
+                'message': f'Files in {parent_dir} may lack logical grouping ({len(extensions)} different extensions across {len(sibling_files)} files)',
+                'fix': 'Verify files form a logical grouping before creating INDEX.md'
+            })
+
+    return warnings
+
+
+def check_root_directory(filepath: Path, repo_root: Path) -> list[dict]:
+    """Check if INDEX.md is in the repository root.
+
+    Warns if INDEX.md exists at the repo root, suggesting ROUTING.md instead.
+
+    Returns a list of warnings.
+    """
+    warnings = []
+    try:
+        rel = filepath.resolve().relative_to(repo_root.resolve())
+        # Root-level INDEX.md has no parent directory parts
+        if len(rel.parts) == 1:
+            warnings.append({
+                'rule': 'PLACEMENT',
+                'line': 1,
+                'message': 'INDEX.md found in repository root directory',
+                'fix': 'Use ROUTING.md for top-level navigation instead of INDEX.md'
+            })
+    except ValueError:
+        pass
+
+    return warnings
+
+
+def find_all_index_files(repo_root: Path) -> list[Path]:
+    """Find all INDEX.md files in the repository."""
+    return sorted(repo_root.rglob('INDEX.md'))
+
+
+def extract_indexed_paths(filepath: Path) -> set[str]:
+    """Extract all file paths referenced in an INDEX.md table.
+
+    Returns a set of normalized path strings from the Path column.
+    """
+    paths = set()
+    try:
+        content = filepath.read_text(encoding='utf-8')
+    except (OSError, UnicodeDecodeError):
+        return paths
+
+    lines = content.splitlines()
+    in_table = False
+    for i, line in enumerate(lines):
+        if '|' not in line:
+            if in_table:
+                break  # End of table
+            continue
+
+        cells = [c.strip() for c in line.split('|')]
+
+        # Check if this is the header row
+        if any(c.lower() == 'path' for c in cells):
+            in_table = True
+            continue
+
+        # Skip separator row
+        if in_table and re.match(r'^[\s|:-]+$', line):
+            continue
+
+        # Extract path from first non-empty cell after the leading pipe
+        if in_table and len(cells) >= 3:
+            path_cell = cells[1].strip()
+            if path_cell and not path_cell.startswith('#'):
+                paths.add(path_cell)
+
+    return paths
+
+
+def check_duplicate_coverage(filepath: Path, repo_root: Path) -> list[dict]:
+    """Check if files indexed by this INDEX.md are already covered by another INDEX.md.
+
+    Warns about redundant indexing when the same paths appear in multiple INDEX.md files.
+
+    Returns a list of warnings.
+    """
+    warnings = []
+    current_paths = extract_indexed_paths(filepath)
+
+    if not current_paths:
+        return warnings
+
+    # Find all other INDEX.md files
+    all_indexes = find_all_index_files(repo_root)
+    current_resolved = filepath.resolve()
+
+    for other_index in all_indexes:
+        if other_index.resolve() == current_resolved:
+            continue
+
+        other_paths = extract_indexed_paths(other_index)
+        overlap = current_paths & other_paths
+
+        if overlap:
+            # Normalize the other index path for display
+            try:
+                display_path = other_index.resolve().relative_to(repo_root.resolve())
+            except ValueError:
+                display_path = other_index
+
+            overlap_list = ', '.join(sorted(overlap)[:5])
+            if len(overlap) > 5:
+                overlap_list += f' (+{len(overlap) - 5} more)'
+
+            warnings.append({
+                'rule': 'PLACEMENT',
+                'line': 1,
+                'message': f'{len(overlap)} indexed file(s) also referenced in {display_path}: {overlap_list}',
+                'fix': 'Consider removing duplicate coverage to keep a single source of truth'
+            })
+
+    return warnings
+
+
+def validate_file(filepath: Path, repo_root: Path = None) -> dict:
     """Validate a single file for R7/R8 compliance.
 
-    Returns a dict with file path, pass/fail status, and violations.
+    Returns a dict with file path, pass/fail status, violations, and warnings.
     """
     result = {
         'file': str(filepath),
         'passed': True,
-        'violations': []
+        'violations': [],
+        'warnings': []
     }
 
     try:
@@ -333,6 +527,14 @@ def validate_file(filepath: Path) -> dict:
         violations.extend(check_r8_table(content))
         violations.extend(check_r8_scope(content, filepath))
 
+        # Placement checks (warnings, not errors)
+        warnings = []
+        warnings.extend(check_placement(filepath))
+        if repo_root:
+            warnings.extend(check_root_directory(filepath, repo_root))
+            warnings.extend(check_duplicate_coverage(filepath, repo_root))
+        result['warnings'] = warnings
+
     if violations:
         result['passed'] = False
         result['violations'] = violations
@@ -354,6 +556,21 @@ def find_markdown_files(path: Path) -> list[Path]:
         return []
 
 
+def detect_repo_root() -> Path:
+    """Detect the git repository root directory."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ['git', 'rev-parse', '--show-toplevel'],
+            capture_output=True, text=True, cwd=Path.cwd()
+        )
+        if result.returncode == 0:
+            return Path(result.stdout.strip())
+    except FileNotFoundError:
+        pass
+    return Path.cwd()
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Validate R7/R8 compliance for documentation files.',
@@ -368,6 +585,8 @@ Rules checked:
   R8: INDEX.md files must have YAML frontmatter with tags and description,
       a table with Link and Description columns, and scoped references
       (own folder + one subfolder deep)
+  PLACEMENT: INDEX.md must have 2+ related files, not be in root,
+             and should not duplicate coverage with other INDEX.md files
 '''
     )
     parser.add_argument(
@@ -377,6 +596,9 @@ Rules checked:
     )
 
     args = parser.parse_args()
+
+    # Detect repo root for placement checks
+    repo_root = detect_repo_root()
 
     # Collect all markdown files
     all_files = []
@@ -398,23 +620,28 @@ Rules checked:
     # Validate each file
     results = []
     all_passed = True
+    has_warnings = False
 
     for filepath in all_files:
-        result = validate_file(filepath)
+        result = validate_file(filepath, repo_root=repo_root)
         results.append(result)
         if not result['passed']:
             all_passed = False
+        if result.get('warnings'):
+            has_warnings = True
 
     # Output results as JSON to stderr
     output = {
         'files_checked': len(results),
         'files_passed': sum(1 for r in results if r['passed']),
         'files_failed': sum(1 for r in results if not r['passed']),
+        'files_with_warnings': sum(1 for r in results if r.get('warnings')),
         'results': results
     }
 
     print(json.dumps(output, indent=2), file=sys.stderr)
 
+    # Exit 0 if only warnings (no format errors), exit 1 if errors
     sys.exit(0 if all_passed else 1)
 
 

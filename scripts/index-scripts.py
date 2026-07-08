@@ -146,22 +146,34 @@ def scan_scripts(directory: Path) -> list[dict]:
 
 
 def generate_index_md(scripts: list[dict], title: str, description: str,
-                      rel_dir: Path) -> str:
-    """Generate INDEX.md content in R8 format.
+                      rel_dir: Path,
+                      owner: str = "wave-2-dispatch-index-automation") -> str:
+    """Generate INDEX.md content in R3/R8 format.
 
     Args:
         scripts: List of script metadata dicts.
         title: Top-level heading text.
         description: Frontmatter description text.
         rel_dir: Directory relative to repo root (for link paths).
+        owner: Plan or project identifier.
 
     Returns:
         Markdown content string.
     """
+    from datetime import date
+    today = date.today().isoformat()
+
     lines = [
         "---",
+        f'title: "{title}"',
+        f'description: "{description}"',
+        "status: active",
+        'version: "1.0"',
+        f"created: {today}",
+        f"last-updated: {today}",
+        f"owner: {owner}",
+        "dependencies: []",
         "tags: [index, scripts]",
-        f"description: {description}",
         "---",
         "",
         f"# {title}",

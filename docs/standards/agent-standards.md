@@ -143,9 +143,9 @@ Skills still using Template-Wrapped or Direct-Seed dispatch must migrate to Boot
 
 | Skill | Current pattern | Status |
 |-------|----------------|--------|
-| `ts-compound` | Direct-Seed | Needs migration — see its SKILL.md dispatch section |
+| (none) | — | All skills migrated to Bootstrap |
 
-Skills already on Bootstrap: `ts-code-review`, `ts-doc-review`, `ts-work`, `ts-verify-implementation`, `ts-plan`.
+Skills already on Bootstrap: `ts-code-review`, `ts-doc-review`, `ts-work`, `ts-verify-implementation`, `ts-plan`, `ts-compound`.
 
 ## File Placement
 
@@ -162,7 +162,7 @@ Each skill dispatches from its own `references/agents/` directory. Cross-skill d
 
 An agent file is conformant when:
 
-- [ ] YAML frontmatter contains all 4 required fields (`name`, `description`, `tools`, `effort`)
+- [ ] YAML frontmatter contains all required fields
 - [ ] Identity text follows the frontmatter (1-2 paragraphs)
 - [ ] Heading structure matches one of the two sub-templates (implementer or reviewer) or a recognized specialized template
 - [ ] All headings from the chosen sub-template are present

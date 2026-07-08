@@ -26,6 +26,7 @@ Scripts specific to individual skills. Each skill's scripts directory has its ow
 | [skills/ts-doc-review/scripts/INDEX.md](../skills/ts-doc-review/scripts/INDEX.md) | Scripts for doc review skill |
 | [skills/ts-plan/scripts/INDEX.md](../skills/ts-plan/scripts/INDEX.md) | Scripts for plan skill |
 | [skills/ts-pr-fix-findings/scripts/INDEX.md](../skills/ts-pr-fix-findings/scripts/INDEX.md) | Scripts for PR fix findings skill |
+| [skills/ts-pr-review/scripts/INDEX.md](../skills/ts-pr-review/scripts/INDEX.md) | Scripts for PR review skill |
 | [skills/ts-verify-implementation/scripts/INDEX.md](../skills/ts-verify-implementation/scripts/INDEX.md) | Scripts for verify implementation skill |
 | [skills/ts-work/scripts/INDEX.md](../skills/ts-work/scripts/INDEX.md) | Scripts for work skill |
 

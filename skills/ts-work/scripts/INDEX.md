@@ -1,6 +1,13 @@
 ---
+title: "ts-work Scripts"
+description: "Index of scripts in skills/ts-work/scripts/."
+status: active
+version: "1.0"
+created: 2026-07-07
+last-updated: 2026-07-07
+owner: wave-2-dispatch-index-automation
+dependencies: []
 tags: [index, scripts]
-description: Index of scripts in skills/ts-work/scripts/.
 ---
 
 # ts-work Scripts
