@@ -16,11 +16,17 @@ These files are the durable contract for the workflow. Read them on-demand at th
 - `references/yaml-schema.md` — category mapping from problem_type to directory (read when classifying; synced copy of `ts-compound`'s canonical version)
 - `references/concepts-vocabulary.md` — `CONCEPTS.md` format and inclusion rules (read in Phase 4.5 when domain terms surface, or during the repo-wide bootstrap path; synced copy of `ts-compound`'s canonical version)
 - `references/per-action-flows.md` — per-action execution steps for Keep/Update/Consolidate/Replace/Delete (read in Phase 4 at the step matching the confirmed classification)
+- `references/document-set-analysis.md` — the five document-set checks (read at Phase 1.75)
+- `references/decision-questions.md` — question style and per-scope presentation shapes (read at Phase 3, interactive mode only — headless mode never needs this file)
 - `references/agents/learning-investigator.md` — Bootstrap agent definition for read-only doc investigation (read by Investigation subagents)
 - `references/agents/learning-replacer.md` — Bootstrap agent definition for successor-doc writing (read by Replacement subagents)
 - `assets/resolution-template.md` — section structure for new learnings (read when a Replacement subagent assembles a successor doc; synced copy of `ts-compound`'s canonical version)
 - `scripts/validate-frontmatter.py` — frontmatter parser-safety validator (run in the Replace flow through the existence guard documented there; resolves only on Claude Code via `${CLAUDE_SKILL_DIR}`, with a manual-checklist fallback elsewhere; synced copy of `ts-compound`'s canonical version)
 - `scripts/validate-doc-claims.py` — mechanical claims checker for cited paths, commit SHAs, relative links, and drafting scaffold (run in the Replace flow on the successor doc)
+
+## Question Tool Convention
+
+Every blocking question in this skill (routing disambiguation, per-finding decisions, Discoverability consent) uses the platform's blocking question tool: `AskUserQuestion` in Claude Code (call `ToolSearch` with `select:AskUserQuestion` first if its schema isn't loaded), `request_user_input` in Codex, `ask_question` in Antigravity CLI (`agy`), `ask_user` in Pi (requires the `pi-ask-user` extension). Fall back to numbered options in chat only when no blocking tool exists in the harness or the call errors (e.g., Codex edit modes) — not because a schema load is required. Never silently skip a question. Later sections reference this convention rather than restating it.
 
 ## Mode Detection
 
@@ -42,7 +48,7 @@ Check if `$ARGUMENTS` contains `mode:headless`. If present, strip it from argume
 
 ## CONCEPTS.md bootstrap requests
 
-If invoked specifically to create or bootstrap `CONCEPTS.md` (e.g., "create a CONCEPTS.md", "build the concept map", "set up shared vocabulary"), the intent is ambiguous between two jobs — building the vocabulary file and running a docs/solutions refresh — so disambiguate before proceeding. Use the platform's blocking question tool: `AskUserQuestion` in Claude Code (call `ToolSearch` with `select:AskUserQuestion` first if its schema isn't loaded), `request_user_input` in Codex, `ask_question` in Antigravity CLI (`agy`), `ask_user` in Pi (requires the `pi-ask-user` extension). Fall back to numbered options in chat only when no blocking tool exists in the harness or the call errors (e.g., Codex edit modes) — not because a schema load is required. Never silently skip the question. Two options:
+If invoked specifically to create or bootstrap `CONCEPTS.md` (e.g., "create a CONCEPTS.md", "build the concept map", "set up shared vocabulary"), the intent is ambiguous between two jobs — building the vocabulary file and running a docs/solutions refresh — so disambiguate before proceeding using the blocking question tool (see Question Tool Convention above). Two options:
 
 1. **Create CONCEPTS.md (build the concept map)** — seed the repo-wide concept map and commit it; skip only the docs/solutions classification phases (Phases 0–4). Read `references/concepts-vocabulary.md` and follow its **Seed goal** and **Scope of a seed** (repo-wide) rules: seed the project's core domain nouns from the declared domain model (schema, core types, primary models, top-level domain docs), each meeting the qualifying bar, the codebase setting the count. Write the preamble (see Phase 4.5), cluster per the organization rules, and run the Discoverability Check so `AGENTS.md`/`CLAUDE.md` surface the new file. Then **enter Phase 5 (Commit Changes)** to commit/PR the new `CONCEPTS.md` and any instruction-file edit through the same durable-write flow the refresh uses — do not leave the bootstrap uncommitted.
 2. **Run a refresh cycle** — proceed with the normal refresh flow below; `CONCEPTS.md` is seeded (if absent) and reconciled as part of Phase 4.5.
@@ -55,7 +61,7 @@ In headless mode there is no user to ask: default to the refresh cycle (vocabula
 
 Follow the same interaction style as `ts-brainstorm`:
 
-- Ask questions **one at a time** — use the platform's blocking question tool: `AskUserQuestion` in Claude Code (call `ToolSearch` with `select:AskUserQuestion` first if its schema isn't loaded), `request_user_input` in Codex, `ask_question` in Antigravity CLI (`agy`), `ask_user` in Pi (requires the `pi-ask-user` extension). Fall back to numbered options in plain text only when no blocking tool exists in the harness or the call errors (e.g., Codex edit modes) — not because a schema load is required. Never silently skip the question
+- Ask questions **one at a time** using the blocking question tool (see Question Tool Convention above)
 - Prefer **multiple choice** when natural options exist
 - Start with **scope and intent**, then narrow only when needed
 - Do **not** ask the user to make decisions before you have evidence
@@ -226,62 +232,7 @@ A pattern doc with no clear supporting learnings is a stale signal — investiga
 
 ## Phase 1.75: Document-Set Analysis
 
-After investigating individual docs, step back and evaluate the document set as a whole. The goal is to catch problems that only become visible when comparing docs to each other — not just to reality.
-
-### Overlap Detection
-
-For docs that share the same module, component, tags, or problem domain, compare them across these dimensions:
-
-- **Problem statement** — do they describe the same underlying problem?
-- **Solution shape** — do they recommend the same approach, even if worded differently?
-- **Referenced files** — do they point to the same code paths?
-- **Prevention rules** — do they repeat the same prevention bullets?
-- **Root cause** — do they identify the same root cause?
-
-High overlap across 3+ dimensions is a strong Consolidate signal. The question to ask: "Would a future maintainer need to read both docs to get the current truth, or is one mostly repeating the other?"
-
-### Supersession Signals
-
-Detect "older narrow precursor, newer canonical doc" patterns:
-
-- A newer doc covers the same files, same workflow, and broader runtime behavior than an older doc
-- An older doc describes a specific incident that a newer doc generalizes into a pattern
-- Two docs recommend the same fix but the newer one has better context, examples, or scope
-
-When a newer doc clearly subsumes an older one, the older doc is a consolidation candidate — its unique content (if any) should be merged into the newer doc, and the older doc should be deleted.
-
-### Canonical Doc Identification
-
-For each topic cluster (docs sharing a problem domain), identify which doc is the **canonical source of truth**:
-
-- Usually the most recent, broadest, most accurate doc in the cluster
-- The one a maintainer should find first when searching for this topic
-- The one that other docs should point to, not duplicate
-
-All other docs in the cluster are either:
-- **Distinct** — they cover a meaningfully different sub-problem and have independent retrieval value. Keep them separate.
-- **Subsumed** — their unique content fits as a section in the canonical doc. Consolidate.
-- **Redundant** — they add nothing the canonical doc doesn't already say. Delete.
-
-### Retrieval-Value Test
-
-Before recommending that two docs stay separate, apply this test: "If a maintainer searched for this topic six months from now, would having these as separate docs improve discoverability, or just create drift risk?"
-
-Separate docs earn their keep only when:
-- They cover genuinely different sub-problems that someone might search for independently
-- They target different audiences or contexts (e.g., one is about debugging, another about prevention)
-- Merging them would create an unwieldy doc that is harder to navigate than two focused ones
-
-If none of these apply, prefer consolidation. Two docs covering the same ground will eventually drift apart and contradict each other — that is worse than a slightly longer single doc.
-
-### Cross-Doc Conflict Check
-
-Look for outright contradictions between docs in scope:
-- Doc A says "always use approach X" while Doc B says "avoid approach X"
-- Doc A references a file path that Doc B says was deprecated
-- Doc A and Doc B describe different root causes for what appears to be the same problem
-
-Contradictions between docs are more urgent than individual staleness — they actively confuse readers. Flag these for immediate resolution, either through Consolidate (if one is right and the other is a stale version of the same truth) or through targeted Update/Replace.
+After investigating individual docs, step back and evaluate the document set as a whole. **Read `references/document-set-analysis.md` now** for the five checks (Overlap Detection, Supersession Signals, Canonical Doc Identification, Retrieval-Value Test, Cross-Doc Conflict Check) — the goal is to catch problems that only become visible when comparing docs to each other, not just to reality, and Phase 2's Consolidate classification depends on this phase's findings.
 
 ## Subagent Strategy
 
@@ -491,78 +442,7 @@ Apply the same five outcomes (Keep, Update, Consolidate, Replace, Delete) to pat
 
 ### Interactive mode
 
-Most Updates and Consolidations should be applied directly without asking. Only ask the user when:
-
-- The right action is genuinely ambiguous (Update vs Replace vs Consolidate vs Delete)
-- You are about to Delete a document **and** the evidence is not unambiguous (see auto-delete criteria in Phase 2). When auto-delete criteria are met, proceed without asking.
-- You are about to Consolidate and the choice of canonical doc is not clear-cut
-- You are about to create a successor via Replace
-
-Do **not** ask questions about whether code changes were intentional, whether the user wants to fix bugs in the code, or other concerns outside doc maintenance. Stay in your lane — doc accuracy.
-
-#### Question Style
-
-Always present choices using the platform's blocking question tool: `AskUserQuestion` in Claude Code (call `ToolSearch` with `select:AskUserQuestion` first if its schema isn't loaded), `request_user_input` in Codex, `ask_question` in Antigravity CLI (`agy`), `ask_user` in Pi (requires the `pi-ask-user` extension). Fall back to numbered options in plain text only when no blocking tool exists in the harness or the call errors (e.g., Codex edit modes) — not because a schema load is required. Never silently skip the question.
-
-Question rules:
-
-- Ask **one question at a time**
-- Prefer **multiple choice**
-- Lead with the **recommended option**
-- Explain the rationale for the recommendation in one concise sentence
-- Avoid asking the user to choose from actions that are not actually plausible
-
-#### Focused Scope
-
-For a single artifact, present:
-
-- file path
-- 2-4 bullets of evidence
-- recommended action
-
-Then ask:
-
-```text
-This [learning/pattern] looks like a [Keep/Update/Consolidate/Replace/Delete].
-
-Why: [one-sentence rationale based on the evidence]
-
-What would you like to do?
-
-1. [Recommended action]
-2. [Second plausible action]
-3. Skip for now
-```
-
-Do not list all five actions unless all five are genuinely plausible.
-
-#### Batch Scope
-
-For several learnings:
-
-1. Group obvious **Keep** cases together
-2. Group obvious **Update** cases together when the fixes are straightforward
-3. Present **Consolidate** cases together when the canonical doc is clear
-4. Present **Replace** cases individually or in very small groups
-5. Present **Delete** cases individually unless they are strong auto-delete candidates
-
-Ask for confirmation in stages:
-
-1. Confirm grouped Keep/Update recommendations
-2. Then handle Consolidate groups (present the canonical doc and what gets merged)
-3. Then handle Replace one at a time
-4. Then handle Delete one at a time unless the deletion is unambiguous and safe to auto-apply
-
-#### Broad Scope
-
-If the user asked for a sweeping refresh, keep the interaction incremental:
-
-1. Narrow scope first
-2. Investigate a manageable batch
-3. Present recommendations
-4. Ask whether to continue to the next batch
-
-Do not front-load the user with a full maintenance queue.
+Most Updates and Consolidations should be applied directly without asking — only genuinely ambiguous cases warrant a question. **Read `references/decision-questions.md` now** for exactly when to ask, question style, and the per-scope presentation shapes (Focused / Batch / Broad). Improvising this produces either a checklist interrogation the user didn't ask for, or silent auto-application on cases that needed a human call.
 
 ## Phase 4: Execute the Chosen Action
 
@@ -746,7 +626,7 @@ After the refresh report is generated, check whether the project's instruction f
 
       `docs/solutions/` — documented solutions to past problems (bugs, best practices, workflow patterns), organized by category with YAML frontmatter (`module`, `tags`, `problem_type`). Relevant when implementing or debugging in documented areas.
       ```
-   c. In interactive mode, explain to the user why this matters — agents working in this repo (including fresh sessions, other tools, or collaborators without the plugin) won't know to check `docs/solutions/` unless the instruction file surfaces it. Show the proposed change and where it would go, then use the platform's blocking question tool to get consent before making the edit: `AskUserQuestion` in Claude Code (call `ToolSearch` with `select:AskUserQuestion` first if its schema isn't loaded), `request_user_input` in Codex, `ask_question` in Antigravity CLI (`agy`), `ask_user` in Pi (requires the `pi-ask-user` extension). Fall back to presenting the proposal in chat only when no blocking tool exists in the harness or the call errors (e.g., Codex edit modes) — not because a schema load is required. Never silently skip the question. In headless mode, include it as a "Discoverability recommendation" line in the report — do not attempt to edit instruction files (headless scope is doc maintenance, not project config).
+   c. In interactive mode, explain to the user why this matters — agents working in this repo (including fresh sessions, other tools, or collaborators without the plugin) won't know to check `docs/solutions/` unless the instruction file surfaces it. Show the proposed change and where it would go, then get consent before making the edit using the blocking question tool (see Question Tool Convention above). In headless mode, include it as a "Discoverability recommendation" line in the report — do not attempt to edit instruction files (headless scope is doc maintenance, not project config).
 
 5. **If `CONCEPTS.md` exists at repo root, run a parallel discoverability check for it.** Use the same workflow as the `docs/solutions/` check above: same target file, same edit-placement judgment, same consent-then-edit interaction shape per mode. Example calibration when a directory listing is present:
 
