@@ -104,21 +104,29 @@ import sys
 plan_file = sys.argv[1]
 ref_dir = sys.argv[2]
 
-# Read plan file list
-with open(plan_file) as f:
-    plan_set = set(line.strip() for line in f if line.strip())
+try:
+    # Read plan file list
+    with open(plan_file) as f:
+        plan_set = set(line.strip() for line in f if line.strip())
 
-# Scan reference directory
-results = []
-for root, dirs, files in os.walk(ref_dir):
-    dirs[:] = [d for d in dirs if d not in (".git", "node_modules", "__pycache__", ".venv")]
-    for fname in sorted(files):
-        full_path = os.path.join(root, fname)
-        rel_path = os.path.relpath(full_path, ref_dir)
-        if rel_path in plan_set:
-            results.append({"file": rel_path, "status": "in_plan"})
-        else:
-            results.append({"file": rel_path, "status": "missing"})
+    # Scan reference directory
+    results = []
+    for root, dirs, files in os.walk(ref_dir, onerror=lambda e: (_ for _ in ()).throw(e)):
+        dirs[:] = [d for d in dirs if d not in (".git", "node_modules", "__pycache__", ".venv")]
+        for fname in sorted(files):
+            full_path = os.path.join(root, fname)
+            rel_path = os.path.relpath(full_path, ref_dir)
+            if rel_path in plan_set:
+                results.append({"file": rel_path, "status": "in_plan"})
+            else:
+                results.append({"file": rel_path, "status": "missing"})
 
-print(json.dumps(results, indent=2))
+    print(json.dumps(results, indent=2))
+except Exception as e:
+    # Emit the script's established {"ok":false,"error":...} contract instead
+    # of a raw traceback -- covers unreadable plan_files (decode/permission
+    # errors) and unreadable subdirectories under reference_dir (permission
+    # errors, which os.walk otherwise skips silently by default).
+    print(json.dumps({"ok": False, "error": str(e)}), file=sys.stderr)
+    sys.exit(1)
 PYEOF

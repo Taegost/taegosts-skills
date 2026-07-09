@@ -135,6 +135,19 @@ else
   die "JSON error format"
 fi
 
+# Given: plan file with invalid UTF-8 content (triggers a Python-level
+# exception during read, not a bash-level guard)
+# When: run the script
+# Then: exits 1 with the script's own structured JSON error contract,
+# not a raw Python traceback
+printf '\xff\xfe invalid utf8 \x80\x81\n' > "$tmpdir/bad-plan.txt"
+output=$("$SCRIPT" --plan-files "$tmpdir/bad-plan.txt" --reference-dir "$tmpdir/reference" 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 1 ]] && echo "$output" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['ok'] is False and d['error']" >/dev/null 2>&1; then
+  ok "Python-level read error emits structured JSON, not a raw traceback"
+else
+  die "Python-level read error should emit structured JSON (rc=$rc, output=$output)"
+fi
+
 echo ""
 echo "Results: $pass passed, $fail failed"
 [[ $fail -eq 0 ]] && exit 0 || exit 1
