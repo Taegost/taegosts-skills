@@ -50,7 +50,7 @@ After the frontmatter, every agent file must include 1-2 paragraphs of identity 
 
 ## Heading Sub-Templates
 
-Agent files use one of two heading sub-templates based on their role. The heading structure defines the agent's scope boundaries, calibration, and output contract.
+Agent files use one of these heading sub-templates based on their role. The heading structure defines the agent's scope boundaries, calibration, and output contract.
 
 ### Implementer Template
 
@@ -89,7 +89,7 @@ Some skills define specialized heading structures adapted from these base templa
 
 ### Bootstrap (required — all skills)
 
-The orchestrator passes file paths instead of inline content. The subagent reads its own operating contract, role prompt, and schema from disk. This reduces orchestrator dispatch output from ~10k tokens to ~150-300 tokens per reviewer.
+The orchestrator passes file paths instead of inline content. The subagent reads its own operating contract, role prompt, and schema from disk. 
 
 ```text
 Read these files IN FULL before starting:
@@ -123,29 +123,24 @@ The orchestrator seeds agent file content directly into a generic subagent promp
 
 **Why deprecated:** Same token-inflation problem as Template-Wrapped, plus the agent's operating contract is not separated from its task prompt, making updates fragile.
 
-## Migration to Bootstrap
+## Script and Target Resolution
 
-Skills still using Template-Wrapped or Direct-Seed dispatch must migrate to Bootstrap. The migration steps are:
+Two rules govern how skills locate what they need, independent of the dispatch pattern used. (Carried over from the now-removed `dispatch-standards.md` — its other rules, DS-001 bootstrap-only and DS-002/DS-003, are either already covered above or were intentionally dropped; these two were an oversight.)
 
-1. **Identify the current dispatch pattern.** Read the skill's SKILL.md for how subagents are spawned. Look for `{agent_file}` substitution (Template-Wrapped) or inline agent content in the dispatch prompt (Direct-Seed).
+### Script lookup via INDEX.md
 
-2. **Replace inline content with file paths.** Instead of injecting the agent file's content into the dispatch prompt, pass the file path. The subagent reads the file itself.
+Skills MUST locate scripts via `scripts/INDEX.md` (repo-level) or a skill-local `skills/<skill>/scripts/INDEX.md`, not by hardcoding paths. The INDEX.md is the canonical script registry — script paths change over time, and INDEX.md provides a stable lookup layer that prevents broken references when scripts are reorganized.
 
-3. **Add bootstrap-ack to the dispatch prompt.** Include the ack instruction: "After reading all files, emit acknowledgment: one line per file, `<path> (<N> lines)`."
+### Routing-first target resolution
 
-4. **Add ack verification to the orchestrator.** After the subagent returns, verify the ack contains all expected file paths. Implement the 3-attempt retry with admonition, then inline-content fallback.
+When resolving targets (file paths, plan paths, PR URLs), consult `docs/ROUTING.md` first. If the target is a Map of Content, follow it to the actual files. If the target is an INDEX.md, follow it to the actual files. If the target is a direct file path, use it as-is. `docs/ROUTING.md` is the central navigation hub — using it prevents duplicate resolution logic across skills and ensures consistent path resolution.
 
-5. **Remove `{agent_file}` substitution.** Delete any template variable substitution logic from the orchestrator.
+### Resolution Conformance
 
-6. **Test the migration.** Run the skill end-to-end. Verify the subagent reads its own files and the ack is present and correct.
+A skill additionally conforms to resolution rules when:
 
-### Skills requiring migration
-
-| Skill | Current pattern | Status |
-|-------|----------------|--------|
-| (none) | — | All skills migrated to Bootstrap |
-
-Skills already on Bootstrap: `ts-code-review`, `ts-doc-review`, `ts-work`, `ts-verify-implementation`, `ts-plan`, `ts-compound`, `ts-compound-refresh`.
+- [ ] References scripts via INDEX.md, not hardcoded paths
+- [ ] Consults ROUTING.md for target resolution when applicable
 
 ## File Placement
 
@@ -154,17 +149,17 @@ Agent files live in skill-local directories:
 | Location | Purpose |
 |----------|---------|
 | `skills/<skill>/references/agents/` | Skill-specific agents dispatched by that skill |
-| `agents/` | Staging area for agents being developed before placement |
+| `agents/` | Agents used by multiple skills |
 
 Each skill dispatches from its own `references/agents/` directory.
 
-### Cross-skill agent duplication: accepted, not consolidated (Issue #83)
+### Cross-skill agent duplication: deduplication planned, not yet done (Issue #83)
 
-Several agents exist in near-identical form across multiple skills (e.g. `security-sentinel` in `ts-compound` and `ts-plan`; `learnings-researcher` in `ts-code-review` and `ts-plan`). Investigating the actual pairs found the divergence between copies is **deliberate, content-meaningful tailoring to each skill's invocation context** — not accidental drift from forgetting to sync a shared file. Every sampled pair had at least one paragraph rewritten for how that skill actually consumes the agent's output (e.g. `learnings-researcher` for `ts-code-review` converts findings into "review context: known risks against this diff"; the same agent for `ts-plan` converts findings into "planning inputs: constraints, sequencing risks"). A shared library would need to parameterize that framing per caller, adding real complexity for what a handful of hand-maintained files already do simply — or, done naively, would erase the tailoring that makes each copy directly actionable for its actual caller.
+Several agents exist in near-identical form across multiple skills (e.g. `security-sentinel` in `ts-compound` and `ts-plan`; `learnings-researcher` in `ts-code-review` and `ts-plan`). A future piece of work will consolidate these into the shared `agents/` directory above, mirroring the pattern already used for shared script logic (`scripts/lib/input-validation.sh`, Issue #109).
 
-**Decision: accept the duplication. Do not build a shared agent library or sync mechanism.** Keep each skill's `references/agents/` self-contained — this also matches the Bootstrap dispatch pattern's own constraint (agent files must live where the dispatching skill can read them by a skill-local path) and the general principle that a skill should be independently portable/extractable without depending on another skill's directory (the same reasoning `ts-compound-refresh` used when it duplicated `ts-compound`'s schema/template files rather than cross-referencing them — see `skills/ts-compound-refresh/SKILL.md`'s Support Files section).
+**Input for that future work:** investigating the current duplicate pairs found the divergence between copies is **deliberate, content-meaningful tailoring to each skill's invocation context**, not accidental drift from forgetting to sync a shared file. Every sampled pair had at least one paragraph rewritten for how that skill actually consumes the agent's output (e.g. `learnings-researcher` for `ts-code-review` converts findings into "review context: known risks against this diff"; the same agent for `ts-plan` converts findings into "planning inputs: constraints, sequencing risks"). A naive copy-paste consolidation into `agents/` would erase that tailoring — the future dedup work needs to preserve per-caller framing (e.g. via an explicit context/invocation-mode section the agent reads, similar to how `scripts/lib/input-validation.sh`'s functions take parameters rather than hardcoding one caller's behavior) rather than collapsing the copies into one undifferentiated file.
 
-Dispatch pattern unification — the other half of Issue #83 — is separately resolved: Bootstrap is now the only allowed pattern (see above), so there is no "keep both patterns" decision left to make.
+Dispatch pattern unification — the other half of Issue #83 — is already resolved: Bootstrap is now the only allowed pattern (see above).
 
 ## Conformance Checklist
 

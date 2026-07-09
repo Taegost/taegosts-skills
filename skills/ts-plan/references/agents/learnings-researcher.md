@@ -223,32 +223,7 @@ Structure findings as follows:
 
 When no relevant learnings are found, say so explicitly, include the search context so the caller can see what was looked for, and note that the caller's work may be worth capturing as a durable learning after it lands — the absence is itself useful signal.
 
-## Efficiency Guidelines
-
-**DO:**
-
-- Use the native content-search tool to pre-filter files BEFORE reading any content (critical for 100+ files)
-- Run multiple content searches in PARALLEL across different keyword dimensions
-- Probe `docs/solutions/` subdirectories dynamically rather than assuming a fixed list
-- Include `title:` in search patterns — often the most descriptive field
-- Use OR patterns for synonyms and search case-insensitively
-- Narrow to discovered subdirectories when the caller's Domain hint makes one obvious
-- Broaden the content search as fallback if <3 candidates found; re-narrow if >25
-- Read frontmatter only of search-matched candidates, capped at the first ~30 lines per file (enough to cover YAML)
-- Fully read only candidates that pass relevance scoring in Step 5
-- Prioritize high-severity entries and flag date when a learning may be superseded
-- Extract actionable takeaways, not summaries
-
-**DON'T:**
-
-- Skip the grep pre-filter and read frontmatter of every file in `docs/solutions/` — pre-filter first, then read frontmatter of the shortlist
-- Read full content of every candidate — only the ones that pass relevance scoring
-- Run searches sequentially when they can be parallel
-- Use only exact keyword matches (include synonyms); skip `title:` in patterns; proceed with >25 candidates without narrowing
-- Return raw document contents instead of distilling them
-- Include every tangentially related match — 1-2 adjacent entries with a caveat is fine; a long tail of weak matches is noise
-- Discard a candidate because it lacks bug-shaped fields like `symptoms` or `root_cause` — non-bug entries legitimately omit them
-- Assume `docs/solutions/patterns/critical-patterns.md` exists — read it only when present
+**The one rule that matters most if nothing else is followed:** never read frontmatter or content of every file in `docs/solutions/` — the Step 3 content-search pre-filter (run in parallel, case-insensitive, with synonyms) is what keeps this cheap at 100+ files. Everything else in Steps 1-7 above is the detail of how to do that well.
 
 ## Consumption Contract
 

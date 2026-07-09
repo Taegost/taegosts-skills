@@ -215,15 +215,6 @@ Run these agents in parallel:
 - `references/agents/repo-research-analyst.md` — scope: technology, architecture, patterns. Pass the planning context summary.
 - `references/agents/learnings-researcher.md` — pass the planning context summary.
 
-**Agent-native planning triage** (conditional) — consider broadly, dispatch selectively. Dispatch a generic subagent with `references/agents/agent-native-planning-strategist.md` in parallel with the local research agents when the request, origin document, or repo research indicates any of:
-
-- agent, assistant, chat, workflow automation, MCP, plugin, skill, tool registry, prompt, or autonomous-loop work
-- a codebase with an existing agent surface where this feature changes user-visible capabilities
-- a primary domain action that is repetitive, high-volume, complex, naturally language-shaped, or likely to need automation access
-- a risk that the plan will widen the gap between UI/API actions and agent-accessible tools or context
-
-Do **not** dispatch for cosmetic, layout-only, animation-only, brand, low-value preference, or narrow work in a product with no agent surface. If the signal is borderline, do not dispatch; carry only a short future parity consideration when it affects a high-value domain action. Include any resulting findings in consolidation as planning inputs, not as a standalone advice appendix.
-
 Collect:
 - Technology stack and versions (used in section 1.2 to make sharper external research decisions)
 - Architectural patterns and conventions to follow
@@ -231,13 +222,6 @@ Collect:
 - Project instruction file guidance relevant to the plan
 - Institutional learnings from `docs/solutions/`
 - Product strategy context when `STRATEGY.md` is present — flag any plan decisions that pull away from the active tracks or the stated approach
-- Agent-native planning findings when the conditional triage dispatched: action/context parity decisions, tool/workspace/execution-lifecycle choices, scope boundaries, and verification scenarios
-
-**Slack context** (opt-in) — never auto-dispatch. Route by condition:
-
-- **Tools available + user asked**: Dispatch a generic subagent with `references/agents/slack-researcher.md` and the planning context summary in parallel with other Phase 1.1 agents. If the origin document has a Slack context section, pass it verbatim so the researcher focuses on gaps. Include findings in consolidation.
-- **Tools available + user didn't ask**: Note in output: "Slack tools detected. Ask me to search Slack for organizational context at any point, or include it in your next prompt."
-- **No tools + user asked**: Note in output: "Slack context was requested but no Slack tools are available. Install and authenticate the Slack plugin to enable organizational context search."
 
 #### 1.1b Detect Execution Posture Signals
 
@@ -542,11 +526,7 @@ Surface plan-time call-outs before Phase 5.2 commits the plan to disk. The brain
 
 Fires **only when the plan was sourced from an upstream brainstorm doc** (Phase 0.2 found a match) AND not on Phase 0.1 fast paths. Skip in solo invocation — solo plans handled their synthesis in Phase 0.7.
 
-**Read `references/synthesis-summary.md` before composing.** It carries the affirmability test, keep-test criteria, detail test, summary shape budgets, granularity rules, anti-patterns, doc-shape routing, soft-cut behavior, headless-mode routing, and worked examples — all required for a well-shaped synthesis.
-
-**Required gate output — silent proceeding is not allowed.** Compose an internal three-bucket scope draft (Stated / Inferred / Out of scope), derive call-outs, then emit the appropriate template (confirmation for Standard/Deep or any tier with call-outs; auto-proceed for Lightweight with zero call-outs) before continuing to Phase 5.2. Synthesis is pre-plan-write — do not claim PR count, commit shape, effort estimates, IU boundaries, or file paths.
-
-**Headless mode**: internal draft composed, stage 2 skipped. Inferred bets route to `## Assumptions` in the plan. See reference for full routing.
+Same required-gate mechanics as Phase 0.7 above (read `references/synthesis-summary.md` first; compose the internal three-bucket draft; emit the confirmation or auto-proceed template; headless mode skips stage 2 and routes Inferred bets to `## Assumptions`) — substitute "Phase 5.2" for "Phase 1" as the phase the gate continues to.
 
 #### 5.2 Write Plan File
 
