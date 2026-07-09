@@ -27,8 +27,24 @@ origin_path: {origin_path}
 
 {decision_primer}
 
+{supplementary_context}
+
 Document content:
 {document_content}
+```
+
+**`{supplementary_context}`** carries reviewer-specific evidence gathered before dispatch — e.g. the convention excerpts SKILL.md's "Cross-check against repo conventions" step passes to feasibility-reviewer, or the K8s security scan findings SKILL.md's "K8s security scan" step passes to security-lens-reviewer. Only the reviewers that step targets receive non-empty content in this slot; every other reviewer gets it empty (omit the slot entirely from their prompt rather than sending a blank line). Label the content so the reviewer knows what it's looking at, e.g.:
+
+```
+Supplementary context (repo convention excerpts):
+{excerpts}
+```
+
+or
+
+```
+Supplementary context (K8s security scan findings):
+{scan_findings_json}
 ```
 
 **Bootstrap-ack verification.** The orchestrator checks that each expected path appears in the ack before accepting findings. If ack is missing expected files, reject and re-dispatch (up to 3 attempts).

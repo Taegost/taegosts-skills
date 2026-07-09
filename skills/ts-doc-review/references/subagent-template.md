@@ -158,6 +158,8 @@ Origin: {origin_path}
 
 {decision_primer}
 
+{supplementary_context}
+
 Document content:
 {document_content}
 </review-context>
@@ -165,6 +167,7 @@ Document content:
 <context-slots-rules>
 - `Document type:` is the orchestrator's authoritative classification (`requirements` or `plan`). Trust it; do not re-classify by inspecting content shape. The orchestrator already used frontmatter and section structure to decide.
 - `Origin:` carries the value of the document's `origin:` frontmatter field when one is present, or the literal token `none` when no origin was declared. This is how the orchestrator surfaces upstream provenance to agents that adapt on origin (e.g., suppressing premise-challenge techniques on origin'd plans). Read this line directly — do not parse the document's frontmatter yourself for this signal.
+- `{supplementary_context}` carries reviewer-specific evidence gathered before dispatch (see `references/subagent-bootstrap.md` for the full explanation and labeling convention). Empty/omitted for reviewers the evidence-gathering step doesn't target.
 </context-slots-rules>
 
 <decision-primer-rules>

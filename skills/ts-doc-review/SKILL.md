@@ -78,7 +78,7 @@ grep -ril "valkey\|redis" docs/solutions/
 grep -ril "networkpolicy" docs/solutions/
 ```
 
-Pass relevant convention excerpts to the feasibility reviewer as supplementary context. The feasibility reviewer checks: "Does the document's approach contradict any documented convention? If yes, flag it." This catches plan-vs-convention conflicts during the review phase, before implementation begins — the user doesn't have to be the one to notice the contradiction.
+Pass relevant convention excerpts to the feasibility reviewer via the `{supplementary_context}` slot in its bootstrap prompt (see `references/subagent-bootstrap.md`). The feasibility reviewer checks: "Does the document's approach contradict any documented convention? If yes, flag it." This catches plan-vs-convention conflicts during the review phase, before implementation begins — the user doesn't have to be the one to notice the contradiction.
 
 ### Select Conditional Agents
 
@@ -109,6 +109,7 @@ Analyze the document content to determine which conditional agents to activate. 
 - API endpoints exposed to external clients
 - Data handling, PII, payments, tokens, credentials, encryption
 - Third-party integrations with trust boundary implications
+- Kubernetes resources (Deployments, ConfigMaps, NetworkPolicies, Secrets, or other manifest `kind:` values) -- this signal also runs the K8s security scan below as supplementary evidence for security-lens, regardless of which other signals fired
 
 **scope-guardian** -- activate when the document contains:
 - Multiple priority tiers (P0/P1/P2, must-have/should-have/nice-to-have)
@@ -127,6 +128,19 @@ Analyze the document content to determine which conditional agents to activate. 
 - The document contains an **explicit alternatives section** or unresolved tradeoffs -- adversarial helps stress-test the chosen direction
 
 Do NOT activate adversarial on a routine plan document that derives from a validated origin requirements doc, stays within scope, and does not introduce high-stakes domains or new abstractions. The plan's structural decisions (more units, more rationale) are not by themselves adversarial signal -- those are the plan doing its job.
+
+### K8s security scan (gated on K8s-relevance)
+
+If the security-lens Kubernetes signal fired above (the document mentions Deployments, ConfigMaps, NetworkPolicies, Secrets, or other manifest `kind:` values), run the two bundled K8s security scripts against the repo root before dispatching agents:
+
+```bash
+python3 skills/ts-doc-review/scripts/check-credentials-in-configmaps.py .
+skills/ts-doc-review/scripts/check-networkpolicy-selectors.sh .
+```
+
+Both scripts scan the target repo on disk for `kind: ConfigMap` / `kind: NetworkPolicy` manifests — not the document's prose — so they surface issues in the actual manifest files the document discusses touching, not just what the document's text claims. Exit code 0 means findings exist (read the JSON on stdout); exit code 2 means the scan ran clean; exit code 1 means an error (missing/unreadable directory, bad input) — treat a `1` as "scan unavailable," not as a finding, and do not block the review on it.
+
+Pass any findings to security-lens-reviewer via the `{supplementary_context}` slot in its bootstrap prompt (see `references/subagent-bootstrap.md`), the same mechanism used for the feasibility reviewer's convention excerpts above. Skip this step entirely when the Kubernetes signal did not fire — these scripts are Kubernetes-specific and would just add noise on any other document.
 
 ## Phase 2: Announce and Dispatch Agents
 
