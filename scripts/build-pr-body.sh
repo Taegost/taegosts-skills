@@ -131,6 +131,7 @@ while IFS= read -r line; do
   if [[ "$in_requirements" == true ]] && [[ "$line" =~ ^-[[:space:]]W[0-9]+-R ]]; then
     # Extract requirement ID and description (use grep -E for portability — no -P on BSD/macOS)
     req_id=$(echo "$line" | grep -oE 'W[0-9]+-R[0-9]+' | head -1)
+    # shellcheck disable=SC2001 # quantified regex (needs extglob to express as ${var//pattern/}); sed keeps this POSIX-portable
     req_desc=$(echo "$line" | sed 's/^-[[:space:]]*W[0-9]*-R[0-9]*\.[[:space:]]*//')
     if [[ -n "$req_id" ]]; then
       units+="- **$req_id**: $req_desc"$'\n'

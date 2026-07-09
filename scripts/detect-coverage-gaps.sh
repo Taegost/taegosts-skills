@@ -21,7 +21,7 @@ json_escape() {
 BASE_BRANCH="${1:-}"
 if [[ -z "$BASE_BRANCH" ]]; then
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  # shellcheck source=scripts/git-default-branch.sh
+  # shellcheck source=git-default-branch.sh
   source "$SCRIPT_DIR/git-default-branch.sh"
   # git-default-branch.sh sets REPO_ROOT and DEFAULT_BRANCH
   BASE_BRANCH="$DEFAULT_BRANCH"

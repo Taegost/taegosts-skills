@@ -10,7 +10,7 @@ set -euo pipefail
 BASE_BRANCH="${1:-}"
 if [[ -z "$BASE_BRANCH" ]]; then
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  # shellcheck source=scripts/git-default-branch.sh
+  # shellcheck source=git-default-branch.sh
   source "$SCRIPT_DIR/git-default-branch.sh"
   BASE_BRANCH="$DEFAULT_BRANCH"
 fi

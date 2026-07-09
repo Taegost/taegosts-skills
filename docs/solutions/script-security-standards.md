@@ -183,6 +183,10 @@ scripts/run-shellcheck.sh
 
 This scans `tests/`, `scripts/`, and `skills/*/scripts/` directories. The `.shellcheckrc` file sets `shell=bash` and disables checks that are false positives or intentional patterns in test code.
 
+### Pre-commit enforcement
+
+A `shellcheck` hook in `.pre-commit-config.yaml` runs `scripts/run-shellcheck.sh` on every commit that touches a `.sh` file and blocks the commit if any script has a finding. This requires `shellcheck` installed locally (see install instructions in `scripts/run-shellcheck.sh --help`) — the hook fails closed (blocks the commit) rather than silently skipping when `shellcheck` is missing.
+
 ### Disabled checks
 
 The following checks are disabled globally in `.shellcheckrc` with documented rationale:
@@ -196,6 +200,7 @@ The following checks are disabled globally in `.shellcheckrc` with documented ra
 | SC2181 | style | `$?` exit code check is idiomatic in test setup code |
 | SC2034 | warning | Variables assigned for intent clarity in test scripts |
 | SC2317 | info | Function definitions called via traps appear unreachable to static analysis |
+| SC2329 | info | Same trap-invoked false positive as SC2317, under a newer check code |
 
 ### Adding new scripts
 

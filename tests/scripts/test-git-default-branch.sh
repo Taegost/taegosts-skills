@@ -36,6 +36,7 @@ git remote add origin https://example.com/fake.git 2>/dev/null
 git update-ref refs/remotes/origin/main "$(git rev-parse HEAD)"
 
 # Source the script to get variables
+# shellcheck disable=SC1090 # dynamic path to the script under test, by design
 source "$SCRIPT" 2>/dev/null && rc=0 || rc=$?
 if [[ $rc -eq 0 ]] && [[ "$DEFAULT_BRANCH" == "origin/main" ]]; then
   ok "resolves origin/main when it exists"
@@ -56,6 +57,7 @@ git commit --allow-empty -m "init" >/dev/null 2>&1
 git remote add origin https://example.com/fake.git 2>/dev/null
 git update-ref refs/remotes/origin/master "$(git rev-parse HEAD)"
 
+# shellcheck disable=SC1090 # dynamic path to the script under test, by design
 source "$SCRIPT" 2>/dev/null && rc=0 || rc=$?
 if [[ $rc -eq 0 ]] && [[ "$DEFAULT_BRANCH" == "origin/master" ]]; then
   ok "resolves origin/master when origin/main missing"
@@ -100,6 +102,7 @@ fi
 # When: source the script to check REPO_ROOT
 # Then: REPO_ROOT matches tmpdir
 cd "$tmpdir" || exit 1
+# shellcheck disable=SC1090 # dynamic path to the script under test, by design
 source "$SCRIPT" 2>/dev/null && rc=0 || rc=$?
 if [[ $rc -eq 0 ]] && [[ "$REPO_ROOT" == "$tmpdir" ]]; then
   ok "REPO_ROOT set correctly"
@@ -112,6 +115,7 @@ fi
 # Then: matches origin/<branch> pattern where <branch> is a valid git ref
 # Use git check-ref-format to validate the branch name (it can contain slashes and dots)
 cd "$tmpdir" || exit 1
+# shellcheck disable=SC1090 # dynamic path to the script under test, by design
 source "$SCRIPT" 2>/dev/null && rc=0 || rc=$?
 if [[ $rc -eq 0 ]] && [[ "$DEFAULT_BRANCH" =~ ^origin/(.+)$ ]]; then
   branch_name="${BASH_REMATCH[1]}"

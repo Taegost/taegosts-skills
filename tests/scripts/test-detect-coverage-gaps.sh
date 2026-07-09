@@ -16,7 +16,7 @@ echo "=== test-detect-coverage-gaps.sh ==="
 # Create a temp git repo
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
-cd "$tmpdir"
+cd "$tmpdir" || exit 1
 git init -q
 git config user.email "test@test.com"
 git config user.name "Test"

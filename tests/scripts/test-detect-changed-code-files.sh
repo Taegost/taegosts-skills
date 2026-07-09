@@ -16,7 +16,7 @@ echo "=== test-detect-changed-code-files.sh ==="
 # Create a temp git repo for testing
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
-cd "$tmpdir"
+cd "$tmpdir" || exit 1
 git init -q
 git config user.email "test@test.com"
 git config user.name "Test"

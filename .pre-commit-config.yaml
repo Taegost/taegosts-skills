@@ -8,3 +8,10 @@ repos:
         pass_filenames: false
         always_run: true
         description: Runs the index updater before each commit to keep INDEX.md files in sync.
+      - id: shellcheck
+        name: Shellcheck shell scripts
+        entry: scripts/run-shellcheck.sh
+        language: script
+        pass_filenames: false
+        files: \.sh$
+        description: Runs shellcheck on all shell scripts before commit; blocks the commit on any finding. Requires shellcheck installed locally (see .shellcheckrc).

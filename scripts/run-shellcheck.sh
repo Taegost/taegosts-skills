@@ -54,7 +54,7 @@ echo "=== Running shellcheck on ${#all_scripts[@]} shell scripts ==="
 issues=0
 for script in "${all_scripts[@]}"; do
   rel_path="${script#"$REPO_ROOT"/}"
-  if ! shellcheck "$script" 2>/dev/null; then
+  if ! shellcheck -x -P SCRIPTDIR "$script" 2>/dev/null; then
     echo "FAIL: $rel_path"
     issues=$((issues + 1))
   else
