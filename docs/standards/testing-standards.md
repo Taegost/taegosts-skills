@@ -1,16 +1,6 @@
 ---
-title: "Testing standards — coverage expectations, auto-dispatch, and gap detection"
-date: 2026-07-05
-category: docs/standards
-module: skills/plugin
-component: documentation
-severity: high
-tags:
-  - testing
-  - coverage
-  - auto-dispatch
-  - gap-detection
-  - standards
+tags: [standards, testing, coverage, auto-dispatch, gap-detection]
+description: Canonical reference for test coverage expectations, auto-dispatch gates, and coverage-gap detection across all taegosts-skills.
 ---
 
 # Testing standards — coverage expectations, auto-dispatch, and gap detection

@@ -14,6 +14,15 @@ tags: [index]
 
 Index of documentation in docs/solutions/conventions/.
 
+## Relationship to docs/standards/
+
+This directory is not a duplicate of `docs/standards/` (see Issue #96) — the split is by document kind, not an accident of history:
+
+- **This directory** — organic learnings captured by `ts-compound`, following the `Context / Guidance / Why This Matters / When to Apply / Examples / Related` template (`skills/ts-compound/assets/resolution-template.md`), carrying `ts-compound`'s YAML frontmatter (`problem_type: convention`, `applies_when`, etc.). Subject to `ts-compound-refresh`'s Keep/Update/Consolidate/Replace/Delete maintenance lifecycle.
+- **`docs/standards/`** — authored, enforced policy: rules stated directly ("MUST", "is the only allowed pattern"), often with rule IDs and a Conformance section. Not maintained via `ts-compound-refresh`.
+
+New convention docs from `ts-compound` belong here. A new *enforced rule* the repo validates against belongs in `docs/standards/` instead.
+
 | Link | Description |
 |------|-------------|
 | [agent-definition-convention.md](./agent-definition-convention.md) | This repository (taegosts-skills) contains multiple Claude Code skills, each dispatching subagents to perform specialized work. Before standardization, three distinct patterns existed side by side: |
