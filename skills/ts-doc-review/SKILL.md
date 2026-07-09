@@ -221,7 +221,7 @@ Cross-session persistence is out of scope. A new invocation of ts-doc-review on 
 
 **Notification recovery.** When agents run in the background, completion notifications may be missed (~40-50% failure rate). Each agent writes its findings to disk as its primary completion signal. The orchestrator can detect completion by checking file existence via Monitor-based file watching (`inotifywait -m <dir> -e close_write`) or polling fallback (`scripts/wait-for-file.sh`). See `docs/solutions/workflow-issues/notification-resilience-via-disk-state.md` for the full recovery pattern.
 
-**Dispatch limit:** Even at maximum (7 agents), use bounded parallel dispatch. If the harness cap is lower than the selected team size, queue the remainder and launch them as active reviewers complete.
+**Dispatch limit:** Even at the maximum team size (every always-on and conditional agent activated), use bounded parallel dispatch. If the harness cap is lower than the selected team size, queue the remainder and launch them as active reviewers complete.
 
 ## Phases 3-5: Synthesis, Presentation, and Next Action
 

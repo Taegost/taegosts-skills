@@ -21,7 +21,7 @@ Spawned on every review regardless of diff content.
 |-------|-------|
 | `learnings-researcher` | Search docs/solutions/ for past issues related to this PR's modules and patterns |
 
-## Conditional (7 agents)
+## Conditional
 
 Spawned when the orchestrator identifies relevant patterns in the diff. The orchestrator reads the full diff and reasons about selection -- this is agent judgment, not keyword matching.
 
