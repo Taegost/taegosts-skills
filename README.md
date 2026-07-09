@@ -126,6 +126,32 @@ Some skills depend on other Claude Code plugins:
 
 ## Contributing
 
+### Prerequisites
+
+This repo uses [pre-commit](https://pre-commit.com/) to run checks automatically before every commit (see `.pre-commit-config.yaml`). Set it up once per clone:
+
+1. **Install the `pre-commit` framework** (one-time, per machine):
+   ```bash
+   pip install pre-commit
+   ```
+2. **Activate the git hook** (one-time, per clone):
+   ```bash
+   pre-commit install
+   ```
+   Without this step, `.pre-commit-config.yaml` has no effect — the checks below will not run automatically, and skipped checks silently let issues through.
+3. **Install [ShellCheck](https://www.shellcheck.net/)**, required by the `shellcheck` hook (blocks any commit that touches a `.sh` file if it has a finding):
+   ```bash
+   # macOS
+   brew install shellcheck
+
+   # Debian/Ubuntu
+   apt-get install shellcheck
+
+   # Windows (via Scoop)
+   scoop install shellcheck
+   ```
+   Verify with `shellcheck --version`. See `scripts/run-shellcheck.sh --help` for how it's invoked, and `.shellcheckrc` for project-specific configuration.
+
 ### Fix an existing skill
 
 1. Fork the repo and create a feature branch.
