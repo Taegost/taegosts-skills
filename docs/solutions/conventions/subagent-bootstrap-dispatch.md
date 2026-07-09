@@ -118,5 +118,6 @@ After reading, emit acknowledgment.
 ## Related
 
 - `docs/standards/agent-standards.md` — agent definition format
-- `skills/ts-doc-review/references/subagent-template.md` — template with bootstrap prompt
+- `skills/ts-doc-review/references/subagent-bootstrap.md` — orchestrator-facing bootstrap prompt shape (kept out of the orchestrator's default-loaded context except this small file)
+- `skills/ts-doc-review/references/subagent-template.md` — reviewer's operating contract, read by the subagent itself
 - `docs/solutions/workflow-issues/notification-resilience-via-disk-state.md` — disk-first state pattern

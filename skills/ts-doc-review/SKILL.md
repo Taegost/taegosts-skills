@@ -161,7 +161,7 @@ Add activated conditional agents:
 
 Dispatch generic subagents using **bounded parallelism** with the platform's subagent primitive (e.g., `Agent` in Claude Code, `spawn_agent` in Codex) where available; otherwise run the work inline or serially. Omit the `mode` parameter so the user's configured permission settings apply. Respect the current harness's active-subagent limit: queue selected reviewers, dispatch only as many as the harness accepts, and fill freed slots as reviewers complete. Treat active-agent/thread/concurrency-limit spawn errors as backpressure, not reviewer failure: leave the reviewer queued and retry after a slot frees. Record a reviewer as failed only after a successful dispatch times out/fails, or when dispatch fails for a non-capacity reason.
 
-**Bootstrap dispatch.** Each subagent receives a minimal bootstrap prompt. See `references/subagent-template.md` for the bootstrap prompt shape and fallback.
+**Bootstrap dispatch.** Each subagent receives a minimal bootstrap prompt. See `references/subagent-bootstrap.md` for the bootstrap prompt shape and fallback routing; the reviewer's full operating contract lives in `references/subagent-template.md`, read by the subagent itself (not the orchestrator).
 
 For each selected reviewer, send the bootstrap prompt with these variables:
 
@@ -176,7 +176,7 @@ For each selected reviewer, send the bootstrap prompt with these variables:
 
 The agent reads its own `references/agents/{reviewer_name}.md` (role prompt) and `references/findings-schema.json` (output schema) from disk. Schema `description` fields contain behavioral guidance — agents must read them as instructions, not metadata.
 
-**Bootstrap-ack verification.** After the agent emits its acknowledgment (file paths + line counts), verify each expected path appears. If ack is missing files, reject and re-dispatch with admonition (up to 3 attempts). If all 3 fail, fall back to inline-content dispatch for that reviewer.
+**Bootstrap-ack verification.** After the agent emits its acknowledgment (file paths + line counts), verify each expected path appears. If ack is missing files, reject and re-dispatch with admonition (up to 3 attempts). If all 3 fail, read `references/subagent-template.md` now and fall back to inline-content dispatch for that reviewer (see `references/subagent-bootstrap.md` — Fallback path).
 
 Pass each subagent the **full document** — do not split into sections.
 
@@ -233,12 +233,12 @@ For the four-option routing question and per-finding walk-through (interactive m
 
 ## Included References
 
-### Subagent Template
+### Subagent Bootstrap
 
-@./references/subagent-template.md
+@./references/subagent-bootstrap.md
 
 ### Findings Schema
 
 @./references/findings-schema.json
 
-Selected reviewer prompt assets live under `references/agents/`. Read only the prompt files selected for the current review.
+Selected reviewer prompt assets live under `references/agents/`. Read only the prompt files selected for the current review. `references/subagent-template.md` (the reviewer operating contract) is read by each dispatched subagent directly, per the bootstrap prompt — the orchestrator does not need it in its own context except on the rare fallback path (see `references/subagent-bootstrap.md`).

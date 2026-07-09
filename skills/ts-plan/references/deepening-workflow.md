@@ -114,24 +114,20 @@ The names below are skill-local prompt asset file stems under `references/agents
 
 **Key Technical Decisions**
 - `architecture-strategist` for design integrity, boundaries, and architectural tradeoffs
-- `agent-native-planning-strategist` when the decision involves agents, prompts, tools, MCP, workflow automation, action/context parity, shared workspace, approval gates, or agent execution lifecycle
 - Add `framework-docs-researcher` or `best-practices-researcher` when the decision needs external grounding beyond repo evidence
 
 **High-Level Technical Design**
 - `architecture-strategist` for validating that the technical design accurately represents the intended approach and identifying gaps
 - `repo-research-analyst` (Scope: `architecture, patterns`) for grounding the technical design in existing repo patterns and conventions
-- `agent-native-planning-strategist` when the technical design includes agent orchestration, MCP/tools, prompt-defined behavior, shared workspace, checkpoint/resume, approvals, or agent-to-UI communication
 - Add `best-practices-researcher` when the technical design involves a DSL, API surface, or pattern that benefits from external validation
 
 **Implementation Units / Verification**
 - `repo-research-analyst` (Scope: `patterns`) for concrete file targets, patterns to follow, and repo-specific sequencing clues
 - `pattern-recognition-specialist` for consistency, duplication risks, and alignment with existing patterns
-- `agent-native-planning-strategist` when units should cover agent-accessible domain actions, tool/context changes, prompt changes, or parity testing
 - Add `spec-flow-analyzer` when sequencing depends on user flow or handoff completeness
 
 **System-Wide Impact**
 - `architecture-strategist` for cross-boundary effects, interface surfaces, and architectural knock-on impact
-- `agent-native-planning-strategist` for action parity, context parity, shared workspace, tool granularity, approval boundaries, and agent execution lifecycle in agent-capable systems
 - Add the specific specialist that matches the risk:
   - `performance-oracle` for scalability, latency, throughput, and resource-risk analysis
   - `security-sentinel` for auth, validation, exploit surfaces, and security boundary review
