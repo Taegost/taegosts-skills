@@ -145,7 +145,7 @@ Skills still using Template-Wrapped or Direct-Seed dispatch must migrate to Boot
 |-------|----------------|--------|
 | (none) | — | All skills migrated to Bootstrap |
 
-Skills already on Bootstrap: `ts-code-review`, `ts-doc-review`, `ts-work`, `ts-verify-implementation`, `ts-plan`, `ts-compound`.
+Skills already on Bootstrap: `ts-code-review`, `ts-doc-review`, `ts-work`, `ts-verify-implementation`, `ts-plan`, `ts-compound`, `ts-compound-refresh`.
 
 ## File Placement
 

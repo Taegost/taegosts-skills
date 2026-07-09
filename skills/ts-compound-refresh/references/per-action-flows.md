@@ -46,9 +46,7 @@ After the merge, run the mechanical claims check on the canonical doc (step 4 of
 
 ## Replace Flow
 
-Process Replace candidates **one at a time, sequentially**. Each replacement is written by a subagent to protect the main context window.
-
-When a replacement is needed, read the documentation contract files and pass their contents into the replacement subagent's task prompt:
+Process Replace candidates **one at a time, sequentially**. Each replacement is written by a `learning-replacer` subagent (see SKILL.md "Subagent Strategy") via the Bootstrap dispatch pattern — the subagent reads its operating contract and the documentation contract files itself from disk; the orchestrator passes file paths, not their contents:
 
 - `references/schema.yaml` — frontmatter fields and enum values
 - `references/yaml-schema.md` — category mapping
@@ -58,12 +56,11 @@ Do not let replacement subagents invent frontmatter fields, enum values, or sect
 
 **When evidence is sufficient:**
 
-1. Spawn a single subagent to write the replacement learning. Pass it:
+1. Dispatch a `learning-replacer` subagent per the SKILL.md "Replacement subagents" prompt template. Its task context carries:
    - The old learning's full content
    - A summary of the investigation evidence (what changed, what the current code does, why the old guidance is misleading)
    - The target path and category (same category as the old learning unless the category itself changed)
-   - The relevant contents of the three support files listed above
-2. The subagent writes the new learning using the support files as the source of truth: `references/schema.yaml` for frontmatter fields and enum values, `references/yaml-schema.md` for category mapping and YAML-safety rules for array items, and `assets/resolution-template.md` for section order. It should use dedicated file search and read tools if it needs additional context beyond what was passed.
+2. The subagent writes the new learning directly to the target path, using the support files as the source of truth: `references/schema.yaml` for frontmatter fields and enum values, `references/yaml-schema.md` for category mapping and YAML-safety rules for array items, and `assets/resolution-template.md` for section order. It should use dedicated file search and read tools if it needs additional context beyond what was passed.
 3. **Validate parser-safety of the new learning's frontmatter** to catch silent-corruption issues the prose rules miss: malformed `---` delimiter lines, unquoted ` #` in scalar values (silent comment truncation), and unquoted `: ` in scalar values (silent mapping confusion). The bundled validator ships **inside the skill bundle**; on Claude Code `${CLAUDE_SKILL_DIR}` resolves to the skill directory, but the runtime Bash tool's CWD is the user's project, so a project-relative path (without the `${CLAUDE_SKILL_DIR}` prefix) would miss. Run it through an existence guard so platforms that cannot locate the script (e.g. native Codex/Gemini installs, where `${CLAUDE_SKILL_DIR}` is unset) fall back to a manual check instead of silently skipping the protection:
 
    ```bash

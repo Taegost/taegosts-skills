@@ -8,6 +8,20 @@ argument-hint: "[optional: scope hint — directory, filename, module, or keywor
 
 Maintain the quality of `docs/solutions/` over time. This workflow reviews existing learnings against the current codebase, then refreshes any derived pattern docs that depend on them.
 
+## Support Files
+
+These files are the durable contract for the workflow. Read them on-demand at the step that needs them — do not bulk-load at skill start. When locating scripts, consult `docs/ROUTING.md` first to find the correct paths via INDEX.md files: skill-specific scripts live at `skills/ts-compound-refresh/scripts/INDEX.md`.
+
+- `references/schema.yaml` — canonical frontmatter fields and enum values (read when validating YAML; synced copy of `ts-compound`'s canonical version)
+- `references/yaml-schema.md` — category mapping from problem_type to directory (read when classifying; synced copy of `ts-compound`'s canonical version)
+- `references/concepts-vocabulary.md` — `CONCEPTS.md` format and inclusion rules (read in Phase 4.5 when domain terms surface, or during the repo-wide bootstrap path; synced copy of `ts-compound`'s canonical version)
+- `references/per-action-flows.md` — per-action execution steps for Keep/Update/Consolidate/Replace/Delete (read in Phase 4 at the step matching the confirmed classification)
+- `references/agents/learning-investigator.md` — Bootstrap agent definition for read-only doc investigation (read by Investigation subagents)
+- `references/agents/learning-replacer.md` — Bootstrap agent definition for successor-doc writing (read by Replacement subagents)
+- `assets/resolution-template.md` — section structure for new learnings (read when a Replacement subagent assembles a successor doc; synced copy of `ts-compound`'s canonical version)
+- `scripts/validate-frontmatter.py` — frontmatter parser-safety validator (run in the Replace flow through the existence guard documented there; resolves only on Claude Code via `${CLAUDE_SKILL_DIR}`, with a manual-checklist fallback elsewhere; synced copy of `ts-compound`'s canonical version)
+- `scripts/validate-doc-claims.py` — mechanical claims checker for cited paths, commit SHAs, relative links, and drafting scaffold (run in the Replace flow on the successor doc)
+
 ## Mode Detection
 
 Check if `$ARGUMENTS` contains `mode:headless`. If present, strip it from arguments (use the remainder as a scope hint) and run in **headless mode**.
@@ -271,6 +285,8 @@ Contradictions between docs are more urgent than individual staleness — they a
 
 ## Subagent Strategy
 
+This skill uses the **Bootstrap dispatch pattern** — subagents receive file paths, not inline content. Each subagent reads its own operating contract, role prompt, and schema from disk. This reduces orchestrator dispatch output and decouples agent identity from the orchestrator's context window.
+
 Use subagents for context isolation when investigating multiple artifacts — not just because the task sounds complex. Choose the lightest approach that fits:
 
 | Approach | When to use |
@@ -280,18 +296,82 @@ Use subagents for context isolation when investigating multiple artifacts — no
 | **Parallel subagents** | 3+ truly independent artifacts with low overlap |
 | **Batched subagents** | Broad sweeps — narrow scope first, then investigate in batches |
 
-**When spawning any subagent**, omit the `mode` parameter so the user's configured permission settings apply. Include this instruction in its task prompt:
+**Run ID and run dir (before dispatching any subagent):**
+
+```bash
+RUN_ID=$(date +%Y%m%d-%H%M%S)-$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' ')
+mkdir -p "/tmp/taegosts-skills/ts-compound-refresh/$RUN_ID"
+```
+
+There are two subagent roles:
+
+### Investigation subagents (read-only)
+
+Dispatch one `learning-investigator` subagent per doc, or per small independent cluster of overlapping docs — they must not edit files, create successors, or delete anything.
+
+1. **Agent file path** — `references/agents/learning-investigator.md` (its operating contract — read by the agent itself)
+2. **Run ID** — `{run_id}` for artifact file path
+3. **Artifact path** — `/tmp/taegosts-skills/ts-compound-refresh/{run_id}/investigate-<slug>.json`
+4. **Task context** — the doc path(s) assigned to this subagent, and whether other docs in the same dispatch batch are known candidates for overlap
+
+**Subagent prompt template:**
+
+```text
+Read these files IN FULL before starting:
+1. references/agents/learning-investigator.md (your operating contract)
+
+After reading, emit acknowledgment: one line per file, `<path> (<N> lines)`.
+
+Then execute your task:
+- Run ID: {run_id}
+- Artifact path: /tmp/taegosts-skills/ts-compound-refresh/{run_id}/investigate-<slug>.json
+- Docs assigned: <doc path(s)>
+```
+
+Each subagent **writes its full structured output** to its own artifact file and **returns only a one-line confirmation containing the artifact path**. Return the full JSON inline only when the artifact write did not succeed (e.g., `{run_id}` did not resolve, or the write itself failed).
+
+These can run in parallel when artifacts are independent. If two docs overlap or discuss the same root issue, assign them to the same subagent rather than parallelizing.
+
+### Replacement subagents (write a successor doc)
+
+Process Replace candidates **one at a time, sequentially** (each replacement subagent may need to read significant code, and running multiple in parallel risks context exhaustion).
+
+1. **Agent file path** — `references/agents/learning-replacer.md` (its operating contract)
+2. **Contract files** — `references/schema.yaml`, `references/yaml-schema.md`, `assets/resolution-template.md`
+3. **Task context** — the old learning's full content, the investigation evidence, and the target path/category
+
+**Subagent prompt template:**
+
+```text
+Read these files IN FULL before starting:
+1. references/agents/learning-replacer.md (your operating contract)
+2. references/schema.yaml (frontmatter fields and enum values)
+3. references/yaml-schema.md (category mapping, YAML-safety rules)
+4. assets/resolution-template.md (section order)
+
+After reading, emit acknowledgment: one line per file, `<path> (<N> lines)`.
+
+Then execute your task:
+- Old learning: <old learning full content>
+- Investigation evidence: <what changed, what the current code does, why the old guidance is misleading>
+- Target path: <docs/solutions/<category>/<filename>.md>
+```
+
+Unlike investigation subagents, the replacement subagent writes its output directly to the target `docs/solutions/` path — the successor doc is a complete, validated deliverable in one pass, not a scratch artifact the orchestrator assembles further. The orchestrator handles deletion of the old learning after the successor is validated (see `references/per-action-flows.md` Replace Flow).
+
+### Bootstrap-ack requirement
+
+After reading all files, each subagent emits a plain-text acknowledgment listing each file path and its line count. The orchestrator verifies each expected path appears in the ack before accepting findings. Missing files trigger re-dispatch with an admonition to read all files (up to 3 attempts). If all 3 attempts fail, note the failure in the report and continue with whatever the subagent returned inline.
+
+### Shared instructions for both roles
+
+Include this instruction in every subagent's task prompt:
 
 > Use dedicated file search and read tools (Glob, Grep, Read) for all investigation. Do NOT use shell commands (ls, find, cat, grep, test, bash) for file operations. This avoids permission prompts and is more reliable.
 >
 > Also scan the "user's auto-memory" block injected into your system prompt (Claude Code only). Check for notes related to the learning's problem domain. Report any memory-sourced drift signals separately from codebase-sourced evidence, tagged with "(auto memory [claude])" in the evidence section. If the block is not present in your context, skip this check.
 
-There are two subagent roles:
-
-1. **Investigation subagents** — read-only. They must not edit files, create successors, or delete anything. Each returns: file path, evidence, recommended action, confidence, and open questions. These can run in parallel when artifacts are independent.
-2. **Replacement subagents** — write a single new learning to replace a stale one. These run **one at a time, sequentially** (each replacement subagent may need to read significant code, and running multiple in parallel risks context exhaustion). The orchestrator handles all deletions and metadata updates after each replacement completes.
-
-The orchestrator merges investigation results, detects contradictions, coordinates replacement subagents, and performs all deletions/metadata edits centrally. In interactive mode, it asks the user questions on ambiguous cases. In headless mode, it marks ambiguous cases as stale instead. If two artifacts overlap or discuss the same root issue, investigate them together rather than parallelizing.
+The orchestrator merges investigation results, detects contradictions, coordinates replacement subagents, and performs all deletions/metadata edits centrally. In interactive mode, it asks the user questions on ambiguous cases. In headless mode, it marks ambiguous cases as stale instead.
 
 ## Phase 2: Classify the Right Maintenance Action
 
