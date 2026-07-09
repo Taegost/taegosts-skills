@@ -156,7 +156,15 @@ Agent files live in skill-local directories:
 | `skills/<skill>/references/agents/` | Skill-specific agents dispatched by that skill |
 | `agents/` | Staging area for agents being developed before placement |
 
-Each skill dispatches from its own `references/agents/` directory. Cross-skill deduplication is a separate concern — see the deferred work in Issue #83.
+Each skill dispatches from its own `references/agents/` directory.
+
+### Cross-skill agent duplication: accepted, not consolidated (Issue #83)
+
+Several agents exist in near-identical form across multiple skills (e.g. `security-sentinel` in `ts-compound` and `ts-plan`; `learnings-researcher` in `ts-code-review` and `ts-plan`). Investigating the actual pairs found the divergence between copies is **deliberate, content-meaningful tailoring to each skill's invocation context** — not accidental drift from forgetting to sync a shared file. Every sampled pair had at least one paragraph rewritten for how that skill actually consumes the agent's output (e.g. `learnings-researcher` for `ts-code-review` converts findings into "review context: known risks against this diff"; the same agent for `ts-plan` converts findings into "planning inputs: constraints, sequencing risks"). A shared library would need to parameterize that framing per caller, adding real complexity for what a handful of hand-maintained files already do simply — or, done naively, would erase the tailoring that makes each copy directly actionable for its actual caller.
+
+**Decision: accept the duplication. Do not build a shared agent library or sync mechanism.** Keep each skill's `references/agents/` self-contained — this also matches the Bootstrap dispatch pattern's own constraint (agent files must live where the dispatching skill can read them by a skill-local path) and the general principle that a skill should be independently portable/extractable without depending on another skill's directory (the same reasoning `ts-compound-refresh` used when it duplicated `ts-compound`'s schema/template files rather than cross-referencing them — see `skills/ts-compound-refresh/SKILL.md`'s Support Files section).
+
+Dispatch pattern unification — the other half of Issue #83 — is separately resolved: Bootstrap is now the only allowed pattern (see above), so there is no "keep both patterns" decision left to make.
 
 ## Conformance Checklist
 
