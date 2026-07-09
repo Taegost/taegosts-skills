@@ -4,7 +4,7 @@ description: "Index of documentation in docs/standards/."
 status: active
 version: "1.0"
 created: 2026-07-08
-last-updated: 2026-07-08
+last-updated: 2026-07-09
 owner: wave-2-dispatch-index-automation
 dependencies: []
 tags: [index]
@@ -21,5 +21,6 @@ Index of documentation in docs/standards/.
 | [index-convention.md](./index-convention.md) | Canonical standard for INDEX.md files across all documentation in taegosts-skills. |
 | [index-standards.md](./index-standards.md) | Every INDEX.md file MUST have YAML frontmatter with: |
 | [link-convention.md](./link-convention.md) | Canonical standard for markdown links across all documentation in taegosts-skills. |
+| [script-extraction-standards.md](./script-extraction-standards.md) | Canonical reference for when inline bash blocks in skills should be extracted to standalone scripts. |
 | [script-frontmatter-convention.md](./script-frontmatter-convention.md) | Canonical reference for the description comment format used in all shell scripts across the repository. |
 | [testing-standards.md](./testing-standards.md) | If a script exists and was changed, it needs a corresponding test file. No line threshold. |
