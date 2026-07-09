@@ -4,7 +4,7 @@ description: "Index of all scripts in scripts/."
 status: active
 version: "1.0"
 created: 2026-07-08
-last-updated: 2026-07-08
+last-updated: 2026-07-09
 owner: wave-2-dispatch-index-automation
 dependencies: []
 tags: [index, scripts]
@@ -32,6 +32,7 @@ Index of all scripts in scripts/.
 | [locate-plan.py](./locate-plan.py) | Non-interactive plan location script. |
 | [pr-metadata.sh](./pr-metadata.sh) | Fetch PR metadata from GitHub API as JSON |
 | [request-reviews.sh](./request-reviews.sh) | Request or re-request reviews on a GitHub PR |
+| [run-bundled-validator.sh](./run-bundled-validator.sh) | Resolve and run a skill's bundled validator script, or report it unavailable |
 | [run-id.sh](./run-id.sh) | Generate a timestamp-hex run ID |
 | [run-shellcheck.sh](./run-shellcheck.sh) | Run shellcheck on all shell scripts in the repository |
 | [solutions-search.sh](./solutions-search.sh) | Search docs/solutions/ for matching conventions |
