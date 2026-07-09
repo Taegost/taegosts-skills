@@ -6,6 +6,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../../../scripts/lib/input-validation.sh
+source "$SCRIPT_DIR/../../../scripts/lib/input-validation.sh"
+
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'
 Usage: generate-plan-filename.sh --type <feat|fix|chore> --slug <string>
@@ -70,9 +74,7 @@ case "$plan_type" in
 esac
 
 # R10: validate slug - reject shell metacharacters, quotes, control chars, and spaces
-# KTD1: ANSI-C quoting for proper escape handling of control chars, \n, \t
-METACHAR_RE=$'[\x01-\x1f\x7f;<>(){}~\\`!$&\'"|*?/ \n\t]'
-if [[ "$slug" =~ $METACHAR_RE ]]; then
+if ! validate_no_metachars "$slug"; then
   echo '{"ok":false,"error":"--slug contains invalid characters (spaces or shell metacharacters)"}' >&2
   exit 1
 fi

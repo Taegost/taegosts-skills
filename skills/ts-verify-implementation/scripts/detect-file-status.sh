@@ -6,6 +6,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../../../scripts/lib/input-validation.sh
+source "$SCRIPT_DIR/../../../scripts/lib/input-validation.sh"
+
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'
 Usage: detect-file-status.sh <file-path>
@@ -38,10 +42,8 @@ fi
 
 file_path="$1"
 
-# R10: validate input - reject shell metacharacters (file-path variant: excludes /)
-# KTD1: ANSI-C quoting for proper escape handling of control chars, \n, \t
-METACHAR_RE=$'[\x01-\x1f\x7f;<>(){}~\\`!$&\'"|*? \n\t]'
-if [[ "$file_path" =~ $METACHAR_RE ]]; then
+# R10: validate input - reject shell metacharacters (file-path variant: allows /)
+if ! validate_no_metachars "$file_path" --allow-slash; then
   echo '{"ok":false,"error":"path contains shell metacharacters"}' >&2
   exit 1
 fi

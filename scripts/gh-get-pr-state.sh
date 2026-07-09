@@ -6,6 +6,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/input-validation.sh
+source "$SCRIPT_DIR/lib/input-validation.sh"
+
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'
 Usage: gh-get-pr-state.sh --pr-url <url-or-number>
@@ -53,22 +57,18 @@ if [[ -z "$pr_url" ]]; then
 fi
 
 # Validate PR URL/number format - reject shell metacharacters
-METACHAR_RE=$'[\x01-\x1f\x7f;<>(){}~\\`!$&\'"|*? \n\t]'
-if [[ "$pr_url" =~ $METACHAR_RE ]]; then
+if ! validate_no_metachars "$pr_url" --allow-slash; then
   echo '{"ok":false,"error":"--pr-url contains shell metacharacters"}' >&2
   exit 1
 fi
 
 # Validate gh CLI is available and authenticated
-if ! command -v gh &>/dev/null; then
-  echo '{"ok":false,"error":"gh CLI not available"}' >&2
-  exit 1
-fi
-
-if ! gh auth status >/dev/null 2>&1; then
-  echo '{"ok":false,"error":"gh CLI not authenticated"}' >&2
-  exit 1
-fi
+gh_env_rc=0
+validate_gh_environment || gh_env_rc=$?
+case $gh_env_rc in
+  1) echo '{"ok":false,"error":"gh CLI not available"}' >&2; exit 1 ;;
+  2) echo '{"ok":false,"error":"gh CLI not authenticated"}' >&2; exit 1 ;;
+esac
 
 # Fetch PR state, head SHA, and base branch
 if ! pr_json=$(gh pr view "$pr_url" --json state,headRefOid,baseRefName 2>&1); then

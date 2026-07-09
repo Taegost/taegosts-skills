@@ -6,6 +6,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../../../scripts/lib/input-validation.sh
+source "$SCRIPT_DIR/../../../scripts/lib/input-validation.sh"
+
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'
 Usage: check-thread-resolution.sh --repo owner/repo --pr <number>
@@ -40,27 +44,23 @@ done
 
 [[ -z "$repo" || -z "$pr_number" ]] && { echo '{"ok":false,"error":"--repo and --pr required"}' >&2; exit 1; }
 
-# Non-path metacharacter regex (KTD1: blocks control chars, shell metacharacters, quotes, whitespace)
-METACHAR_RE=$'[\x01-\x1f\x7f;<>(){}~\\`!$&\'"|*?/ \n\t]'
-# --repo: exclude / (required for owner/repo), validate format separately
-REPO_METACHAR_RE=$'[\x01-\x1f\x7f;<>(){}~\\`!$&\'"|*? \n\t]'
-if [[ "$repo" =~ $REPO_METACHAR_RE ]]; then
+if ! validate_no_metachars "$repo" --allow-slash; then
   echo '{"ok":false,"error":"--repo contains shell metacharacters"}' >&2; exit 1
 fi
-if [[ "$pr_number" =~ $METACHAR_RE ]]; then
+if ! validate_no_metachars "$pr_number"; then
   echo '{"ok":false,"error":"--pr contains shell metacharacters"}' >&2; exit 1
 fi
 
 # Validate repo format (owner/repo)
-if [[ ! "$repo" =~ ^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$ ]]; then
+if ! validate_repo_format "$repo"; then
   echo '{"ok":false,"error":"--repo must be in owner/repo format"}' >&2; exit 1
 fi
 
 # Validate PR number is numeric
-if [[ ! "$pr_number" =~ ^[0-9]+$ ]]; then
+if ! validate_pr_number_format "$pr_number"; then
   echo '{"ok":false,"error":"--pr must be a number"}' >&2; exit 1
 fi
-gh auth status >/dev/null 2>&1 || { echo '{"ok":false,"error":"gh auth not configured"}' >&2; exit 1; }
+validate_gh_environment >/dev/null 2>&1 || { echo '{"ok":false,"error":"gh auth not configured"}' >&2; exit 1; }
 
 IFS='/' read -r owner name <<< "$repo"
 

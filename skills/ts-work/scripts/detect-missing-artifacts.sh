@@ -6,6 +6,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../../../scripts/lib/input-validation.sh
+source "$SCRIPT_DIR/../../../scripts/lib/input-validation.sh"
+
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'
 Usage: detect-missing-artifacts.sh --plan-files <file> --reference-dir <path>
@@ -56,14 +60,12 @@ if [[ -z "$plan_files" || -z "$reference_dir" ]]; then
   exit 1
 fi
 
-# R10: validate inputs - reject shell metacharacters (file-path variant: excludes /)
-# KTD1: ANSI-C quoting for proper escape handling of control chars, \n, \t
-METACHAR_RE=$'[\x01-\x1f\x7f;<>(){}~\\`!$&\'"|*? \n\t]'
-if [[ "$plan_files" =~ $METACHAR_RE ]]; then
+# R10: validate inputs - reject shell metacharacters (file-path variant: allows /)
+if ! validate_no_metachars "$plan_files" --allow-slash; then
   echo '{"ok":false,"error":"--plan-files path contains shell metacharacters"}' >&2
   exit 1
 fi
-if [[ "$reference_dir" =~ $METACHAR_RE ]]; then
+if ! validate_no_metachars "$reference_dir" --allow-slash; then
   echo '{"ok":false,"error":"--reference-dir path contains shell metacharacters"}' >&2
   exit 1
 fi

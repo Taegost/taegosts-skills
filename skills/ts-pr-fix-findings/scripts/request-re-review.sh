@@ -6,6 +6,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../../../scripts/lib/input-validation.sh
+source "$SCRIPT_DIR/../../../scripts/lib/input-validation.sh"
+
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'
 Usage: request-re-review.sh --pr-url <url> --reviewer <username>
@@ -59,41 +63,37 @@ if [[ -z "$reviewer" ]]; then
   exit 1
 fi
 
-# Non-path metacharacter regex (blocks control chars, shell metacharacters, quotes, whitespace)
-METACHAR_RE=$'[\x01-\x1f\x7f;<>(){}~\\`!$&\'"|*? \n\t]'
-
 # Validate --pr-url: reject shell metacharacters
-if [[ "$pr_url" =~ $METACHAR_RE ]]; then
+if ! validate_no_metachars "$pr_url" --allow-slash; then
   echo '{"ok":false,"error":"--pr-url contains shell metacharacters"}' >&2
   exit 1
 fi
 
 # Validate --pr-url format (must be a GitHub PR URL or numeric)
-if [[ ! "$pr_url" =~ ^https://github\.com/[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+/pull/[0-9]+$ ]] && \
-   [[ ! "$pr_url" =~ ^[0-9]+$ ]]; then
+if ! validate_pr_url_format "$pr_url"; then
   echo '{"ok":false,"error":"--pr-url must be a GitHub PR URL or numeric PR number"}' >&2
   exit 1
 fi
 
 # Validate --reviewer: reject shell metacharacters
-if [[ "$reviewer" =~ $METACHAR_RE ]]; then
+if ! validate_no_metachars "$reviewer" --allow-slash; then
   echo '{"ok":false,"error":"--reviewer contains shell metacharacters"}' >&2
   exit 1
 fi
 
 # Validate --reviewer format (GitHub username: alphanumeric + hyphens, cannot start/end with hyphen)
-if [[ ! "$reviewer" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$ ]]; then
+if ! validate_reviewer_name "$reviewer"; then
   echo '{"ok":false,"error":"--reviewer has invalid format"}' >&2
   exit 1
 fi
 
 # Validate gh CLI is available and authenticated
-if ! command -v gh &>/dev/null; then
-  echo '{"ok":false,"error":"gh CLI is not installed"}' >&2
-  exit 1
-fi
-
-gh auth status >/dev/null 2>&1 || { echo '{"ok":false,"error":"gh auth not configured"}' >&2; exit 1; }
+gh_env_rc=0
+validate_gh_environment || gh_env_rc=$?
+case $gh_env_rc in
+  1) echo '{"ok":false,"error":"gh CLI is not installed"}' >&2; exit 1 ;;
+  2) echo '{"ok":false,"error":"gh auth not configured"}' >&2; exit 1 ;;
+esac
 
 # Request re-review using gh pr edit
 if ! gh pr edit "$pr_url" --add-reviewer "$reviewer" 2>/dev/null; then
