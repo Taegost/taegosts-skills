@@ -311,7 +311,7 @@ Determine how to proceed based on what was provided in `<input_document>`.
    git commit -m "feat(scope): description of this unit"
    ```
 
-   **Handling merge conflicts:** If conflicts arise during rebasing or merging, resolve them immediately. Incremental commits make conflict resolution easier since each commit is small and focused.
+   **Handling merge conflicts:** If conflicts arise during rebasing or merging, resolve them immediately — do not defer them to a later commit. **Read `references/merge-conflict-resolution.md` now** and follow the triage-first workflow: scan every conflict before touching any of them, batch-resolve mechanical conflicts (frontmatter drift, renames) with one pass instead of file-by-file edits, and reserve individual reads for the genuinely ambiguous remainder. Incremental commits make conflict resolution easier since each commit is small and focused.
 
    **Note:** Incremental commits use clean conventional messages without attribution footers. The final Phase 4 commit/PR includes the full attribution.
 
