@@ -10,7 +10,7 @@ Maintain the quality of `docs/solutions/` over time. This workflow reviews exist
 
 ## Support Files
 
-These files are the durable contract for the workflow. Read them on-demand at the step that needs them — do not bulk-load at skill start. When locating scripts, consult `docs/ROUTING.md` first to find the correct paths via INDEX.md files: skill-specific scripts live at `skills/ts-compound-refresh/scripts/INDEX.md`.
+These files are the durable contract for the workflow. Read them on-demand at the step that needs them — do not bulk-load at skill start. When locating scripts, consult `docs/ROUTING.md` first to find the correct paths via INDEX.md files: skill-specific scripts live at `${CLAUDE_PLUGIN_ROOT}/skills/ts-compound-refresh/scripts/INDEX.md`.
 
 - `references/schema.yaml` — canonical frontmatter fields and enum values (read when validating YAML; synced copy of `ts-compound`'s canonical version)
 - `references/yaml-schema.md` — category mapping from problem_type to directory (read when classifying; synced copy of `ts-compound`'s canonical version)
@@ -21,8 +21,10 @@ These files are the durable contract for the workflow. Read them on-demand at th
 - `references/agents/learning-investigator.md` — Bootstrap agent definition for read-only doc investigation (read by Investigation subagents)
 - `references/agents/learning-replacer.md` — Bootstrap agent definition for successor-doc writing (read by Replacement subagents)
 - `assets/resolution-template.md` — section structure for new learnings (read when a Replacement subagent assembles a successor doc; synced copy of `ts-compound`'s canonical version)
-- `scripts/validate-frontmatter.py` — frontmatter parser-safety validator (run in the Replace flow via `scripts/run-bundled-validator.sh`, the repo-level wrapper that resolves `${CLAUDE_SKILL_DIR}` and falls back to a manual checklist elsewhere; synced copy of `ts-compound`'s canonical version)
-- `scripts/validate-doc-claims.py` — mechanical claims checker for cited paths, commit SHAs, relative links, and drafting scaffold (run in the Replace flow on the successor doc, also via `scripts/run-bundled-validator.sh`)
+- `scripts/validate-frontmatter.py` — frontmatter parser-safety validator (run in the Replace flow via `${CLAUDE_PLUGIN_ROOT}/scripts/run-bundled-validator.sh`, the repo-level wrapper that resolves `${CLAUDE_SKILL_DIR}` and falls back to a manual checklist elsewhere; synced copy of `ts-compound`'s canonical version)
+- `scripts/validate-doc-claims.py` — mechanical claims checker for cited paths, commit SHAs, relative links, and drafting scaffold (run in the Replace flow on the successor doc, also via `${CLAUDE_PLUGIN_ROOT}/scripts/run-bundled-validator.sh`)
+
+**Script resolution.** `${CLAUDE_PLUGIN_ROOT}` is substituted to the plugin's install directory at skill-load time on Claude Code, so plugin-rooted script paths work regardless of the Bash tool's working directory. On platforms where it arrives unsubstituted, resolve shared-tier scripts from the loaded skill directory (`<skill-dir>/../../scripts/`) or from a taegosts-skills checkout. If still unresolvable, say so visibly and use the documented manual fallback — never silently skip.
 
 ## Question Tool Convention
 

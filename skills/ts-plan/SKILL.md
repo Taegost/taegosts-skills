@@ -200,7 +200,9 @@ Fires **only in solo invocation** — when Phase 0.2 found no upstream brainstor
 
 All specialist research and deepening prompts used in this phase are skill-local prompt assets under `references/agents/`. When dispatching one, pass the agent a bootstrap prompt with the file path (`references/agents/<name>.md`) plus the task-specific context below. The agent reads its own prompt from disk. Fallback: if the harness lacks file-read tools, read the file and inline its content. Do not dispatch standalone agents by type/name.
 
-**Notification recovery.** When agents run in the background, completion notifications may be missed. Each agent writes its output to disk as its primary completion signal. The orchestrator can detect completion via Monitor-based file watching or polling fallback (`scripts/wait-for-file.sh`). See `docs/solutions/workflow-issues/notification-resilience-via-disk-state.md`.
+**Script resolution.** `${CLAUDE_PLUGIN_ROOT}` is substituted to the plugin's install directory at skill-load time on Claude Code, so plugin-rooted script paths work regardless of the Bash tool's working directory. On platforms where it arrives unsubstituted, resolve shared-tier scripts from the loaded skill directory (`<skill-dir>/../../scripts/`) or from a taegosts-skills checkout. If still unresolvable, say so visibly and use the documented manual fallback — never silently skip.
+
+**Notification recovery.** When agents run in the background, completion notifications may be missed. Each agent writes its output to disk as its primary completion signal. The orchestrator can detect completion via Monitor-based file watching or polling fallback (`${CLAUDE_PLUGIN_ROOT}/scripts/wait-for-file.sh`). See `docs/solutions/workflow-issues/notification-resilience-via-disk-state.md`.
 
 #### 1.1 Local Research (Always Runs)
 

@@ -29,7 +29,7 @@ Plans are discovered in this priority order:
 
 1. **Explicit path** — If a path is provided as an argument, use it directly.
 2. **PR body scanning** — If PR metadata is available (from `gh pr view`), scan the PR body for `docs/plans/*.md` paths.
-3. **Branch name extraction** — Calls `scripts/locate-plan.py` to extract keywords from the current branch name and match against plan files in `docs/plans/`.
+3. **Branch name extraction** — Calls `${CLAUDE_PLUGIN_ROOT}/scripts/locate-plan.py` to extract keywords from the current branch name and match against plan files in `docs/plans/`.
 
 If all sources return empty:
 - **Interactive mode** (default): Prompt the user to provide a path
@@ -84,8 +84,11 @@ If PR body contains a `docs/plans/*.md` path:
 ### Step 3: Try branch name extraction
 
 If no PR metadata or no plan found in PR body:
+
+**Script resolution.** `${CLAUDE_PLUGIN_ROOT}` is substituted to the plugin's install directory at skill-load time on Claude Code, so plugin-rooted script paths work regardless of the Bash tool's working directory. On platforms where it arrives unsubstituted, resolve shared-tier scripts from the loaded skill directory (`<skill-dir>/../../scripts/`) or from a taegosts-skills checkout. If still unresolvable, say so visibly and use the documented manual fallback — never silently skip.
+
 ```bash
-python3 scripts/locate-plan.py
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/locate-plan.py"
 ```
 
 If the script returns a path:
@@ -140,4 +143,4 @@ If `locate-plan.py` returns multiple matches:
 
 ## Dependencies
 
-- `scripts/locate-plan.py` — Branch name keyword extraction and plan discovery
+- `${CLAUDE_PLUGIN_ROOT}/scripts/locate-plan.py` — Branch name keyword extraction and plan discovery

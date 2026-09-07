@@ -61,10 +61,10 @@ Do not let replacement subagents invent frontmatter fields, enum values, or sect
    - A summary of the investigation evidence (what changed, what the current code does, why the old guidance is misleading)
    - The target path and category (same category as the old learning unless the category itself changed)
 2. The subagent writes the new learning directly to the target path, using the support files as the source of truth: `references/schema.yaml` for frontmatter fields and enum values, `references/yaml-schema.md` for category mapping and YAML-safety rules for array items, and `assets/resolution-template.md` for section order. It should use dedicated file search and read tools if it needs additional context beyond what was passed.
-3. **Validate parser-safety of the new learning's frontmatter** to catch silent-corruption issues the prose rules miss: malformed `---` delimiter lines, unquoted ` #` in scalar values (silent comment truncation), and unquoted `: ` in scalar values (silent mapping confusion). The bundled validator ships **inside the skill bundle**, so a bare project-relative path misses it — resolve and run it through `scripts/run-bundled-validator.sh` (repo-level, shared with `ts-compound`), which handles the `${CLAUDE_SKILL_DIR}` resolution and existence-guard fallback:
+3. **Validate parser-safety of the new learning's frontmatter** to catch silent-corruption issues the prose rules miss: malformed `---` delimiter lines, unquoted ` #` in scalar values (silent comment truncation), and unquoted `: ` in scalar values (silent mapping confusion). The bundled validator ships **inside the skill bundle**, so a bare project-relative path misses it — resolve and run it through `${CLAUDE_PLUGIN_ROOT}/scripts/run-bundled-validator.sh` (repo-level, shared with `ts-compound`), which handles the `${CLAUDE_SKILL_DIR}` resolution and existence-guard fallback:
 
    ```bash
-   scripts/run-bundled-validator.sh --skill-dir "${CLAUDE_SKILL_DIR:-<absolute path of the directory containing the SKILL.md you just read>}" --script scripts/validate-frontmatter.py -- <new-learning-path>
+   "${CLAUDE_PLUGIN_ROOT}/scripts/run-bundled-validator.sh" --skill-dir "${CLAUDE_SKILL_DIR:-<absolute path of the directory containing the SKILL.md you just read>}" --script scripts/validate-frontmatter.py -- <new-learning-path>
    ```
 
    - **Exit 0:** parser-safe.
@@ -78,7 +78,7 @@ Do not let replacement subagents invent frontmatter fields, enum values, or sect
 4. **Run the mechanical claims check on the successor doc.** The bundled `scripts/validate-doc-claims.py` flags cited repo paths missing from the tree, commit SHAs that do not resolve or are unreachable, relative doc links that do not resolve, and dangling drafting scaffold ("Learning 3", unresolved `{{...}}` tokens):
 
    ```bash
-   scripts/run-bundled-validator.sh --skill-dir "${CLAUDE_SKILL_DIR:-<absolute path of the directory containing the SKILL.md you just read>}" --script scripts/validate-doc-claims.py -- <new-learning-path>
+   "${CLAUDE_PLUGIN_ROOT}/scripts/run-bundled-validator.sh" --skill-dir "${CLAUDE_SKILL_DIR:-<absolute path of the directory containing the SKILL.md you just read>}" --script scripts/validate-doc-claims.py -- <new-learning-path>
    ```
 
    Exit 1 flags are **adjudication input, not failures** — a successor doc describing removed code legitimately cites paths that no longer exist. Resolve each flag by fixing the citation, annotating it as historical, or confirming it intentional; always fix scaffold flags. Exit 2 means the script wasn't resolvable on this platform — scan the body for those same patterns manually and say so in the report.

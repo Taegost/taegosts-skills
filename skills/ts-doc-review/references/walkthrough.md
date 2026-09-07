@@ -43,7 +43,7 @@ If all remaining findings are FYI-subsection-only (no `gated_auto` or `manual` f
 The walk-through receives, from the orchestrator:
 
 - The merged findings list in severity order (P0 → P1 → P2 → P3), filtered to actionable findings (confidence anchor `75` or `100` with `autofix_class` `gated_auto` or `manual`). FYI-subsection findings (anchor `50`) are not included — they surface in the final report only and have no walk-through entry.
-- The run id for artifact lookups. If the orchestrator has not already generated one this session, generate it now via `scripts/run-id.sh` — the walk-through needs it to derive the decision-log path (see "State" below) before the loop starts.
+- The run id for artifact lookups. If the orchestrator has not already generated one this session, generate it now via `${CLAUDE_PLUGIN_ROOT}/scripts/run-id.sh` — the walk-through needs it to derive the decision-log path (see "State" below) before the loop starts.
 - Premise-dependency chain annotations from synthesis step 3.5c: each finding may carry `depends_on: <root_id>` or `dependents: [<ids>]`.
 
 **Resuming an interrupted walk-through.** Before starting the loop, check for an existing decision log at `${TMPDIR:-/tmp}/ts-doc-review-decisions-<run_id>.jsonl`. If one exists and is non-empty (the session compacted or was otherwise interrupted mid-walk-through), read it back and reconstruct the in-memory decision list and Apply set from its entries, then resume the loop at the first finding not yet present in the log. Skip re-presenting already-decided findings.

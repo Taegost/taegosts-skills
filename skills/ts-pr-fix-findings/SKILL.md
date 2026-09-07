@@ -22,6 +22,8 @@ The `owner/repo` argument is **recommended**. If omitted, the skill determines t
 
 ## Process
 
+**Script resolution.** On Claude Code, `${CLAUDE_PLUGIN_ROOT}` (the plugin's install directory) and `${CLAUDE_SKILL_DIR}` (this skill's own directory) are substituted at skill-load time, so the script paths below work regardless of the Bash tool's working directory. On platforms where the variables arrive unsubstituted, resolve shared-tier scripts from the loaded skill directory (`<skill-dir>/../../scripts/`) or from a taegosts-skills checkout. If still unresolvable, say so visibly and use the documented manual fallback — never silently skip.
+
 ### 0. Determine repository context
 
 Before any work, determine which repository the PR lives in. **Do NOT guess or list repos sequentially.**
@@ -41,7 +43,7 @@ Before reviewing findings, attempt to load the feature plan for this PR's branch
 
 1. Call `/load-plan --non-interactive` (the skill uses the current branch name for discovery)
 2. If a plan is found:
-   - Extract KTDs by calling `python3 scripts/extract-ktds.py "<plan-path>"`
+   - Extract KTDs by calling `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/extract-ktds.py "<plan-path>"`
    - Extract Scope Boundaries from the plan's "Scope Boundaries" section
    - Store both for cross-referencing in Step 3
 3. If no plan is found, proceed without plan context (this is not an error)
@@ -56,14 +58,14 @@ If the `/ts-debug` skill is not available, stop and alert the user. Do not conti
 
 - Get the latest version of the pull request
 - Review all open conversations and change requests for findings
-- **Fetch inline review comments.** Run `skills/ts-pr-fix-findings/scripts/fetch-review-comments.sh --repo <owner>/<repo> --pr <number>` to get the threaded findings anchored to specific file:line locations (CodeRabbit, human reviewers, etc.) — this is the primary source of findings for the rest of this step.
+- **Fetch inline review comments.** Run `${CLAUDE_SKILL_DIR}/scripts/fetch-review-comments.sh --repo <owner>/<repo> --pr <number>` to get the threaded findings anchored to specific file:line locations (CodeRabbit, human reviewers, etc.) — this is the primary source of findings for the rest of this step.
 - For each finding, do the following:
   - Check if the finding is already resolved. If it is, then it doesn't require remediation.
-  - **Check conversation resolution status.** Use the `resolved` field returned by `fetch-review-comments.sh` above (or run `skills/ts-pr-fix-findings/scripts/check-thread-resolution.sh --repo <owner>/<repo> --pr <number>` for a resolution-focused view). Skip any conversation where `resolved` is true. Only unresolved conversations require remediation.
+  - **Check conversation resolution status.** Use the `resolved` field returned by `fetch-review-comments.sh` above (or run `${CLAUDE_SKILL_DIR}/scripts/check-thread-resolution.sh --repo <owner>/<repo> --pr <number>` for a resolution-focused view). Skip any conversation where `resolved` is true. Only unresolved conversations require remediation.
   - Validate whether the finding is valid
   - Make note of any instructions or detailed descriptions are given
   - Make note of any comments in the conversation thread. They may provide additional context.
-- **Fetch issue-level comments.** Run `skills/ts-pr-fix-findings/scripts/fetch-issue-comments.sh --repo <owner>/<repo> --pr <number>` to get comments posted directly on the PR (not threaded inline). These may contain corrections, updated assessments, or context that changes the validity of review findings. Check each issue-level comment for references to specific findings and update dispositions accordingly. Compare timestamps against the review submission time to identify comments that came after the review.
+- **Fetch issue-level comments.** Run `${CLAUDE_SKILL_DIR}/scripts/fetch-issue-comments.sh --repo <owner>/<repo> --pr <number>` to get comments posted directly on the PR (not threaded inline). These may contain corrections, updated assessments, or context that changes the validity of review findings. Check each issue-level comment for references to specific findings and update dispositions accordingly. Compare timestamps against the review submission time to identify comments that came after the review.
 - If you are unsure whether a finding is valid, prompt the user, do not make an arbitrary decision
 - If you feel a particular finding is larger than a simple bug fix, alert the user and ask them what they would like to do with it. Large remediations may require a separate planning session.
 - If there aren't any findings, alert the user and stop. Do not continue.
@@ -232,11 +234,11 @@ Then:
   - If there is additional context required (such as an explanation as to why your remediation doesn't meet the reviewer's criteria), make sure it is added
 - If the finding was part of a threaded conversation, mark that conversation as Resolved:
     ```bash
-    skills/ts-pr-fix-findings/scripts/resolve-thread.sh --pr-url "$PR_URL" --thread-id "$THREAD_ID" --reviewer "$REVIEWER"
+    "${CLAUDE_SKILL_DIR}/scripts/resolve-thread.sh" --pr-url "$PR_URL" --thread-id "$THREAD_ID" --reviewer "$REVIEWER"
     ```
 - Post a summary comment on the PR so the notes above are visible outside threaded conversations:
     ```bash
-    skills/ts-pr-fix-findings/scripts/post-pr-comment.sh --repo "$REPO" --pr "$PR_NUMBER" --body "$SUMMARY"
+    "${CLAUDE_SKILL_DIR}/scripts/post-pr-comment.sh" --repo "$REPO" --pr "$PR_NUMBER" --body "$SUMMARY"
     ```
 - If necessary, mark the PR and/or reviewer as ready for review again
 
@@ -245,12 +247,12 @@ Then:
 After pushing fixes and resolving threads, request re-review from the original reviewer(s). Do not assume they will notice the push:
 
 ```bash
-scripts/request-reviews.sh <pr-url> --fresh <reviewer1> [reviewer2 ...]
+"${CLAUDE_PLUGIN_ROOT}/scripts/request-reviews.sh" <pr-url> --fresh <reviewer1> [reviewer2 ...]
 ```
 
 This is easy to forget — if the PR shows "Changes Requested" and you have pushed fixes, the reviewer needs to know to look again. The script handles the remove-then-add flow (via `--fresh`), falls back to `gh pr edit` if the API call fails, and posts a comment if the bot lacks write access.
 
-For a single reviewer with no need to force a fresh notification, `skills/ts-pr-fix-findings/scripts/request-re-review.sh --pr-url <pr-url> --reviewer <reviewer>` is also available as a simpler, structured-JSON-output alternative (single `gh pr edit --add-reviewer` call, no remove-then-add or comment fallback).
+For a single reviewer with no need to force a fresh notification, `${CLAUDE_SKILL_DIR}/scripts/request-re-review.sh --pr-url <pr-url> --reviewer <reviewer>` is also available as a simpler, structured-JSON-output alternative (single `gh pr edit --add-reviewer` call, no remove-then-add or comment fallback).
 
 ### 9. Display a summary to the user
 
