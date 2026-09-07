@@ -7,6 +7,8 @@ description: Central navigation hub for taegosts-skills repository documentation
 
 This Map of Content provides a single entry point for navigating the repository's documentation, scripts, plans, and standards. Use this index to find what you need quickly.
 
+Paths below are relative to this index's directory. On Claude Code marketplace installs, resolve them through `${CLAUDE_PLUGIN_ROOT}/<repo-relative-path>`; on other platforms, resolve from the loaded skill directory or the taegosts-skills checkout.
+
 ## Scripts
 
 Core scripts used across the repository for automation, validation, and tooling.

@@ -9,11 +9,15 @@ Tests:
 - Delegates to index-scripts.py
 - --dry-run flag works
 - --skip-scripts flag works
+- Emits the script path resolution note
+- Regeneration is content-idempotent (created-date preservation, no-op on
+  unchanged content)
 """
 
 import importlib.util
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 from unittest import mock
 
@@ -55,9 +59,14 @@ class TestRunsCleanly:
         assert rc == 0, f"Expected exit 0, got {rc}. stderr: {stderr}"
         assert "[dry-run]" in stderr, "Expected dry-run marker in stderr"
 
-    def test_single_dir(self):
-        """--dir docs/standards should succeed."""
-        stdout, stderr, rc = run_updater("--dir", "docs/standards")
+    def test_single_dir(self, tmp_path):
+        """--dir <docs subdir> should succeed (tmp copy — must not touch the real tree)."""
+        docs_dir = tmp_path / "docs" / "standards"
+        docs_dir.mkdir(parents=True)
+        (docs_dir / "example.md").write_text(
+            "# Example Standard\n\nThis is an example standard document.\n"
+        )
+        stdout, stderr, rc = run_updater("--dir", str(docs_dir))
         assert rc == 0, f"Expected exit 0, got {rc}. stderr: {stderr}"
 
 
@@ -195,6 +204,77 @@ class TestDelegation:
         assert rc == 0
         # Should not see script indexing output
         assert "scripts/INDEX.md" not in stdout
+
+
+class TestResolutionNoteAndIdempotency:
+    """Resolution note is emitted and regeneration is content-idempotent."""
+
+    def _make_docs_dir(self, tmp_path):
+        docs_dir = tmp_path / "docs" / "standards"
+        docs_dir.mkdir(parents=True)
+        (docs_dir / "example.md").write_text(
+            "# Example Standard\n\nThis is an example standard document.\n"
+        )
+        return docs_dir
+
+    def test_resolution_note_present(self, tmp_path):
+        """Generated INDEX.md carries the path resolution note after the intro."""
+        docs_dir = self._make_docs_dir(tmp_path)
+
+        run_updater("--dir", str(docs_dir))
+        content = (docs_dir / "INDEX.md").read_text()
+        assert "Paths below are relative to this index's directory." in content
+        assert "${CLAUDE_PLUGIN_ROOT}/<repo-relative-path>" in content
+        # Note sits between the intro description line and the table
+        assert content.index("# Standards Index") \
+            < content.index("Paths below are relative to this index's directory.") \
+            < content.index("| Link | Description |")
+
+    def test_second_run_leaves_file_untouched(self, tmp_path):
+        """Regenerating unchanged content writes nothing and prints nothing."""
+        docs_dir = self._make_docs_dir(tmp_path)
+        index_path = docs_dir / "INDEX.md"
+
+        run_updater("--dir", str(docs_dir))
+        before = index_path.read_text()
+
+        stdout, _, rc = run_updater("--dir", str(docs_dir))
+        assert rc == 0
+        assert stdout.strip() == "", (
+            f"Second run should not report any written file, got: {stdout}"
+        )
+        assert index_path.read_text() == before
+
+    def test_created_date_preserved_and_content_change_bumps_last_updated(self, tmp_path):
+        """Existing created date survives regeneration; genuine changes bump
+        only last-updated."""
+        docs_dir = self._make_docs_dir(tmp_path)
+        index_path = docs_dir / "INDEX.md"
+        today = date.today().isoformat()
+
+        run_updater("--dir", str(docs_dir))
+        # Simulate an older index by backdating both frontmatter dates.
+        backdated = (index_path.read_text()
+                     .replace(f"created: {today}", "created: 2020-01-01")
+                     .replace(f"last-updated: {today}", "last-updated: 2020-01-01"))
+        index_path.write_text(backdated)
+
+        # Unchanged content: file untouched, backdated created survives.
+        stdout, _, rc = run_updater("--dir", str(docs_dir))
+        assert rc == 0
+        assert stdout.strip() == ""
+        assert "created: 2020-01-01" in index_path.read_text()
+
+        # Genuine content change: regenerated with created preserved and
+        # last-updated bumped to today.
+        (docs_dir / "extra.md").write_text("# Extra\n\nExtra content.\n")
+        stdout, _, rc = run_updater("--dir", str(docs_dir))
+        assert rc == 0
+        assert stdout.strip() != "", "Changed content should be rewritten"
+        content = index_path.read_text()
+        assert "created: 2020-01-01" in content
+        assert f"last-updated: {today}" in content
+        assert "[extra.md](./extra.md)" in content
 
 
 class TestStagesGeneratedFiles:

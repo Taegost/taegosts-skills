@@ -7,11 +7,15 @@ Tests:
 - Extracts descriptions from .py docstrings
 - Handles scripts without frontmatter gracefully
 - R8 format compliance (frontmatter, table structure)
+- Emits the script path resolution note
+- Regeneration is content-idempotent (created-date preservation, no-op on
+  unchanged content)
 """
 
 import json
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -33,10 +37,18 @@ class TestRunsCleanly:
     """Script executes without errors on the real repo."""
 
     def test_no_args(self):
-        """Running without args should succeed and produce output."""
+        """Running without args should succeed; a second run on the unchanged
+        tree must write nothing (content-idempotent regeneration)."""
         stdout, stderr, rc = run_indexer()
         assert rc == 0, f"Expected exit 0, got {rc}. stderr: {stderr}"
-        assert "INDEX.md" in stdout, "Expected INDEX.md path in stdout"
+
+        second_stdout, second_stderr, second_rc = run_indexer()
+        assert second_rc == 0, (
+            f"Expected exit 0, got {second_rc}. stderr: {second_stderr}"
+        )
+        assert second_stdout.strip() == "", (
+            f"Unchanged tree should not be rewritten, got: {second_stdout}"
+        )
 
     def test_dry_run(self):
         """--dry-run should succeed and not write files."""
@@ -57,7 +69,7 @@ class TestGeneratesIndexFiles:
         """scripts/INDEX.md should exist after running."""
         stdout, _, rc = run_indexer()
         assert rc == 0
-        index_path = Path(stdout.strip().splitlines()[0])
+        index_path = SCRIPT.parent / "INDEX.md"
         assert index_path.exists(), f"{index_path} not found"
         # Clean up: don't leave generated file around
         # (test runs in the real repo, so the file is expected)
@@ -190,9 +202,84 @@ class TestSkillScripts:
     """Skill-specific script directories are indexed."""
 
     def test_skill_index_generated(self):
-        """Skills with scripts/ dirs should get INDEX.md files."""
+        """Skills with scripts/ dirs should have INDEX.md files on disk."""
         stdout, _, rc = run_indexer()
         assert rc == 0
-        lines = stdout.strip().splitlines()
-        skill_indexes = [line for line in lines if "skills/" in line and "INDEX.md" in line]
+        skills_dir = SCRIPT.parent.parent / "skills"
+        skill_indexes = sorted(
+            p for p in skills_dir.glob("*/scripts/INDEX.md") if p.is_file()
+        )
         assert len(skill_indexes) > 0, "Expected at least one skill INDEX.md"
+
+
+class TestResolutionNoteAndIdempotency:
+    """Resolution note is emitted and regeneration is content-idempotent."""
+
+    def _make_scripts_dir(self, tmp_path):
+        scripts_dir = tmp_path / "scripts"
+        scripts_dir.mkdir()
+        (scripts_dir / "test-script.sh").write_text(
+            "#!/usr/bin/env bash\n# test-script.sh -- A test script\n"
+        )
+        return scripts_dir
+
+    def test_resolution_note_present(self, tmp_path):
+        """Generated INDEX.md carries the path resolution note after the intro."""
+        scripts_dir = self._make_scripts_dir(tmp_path)
+
+        run_indexer("--dir", str(scripts_dir))
+        content = (scripts_dir / "INDEX.md").read_text()
+        assert "Paths below are relative to this index's directory." in content
+        assert "${CLAUDE_PLUGIN_ROOT}/<repo-relative-path>" in content
+        # Note sits between the intro description line and the table
+        assert content.index("# Scripts Scripts") \
+            < content.index("Paths below are relative to this index's directory.") \
+            < content.index("| Link | Description |")
+
+    def test_second_run_leaves_file_untouched(self, tmp_path):
+        """Regenerating unchanged content writes nothing and prints nothing."""
+        scripts_dir = self._make_scripts_dir(tmp_path)
+        index_path = scripts_dir / "INDEX.md"
+
+        run_indexer("--dir", str(scripts_dir))
+        before = index_path.read_text()
+
+        stdout, _, rc = run_indexer("--dir", str(scripts_dir))
+        assert rc == 0
+        assert stdout.strip() == "", (
+            f"Second run should not report any written file, got: {stdout}"
+        )
+        assert index_path.read_text() == before
+
+    def test_created_date_preserved_and_content_change_bumps_last_updated(self, tmp_path):
+        """Existing created date survives regeneration; genuine changes bump
+        only last-updated."""
+        scripts_dir = self._make_scripts_dir(tmp_path)
+        index_path = scripts_dir / "INDEX.md"
+        today = date.today().isoformat()
+
+        run_indexer("--dir", str(scripts_dir))
+        # Simulate an older index by backdating both frontmatter dates.
+        backdated = (index_path.read_text()
+                     .replace(f"created: {today}", "created: 2020-01-01")
+                     .replace(f"last-updated: {today}", "last-updated: 2020-01-01"))
+        index_path.write_text(backdated)
+
+        # Unchanged content: file untouched, backdated created survives.
+        stdout, _, rc = run_indexer("--dir", str(scripts_dir))
+        assert rc == 0
+        assert stdout.strip() == ""
+        assert "created: 2020-01-01" in index_path.read_text()
+
+        # Genuine content change: regenerated with created preserved and
+        # last-updated bumped to today.
+        (scripts_dir / "extra.sh").write_text(
+            "#!/usr/bin/env bash\n# extra.sh -- An extra script\n"
+        )
+        stdout, _, rc = run_indexer("--dir", str(scripts_dir))
+        assert rc == 0
+        assert stdout.strip() != "", "Changed content should be rewritten"
+        content = index_path.read_text()
+        assert "created: 2020-01-01" in content
+        assert f"last-updated: {today}" in content
+        assert "[extra.sh](./extra.sh)" in content
