@@ -93,6 +93,23 @@ else
   sed -n '1,20p' "$tmpdir/xskill.out"
 fi
 
+# (b4) addition: same-line shell-keyword command positions fail (then / do)
+mkdir -p "$tmpdir/keywords/skills/test-skill"
+cat > "$tmpdir/keywords/skills/test-skill/SKILL.md" <<'MD'
+```bash
+if true; then scripts/foo.sh; fi
+for x in a; do scripts/bar.sh; done
+```
+MD
+run_gate "$tmpdir/keywords/skills" "$tmpdir/keywords.out"
+violations=$(grep -c 'unguarded script reference' "$tmpdir/keywords.out" || true)
+if [[ $rc -eq 1 ]] && [[ "$violations" -eq 2 ]]; then
+  ok "then/do same-line invocations flagged"
+else
+  die "shell-keyword command positions not flagged (rc=$rc, violations=$violations)"
+  sed -n '1,20p' "$tmpdir/keywords.out"
+fi
+
 # (c) fixture with ${CLAUDE_PLUGIN_ROOT} and ${CLAUDE_SKILL_DIR} prefixes passes
 mkdir -p "$tmpdir/guarded/skills/test-skill"
 cat > "$tmpdir/guarded/skills/test-skill/SKILL.md" <<'MD'
@@ -124,6 +141,24 @@ if [[ $rc -eq 0 ]]; then
 else
   die "\$SCRIPT_DIR references flagged (rc=$rc)"
   sed -n '1,20p' "$tmpdir/scriptdir.out"
+fi
+
+# (c3) addition: guarded references after shell keywords (then/do/else/elif) pass
+mkdir -p "$tmpdir/kwguarded/skills/test-skill"
+cat > "$tmpdir/kwguarded/skills/test-skill/SKILL.md" <<'MD'
+```bash
+if true; then "${CLAUDE_PLUGIN_ROOT}/scripts/foo.sh"; fi
+for x in a; do "${CLAUDE_SKILL_DIR}/scripts/bar.sh"; done
+if [ -f x ]; then "$SCRIPT_DIR/scripts/baz.sh"; else "$SCRIPT_DIR/scripts/qux.sh"; fi
+if false; then :; elif true; then "${CLAUDE_PLUGIN_ROOT}/scripts/elif.sh"; fi
+```
+MD
+run_gate "$tmpdir/kwguarded/skills" "$tmpdir/kwguarded.out"
+if [[ $rc -eq 0 ]]; then
+  ok "guarded references after shell keywords pass"
+else
+  die "guarded references after keywords flagged (rc=$rc)"
+  sed -n '1,20p' "$tmpdir/kwguarded.out"
 fi
 
 # (d) --script scripts/validate-*.py wrapper-arg exception passes

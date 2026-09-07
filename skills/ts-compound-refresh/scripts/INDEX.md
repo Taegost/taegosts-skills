@@ -5,7 +5,7 @@ status: active
 version: "1.0"
 created: 2026-07-09
 last-updated: 2026-09-07
-owner: wave-2-dispatch-index-automation
+owner: issue-90-ts-compound-refresh-port
 dependencies: []
 tags: [index, scripts]
 ---

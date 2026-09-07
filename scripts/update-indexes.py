@@ -9,8 +9,9 @@ with title (from first # heading) and description (from first paragraph).
 Delegates to scripts/index-scripts.py for script directory indexing.
 
 Regeneration is content-idempotent: an existing INDEX.md keeps its
-"created:" date, and is left completely untouched when the regenerated
-content differs only in the "last-updated:" line.
+"created:" date and its hand-maintained "owner:" field, and is left
+completely untouched when the regenerated content differs only in the
+"last-updated:" line.
 
 Usage:
     python3 scripts/update-indexes.py
@@ -39,6 +40,10 @@ RESOLUTION_NOTE = (
     "${CLAUDE_PLUGIN_ROOT}/<repo-relative-path>; on other platforms, resolve "
     "from the loaded skill directory or the taegosts-skills checkout."
 )
+
+# Frontmatter owner written when the existing INDEX.md carries none.
+# A pre-existing non-default owner is preserved across regeneration.
+DEFAULT_OWNER = "wave-2-dispatch-index-automation"
 
 
 def read_frontmatter_field(content: str, field: str) -> str | None:
@@ -228,7 +233,7 @@ def extract_extra_sections(existing: str) -> str | None:
 
 
 def generate_index_md(entries: list[dict], title: str, description: str,
-                      owner: str = "wave-2-dispatch-index-automation",
+                      owner: str = DEFAULT_OWNER,
                       created: str | None = None,
                       last_updated: str | None = None,
                       extra_sections: str | None = None) -> str:
@@ -238,7 +243,8 @@ def generate_index_md(entries: list[dict], title: str, description: str,
         entries: List of entry dicts (from collect_docs).
         title: Top-level heading text.
         description: Frontmatter description text.
-        owner: Plan or project identifier.
+        owner: Plan or project identifier (pass a pre-existing index's owner
+            to preserve it across regeneration).
         created: Frontmatter created date (defaults to today for new files).
         last_updated: Frontmatter last-updated date (defaults to today).
         extra_sections: Hand-maintained sections carried over from the
@@ -327,9 +333,9 @@ def process_directory(directory: Path, repo_root: Path,
                       dry_run: bool = False) -> Path | None:
     """Scan a docs directory and generate its INDEX.md.
 
-    Idempotent: an existing INDEX.md keeps its "created:" date, and is left
-    completely untouched when the regenerated content differs only in the
-    "last-updated:" line.
+    Idempotent: an existing INDEX.md keeps its "created:" date and its
+    hand-maintained "owner:" field, and is left completely untouched when
+    the regenerated content differs only in the "last-updated:" line.
 
     Returns the path to the written INDEX.md, or None if nothing to index or
     nothing changed.
@@ -351,8 +357,11 @@ def process_directory(directory: Path, repo_root: Path,
 
     created = (read_frontmatter_field(existing, "created")
                if existing else None) or date.today().isoformat()
+    owner = (read_frontmatter_field(existing, "owner")
+             if existing else None) or DEFAULT_OWNER
     extra_sections = extract_extra_sections(existing) if existing else None
     content = generate_index_md(entries, title, description,
+                                owner=owner,
                                 created=created,
                                 last_updated=date.today().isoformat(),
                                 extra_sections=extra_sections)

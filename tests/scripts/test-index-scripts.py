@@ -10,9 +10,12 @@ Tests:
 - Emits the script path resolution note
 - Regeneration is content-idempotent (created-date preservation, no-op on
   unchanged content)
+- A hand-maintained non-default "owner:" frontmatter field survives
+  regeneration
 """
 
 import json
+import re
 import subprocess
 import sys
 from datetime import date
@@ -281,5 +284,50 @@ class TestResolutionNoteAndIdempotency:
         assert stdout.strip() != "", "Changed content should be rewritten"
         content = index_path.read_text()
         assert "created: 2020-01-01" in content
+        assert f"last-updated: {today}" in content
+        assert "[extra.sh](./extra.sh)" in content
+
+
+class TestOwnerPreservation:
+    """A hand-maintained non-default owner survives regeneration."""
+
+    def _make_scripts_dir(self, tmp_path):
+        scripts_dir = tmp_path / "scripts"
+        scripts_dir.mkdir()
+        (scripts_dir / "test-script.sh").write_text(
+            "#!/usr/bin/env bash\n# test-script.sh -- A test script\n"
+        )
+        return scripts_dir
+
+    def test_existing_owner_preserved_and_content_change_keeps_it(self, tmp_path):
+        """A pre-existing non-default owner field survives regeneration,
+        both on a no-op re-run and after genuine content changes."""
+        scripts_dir = self._make_scripts_dir(tmp_path)
+        index_path = scripts_dir / "INDEX.md"
+        today = date.today().isoformat()
+
+        run_indexer("--dir", str(scripts_dir))
+        # Hand-set a non-default owner the way a plan-indexing pass would.
+        hand_set = re.sub(r"(?m)^owner: .*$",
+                          "owner: issue-90-ts-compound-refresh-port",
+                          index_path.read_text())
+        index_path.write_text(hand_set)
+
+        # Unchanged content: file untouched, hand-set owner survives.
+        stdout, _, rc = run_indexer("--dir", str(scripts_dir))
+        assert rc == 0
+        assert stdout.strip() == ""
+        assert "owner: issue-90-ts-compound-refresh-port" in index_path.read_text()
+
+        # Genuine content change: rewritten with the owner preserved and
+        # last-updated bumped to today.
+        (scripts_dir / "extra.sh").write_text(
+            "#!/usr/bin/env bash\n# extra.sh -- An extra script\n"
+        )
+        stdout, _, rc = run_indexer("--dir", str(scripts_dir))
+        assert rc == 0
+        assert stdout.strip() != "", "Changed content should be rewritten"
+        content = index_path.read_text()
+        assert "owner: issue-90-ts-compound-refresh-port" in content
         assert f"last-updated: {today}" in content
         assert "[extra.sh](./extra.sh)" in content

@@ -14,9 +14,11 @@
 # skills/<name>/scripts/<name>.sh|py that is not prefixed on the same token by
 # ${CLAUDE_PLUGIN_ROOT}, ${CLAUDE_SKILL_DIR}, or $SCRIPT_DIR. Command position
 # means: start of line, or directly after |, ;, &, (, !, or a backtick, or as
-# the argv of bash/sh/python/python3, or directly after a markdown list marker.
-# Prose code spans that only mention a script by name (fully wrapped in
-# backticks, e.g. "Support Files" bullets) are not invocations and pass.
+# the argv of bash/sh/python/python3, or directly after a shell keyword that
+# introduces a command (then, do, else, elif), or directly after a markdown
+# list marker. Prose code spans that only mention a script by name (fully
+# wrapped in backticks, e.g. "Support Files" bullets) are not invocations and
+# pass.
 #
 # Whitelisted exceptions (explicit):
 #   1. --script <path> argument values of run-bundled-validator.sh invocations
@@ -114,6 +116,13 @@ is_command_position() {
   lastword="${rt##*[[:space:]]}"
   case "$lastword" in
     bash | sh | python | python3) return 0 ;;
+  esac
+  # Shell keywords that introduce a command on the same line:
+  #   "if true; then scripts/foo.sh; fi"
+  #   "for x in a; do scripts/bar.sh; done"
+  #   "...; else scripts/baz.sh" / "...; elif scripts/qux.sh; then"
+  case "$lastword" in
+    then | do | else | elif) return 0 ;;
   esac
   return 1
 }

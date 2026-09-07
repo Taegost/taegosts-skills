@@ -10,8 +10,9 @@ R3 frontmatter formats:
   Python (.py): first line of module docstring (after shebang)
 
 Regeneration is content-idempotent: an existing INDEX.md keeps its
-"created:" date, and is left completely untouched when the regenerated
-content differs only in the "last-updated:" line.
+"created:" date and its hand-maintained "owner:" field, and is left
+completely untouched when the regenerated content differs only in the
+"last-updated:" line.
 
 Usage:
     python3 scripts/index-scripts.py
@@ -39,6 +40,10 @@ RESOLUTION_NOTE = (
     "${CLAUDE_PLUGIN_ROOT}/<repo-relative-path>; on other platforms, resolve "
     "from the loaded skill directory or the taegosts-skills checkout."
 )
+
+# Frontmatter owner written when the existing INDEX.md carries none.
+# A pre-existing non-default owner is preserved across regeneration.
+DEFAULT_OWNER = "wave-2-dispatch-index-automation"
 
 
 def read_frontmatter_field(content: str, field: str) -> str | None:
@@ -203,7 +208,7 @@ def scan_scripts(directory: Path) -> list[dict]:
 
 def generate_index_md(scripts: list[dict], title: str, description: str,
                       rel_dir: Path,
-                      owner: str = "wave-2-dispatch-index-automation",
+                      owner: str = DEFAULT_OWNER,
                       created: str | None = None,
                       last_updated: str | None = None) -> str:
     """Generate INDEX.md content in R3/R8 format.
@@ -213,7 +218,8 @@ def generate_index_md(scripts: list[dict], title: str, description: str,
         title: Top-level heading text.
         description: Frontmatter description text.
         rel_dir: Directory relative to repo root (for link paths).
-        owner: Plan or project identifier.
+        owner: Plan or project identifier (pass a pre-existing index's owner
+            to preserve it across regeneration).
         created: Frontmatter created date (defaults to today for new files).
         last_updated: Frontmatter last-updated date (defaults to today).
 
@@ -260,9 +266,9 @@ def process_directory(directory: Path, title: str, description: str,
                       dry_run: bool = False) -> Path | None:
     """Scan a directory and generate its INDEX.md.
 
-    Idempotent: an existing INDEX.md keeps its "created:" date, and is left
-    completely untouched when the regenerated content differs only in the
-    "last-updated:" line.
+    Idempotent: an existing INDEX.md keeps its "created:" date and its
+    hand-maintained "owner:" field, and is left completely untouched when
+    the regenerated content differs only in the "last-updated:" line.
 
     Returns the path to the written INDEX.md, or None if no scripts found or
     nothing changed.
@@ -282,7 +288,10 @@ def process_directory(directory: Path, title: str, description: str,
 
     created = (read_frontmatter_field(existing, "created")
                if existing else None) or date.today().isoformat()
+    owner = (read_frontmatter_field(existing, "owner")
+             if existing else None) or DEFAULT_OWNER
     content = generate_index_md(scripts, title, description, directory,
+                                owner=owner,
                                 created=created,
                                 last_updated=date.today().isoformat())
 

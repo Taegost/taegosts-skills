@@ -12,9 +12,12 @@ Tests:
 - Emits the script path resolution note
 - Regeneration is content-idempotent (created-date preservation, no-op on
   unchanged content)
+- A hand-maintained non-default "owner:" frontmatter field survives
+  regeneration
 """
 
 import importlib.util
+import re
 import subprocess
 import sys
 from datetime import date
@@ -273,6 +276,49 @@ class TestResolutionNoteAndIdempotency:
         assert stdout.strip() != "", "Changed content should be rewritten"
         content = index_path.read_text()
         assert "created: 2020-01-01" in content
+        assert f"last-updated: {today}" in content
+        assert "[extra.md](./extra.md)" in content
+
+
+class TestOwnerPreservation:
+    """A hand-maintained non-default owner survives regeneration."""
+
+    def _make_docs_dir(self, tmp_path):
+        docs_dir = tmp_path / "docs" / "standards"
+        docs_dir.mkdir(parents=True)
+        (docs_dir / "example.md").write_text(
+            "# Example Standard\n\nThis is an example standard document.\n"
+        )
+        return docs_dir
+
+    def test_existing_owner_preserved_and_content_change_keeps_it(self, tmp_path):
+        """A pre-existing non-default owner field survives regeneration,
+        both on a no-op re-run and after genuine content changes."""
+        docs_dir = self._make_docs_dir(tmp_path)
+        index_path = docs_dir / "INDEX.md"
+        today = date.today().isoformat()
+
+        run_updater("--dir", str(docs_dir))
+        # Hand-set a non-default owner the way a plan-indexing pass would.
+        hand_set = re.sub(r"(?m)^owner: .*$",
+                          "owner: issue-90-ts-compound-refresh-port",
+                          index_path.read_text())
+        index_path.write_text(hand_set)
+
+        # Unchanged content: file untouched, hand-set owner survives.
+        stdout, _, rc = run_updater("--dir", str(docs_dir))
+        assert rc == 0
+        assert stdout.strip() == ""
+        assert "owner: issue-90-ts-compound-refresh-port" in index_path.read_text()
+
+        # Genuine content change: rewritten with the owner preserved and
+        # last-updated bumped to today.
+        (docs_dir / "extra.md").write_text("# Extra\n\nExtra content.\n")
+        stdout, _, rc = run_updater("--dir", str(docs_dir))
+        assert rc == 0
+        assert stdout.strip() != "", "Changed content should be rewritten"
+        content = index_path.read_text()
+        assert "owner: issue-90-ts-compound-refresh-port" in content
         assert f"last-updated: {today}" in content
         assert "[extra.md](./extra.md)" in content
 
