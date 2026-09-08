@@ -39,6 +39,7 @@ Paths below are relative to this index's directory. On Claude Code marketplace i
 | [run-bundled-validator.sh](./run-bundled-validator.sh) | Resolve and run a skill's bundled validator script, or report it unavailable |
 | [run-id.sh](./run-id.sh) | Generate a timestamp-hex run ID |
 | [run-shellcheck.sh](./run-shellcheck.sh) | Run shellcheck on all shell scripts in the repository |
+| [run-test-suites.sh](./run-test-suites.sh) | Run every bash test suite and bats file, aggregating failures |
 | [solutions-search.sh](./solutions-search.sh) | Search docs/solutions/ for matching conventions |
 | [sync-taegosts-skills.sh](./sync-taegosts-skills.sh) | Maintain a persistent clone and sync taegosts-skills |
 | [to-json.sh](./to-json.sh) | Safe JSON output for bash scripts |
