@@ -13,6 +13,11 @@ Regeneration is content-idempotent: an existing INDEX.md keeps its
 completely untouched when the regenerated content differs only in the
 "last-updated:" line.
 
+Hand-maintained content between the resolution note and the link table,
+and any content after the table, is preserved across regeneration. A
+generated-looking INDEX.md without a link table aborts regeneration
+with a diagnostic instead of being silently overwritten.
+
 Usage:
     python3 scripts/update-indexes.py
     python3 scripts/update-indexes.py --dry-run
@@ -32,46 +37,23 @@ import sys
 from datetime import date
 from pathlib import Path
 
-# Resolution note emitted after the intro line of every generated INDEX.md.
-# Plain constant (not an f-string) so the ${...} substitution syntax survives.
-RESOLUTION_NOTE = (
-    "Paths below are relative to this index's directory. On Claude Code "
-    "marketplace installs, resolve them through "
-    "${CLAUDE_PLUGIN_ROOT}/<repo-relative-path>; on other platforms, resolve "
-    "from the loaded skill directory or the taegosts-skills checkout."
+# Import bootstrap: the generators run as standalone scripts, so
+# scripts/lib/ is not on sys.path. Mirror how shell scripts source lib/
+# by adding this script's own lib/ directory before the shared-module
+# import below.
+_LIB_DIR = str(Path(__file__).resolve().parent / "lib")
+if _LIB_DIR not in sys.path:
+    sys.path.insert(0, _LIB_DIR)
+
+from index_common import (
+    DEFAULT_OWNER,
+    RESOLUTION_NOTE,
+    TABLE_HEADER,
+    IndexStructureError,
+    differs_only_by_last_updated,
+    extract_extra_sections,
+    read_frontmatter_field,
 )
-
-# Frontmatter owner written when the existing INDEX.md carries none.
-# A pre-existing non-default owner is preserved across regeneration.
-DEFAULT_OWNER = "wave-2-dispatch-index-automation"
-
-
-def read_frontmatter_field(content: str, field: str) -> str | None:
-    """Read a scalar field value from a YAML frontmatter block.
-
-    Returns the stripped value, or None if no frontmatter or field is absent.
-    """
-    match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
-    if not match:
-        return None
-    for line in match.group(1).splitlines():
-        stripped = line.strip()
-        if stripped.startswith(f"{field}:"):
-            return stripped.split(":", 1)[1].strip().strip('"').strip("'")
-    return None
-
-
-def differs_only_by_last_updated(existing: str, generated: str) -> bool:
-    """True when generated matches existing except for the last-updated line.
-
-    Used to keep regeneration content-idempotent: a re-run that would only
-    bump the date leaves the file completely untouched.
-    """
-    def normalize(text: str) -> str:
-        return re.sub(r"(?m)^last-updated: .*$", "last-updated: <normalized>",
-                      text)
-
-    return normalize(existing) == normalize(generated)
 
 
 def extract_title(filepath: Path) -> str | None:
@@ -207,36 +189,12 @@ def collect_docs(directory: Path) -> list[dict]:
     return entries
 
 
-def extract_extra_sections(existing: str) -> str | None:
-    """Extract hand-maintained sections from an existing INDEX.md.
-
-    The generators own the frontmatter, H1, intro line, resolution note, and
-    the link table. Any `## ` section between the intro block and the table
-    header is hand-maintained content that regeneration must preserve
-    (e.g. docs/standards/INDEX.md's "Relationship to ..." sections).
-
-    Returns the verbatim section text (no leading/trailing blank lines), or
-    None when the existing file carries no such sections.
-    """
-    lines = existing.splitlines()
-    table_idx = next(
-        (i for i, ln in enumerate(lines) if ln.startswith("| Link |")), None)
-    if table_idx is None:
-        return None
-    head_idx = next(
-        (i for i, ln in enumerate(lines[:table_idx]) if ln.startswith("## ")),
-        None)
-    if head_idx is None:
-        return None
-    section = "\n".join(lines[head_idx:table_idx]).rstrip()
-    return section or None
-
-
 def generate_index_md(entries: list[dict], title: str, description: str,
                       owner: str = DEFAULT_OWNER,
                       created: str | None = None,
                       last_updated: str | None = None,
-                      extra_sections: str | None = None) -> str:
+                      extra_sections: str | None = None,
+                      trailing_content: str | None = None) -> str:
     """Generate INDEX.md content in R3/R8 format.
 
     Args:
@@ -247,9 +205,11 @@ def generate_index_md(entries: list[dict], title: str, description: str,
             to preserve it across regeneration).
         created: Frontmatter created date (defaults to today for new files).
         last_updated: Frontmatter last-updated date (defaults to today).
-        extra_sections: Hand-maintained sections carried over from the
+        extra_sections: Hand-maintained content carried over from the
             existing INDEX.md, inserted between the resolution note and the
             link table.
+        trailing_content: Hand-maintained content carried over from after
+            the existing link table, appended after the regenerated rows.
 
     Returns:
         Markdown content string.
@@ -283,7 +243,7 @@ def generate_index_md(entries: list[dict], title: str, description: str,
         lines.extend([extra_sections, ""])
 
     lines.extend([
-        "| Link | Description |",
+        TABLE_HEADER,
         "|------|-------------|",
     ])
 
@@ -302,7 +262,10 @@ def generate_index_md(entries: list[dict], title: str, description: str,
             link_path = f"./{name}"
         lines.append(f"| [{name}]({link_path}) | {desc} |")
 
-    lines.append("")  # trailing newline
+    if trailing_content:
+        lines.extend(["", trailing_content, ""])
+    else:
+        lines.append("")  # trailing newline
     return "\n".join(lines)
 
 
@@ -336,6 +299,12 @@ def process_directory(directory: Path, repo_root: Path,
     Idempotent: an existing INDEX.md keeps its "created:" date and its
     hand-maintained "owner:" field, and is left completely untouched when
     the regenerated content differs only in the "last-updated:" line.
+    Hand-maintained content between the resolution note and the link
+    table, and any content after the table, is carried over unchanged.
+
+    Aborts the run (diagnostic on stderr, exit 1, no write) when the
+    existing INDEX.md looks generator-maintained but has no link table,
+    since its hand-maintained content could not be safely preserved.
 
     Returns the path to the written INDEX.md, or None if nothing to index or
     nothing changed.
@@ -359,12 +328,20 @@ def process_directory(directory: Path, repo_root: Path,
                if existing else None) or date.today().isoformat()
     owner = (read_frontmatter_field(existing, "owner")
              if existing else None) or DEFAULT_OWNER
-    extra_sections = extract_extra_sections(existing) if existing else None
+    extra_sections = trailing_content = None
+    if existing:
+        try:
+            extra_sections, trailing_content = extract_extra_sections(existing)
+        except IndexStructureError as e:
+            print(f"Error: refusing to regenerate {index_path}: {e}",
+                  file=sys.stderr)
+            sys.exit(1)
     content = generate_index_md(entries, title, description,
                                 owner=owner,
                                 created=created,
                                 last_updated=date.today().isoformat(),
-                                extra_sections=extra_sections)
+                                extra_sections=extra_sections,
+                                trailing_content=trailing_content)
 
     if dry_run:
         print(f"[dry-run] Would write {index_path}", file=sys.stderr)

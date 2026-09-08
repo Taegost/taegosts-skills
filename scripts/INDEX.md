@@ -4,7 +4,7 @@ description: "Index of all scripts in scripts/."
 status: active
 version: "1.0"
 created: 2026-07-08
-last-updated: 2026-09-07
+last-updated: 2026-09-08
 owner: wave-2-dispatch-index-automation
 dependencies: []
 tags: [index, scripts]
@@ -30,6 +30,7 @@ Paths below are relative to this index's directory. On Claude Code marketplace i
 | [git-context.sh](./git-context.sh) | Produce a unified git state snapshot as JSON |
 | [git-default-branch.sh](./git-default-branch.sh) | Resolve repo root and default branch. |
 | [index-scripts.py](./index-scripts.py) | Generate INDEX.md files for script directories. |
+| [lib/index_common.py](./lib/index_common.py) | Shared helpers for the INDEX.md generators. |
 | [lib/input-validation.sh](./lib/input-validation.sh) | Provide sourceable validation helpers for GitHub API interactions (metacharacter checks, gh CLI/auth checks, format validators) |
 | [load-dispatch-standards.sh](./load-dispatch-standards.sh) | Sourceable validation library for dispatch pattern standards |
 | [locate-plan.py](./locate-plan.py) | Non-interactive plan location script. |

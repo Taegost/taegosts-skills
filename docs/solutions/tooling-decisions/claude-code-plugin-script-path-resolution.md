@@ -1,7 +1,6 @@
 ---
 title: "Claude Code plugin script path resolution"
 date: 2026-09-07
-last_updated: 2026-09-07
 category: docs/solutions/tooling-decisions
 module: claude-code-plugins
 problem_type: tooling_decision
@@ -38,7 +37,7 @@ Marketplace installs copy the entire plugin root (the repo root; `.claude-plugin
 
 The actual root cause is path resolution. Skill bodies invoked scripts with bare CWD-relative paths (`scripts/context-gather.sh`), and at skill-execution time the Bash tool's CWD is the **user's project**, not the cache directory. A bare `scripts/context-gather.sh` therefore resolves to `<user-project>/scripts/context-gather.sh`, which does not exist.
 
-A prior research effort had reached the opposite conclusion. `docs/plans/2026-06-22-003-research-plugin-cache-behavior-plan.md` recorded that "relative conventions still hold" inside the plugin cache. That conclusion failed because it reasoned about cache **layout** (where the files land) rather than execution-time **CWD** (where commands actually run). The plan now carries a dated Correction section that preserves the original text and states the correct mechanism — the documentation gap it left open is what allowed Issue #115 to surface months later.
+A prior research effort never reached a conclusion at all. `docs/plans/2026-06-22-003-research-plugin-cache-behavior-plan.md` never posed the cache-path question — whether the repo's relative path conventions still hold when skills execute outside the repo — so it went unasked and unanswered. Its evidence stopped at cache **layout** (where the files land) without reaching execution-time **CWD** (where commands actually run), so CWD-relative references kept shipping in the meantime. The plan now carries a dated Correction section that preserves the original text and states the correct mechanism — the documentation gap it left open is what allowed Issue #115 to surface months later.
 
 The repository already contained a partial version of the fix, which is what made the correct diagnosis visible: `skills/ts-compound/SKILL.md`'s session-history blocks used `${CLAUDE_SKILL_DIR}` guards, and `scripts/run-bundled-validator.sh` (added during the Issue #109 work) existed precisely to bridge this CWD mismatch for skill-local validators. Neither covered the shared `scripts/` tier or most skill-local scripts, which were still invoked bare.
 
@@ -72,7 +71,7 @@ One case needed more than a prefix swap. Phase 0 of `skills/ts-coding-workflow/S
 
 ### Rollout and verification
 
-The rewrite covered four inventories from the fix plan (`docs/plans/2026-09-07-001-fix-plugin-script-resolution-plan.md`): bare shared-tier refs (Inventory A), root-relative skill-local and cross-skill refs including INDEX-pointer prose (Inventory B), `../../scripts/` escapes in the ts-commit/ts-commit-push-pr fallback sections — which in the cache layout resolve to `~/.claude/plugins/scripts/`, outside the plugin root entirely (Inventory C) — and the PATH bootstrap (Inventory D). Sixteen skill files changed in commit `d27ebc4`, plus the exec bit on `run-bundled-validator.sh` that the now-direct invocations require.
+The rewrite covered four inventories from the fix plan (`docs/plans/2026-09-07-001-fix-plugin-script-resolution-plan.md`): bare shared-tier refs (Inventory A), root-relative skill-local and cross-skill refs including INDEX-pointer prose (Inventory B), `../../scripts/` escapes in the ts-commit/ts-commit-push-pr fallback sections — which in the cache layout resolve to `~/.claude/plugins/scripts/`, outside the plugin root entirely (Inventory C) — and the PATH bootstrap (Inventory D). Fifteen skill files changed in commit `d27ebc4`, plus the exec bit on `run-bundled-validator.sh` that the now-direct invocations require.
 
 Verification ran as a two-cycle `ts-do-work-loop` with four parallel verifiers. Round 1 surfaced four minors — a gate keyword blind spot, an unquoted `${CLAUDE_PLUGIN_ROOT}` expansion, an `owner:` frontmatter clobber by index regeneration, and a missing validator test for the generated-note case — all remediated in commit `910cc74`; the re-verify pass came back clean. The cache simulation from the plan (run a previously-bare invocation from an unrelated CWD with `CLAUDE_PLUGIN_ROOT` pointed at the real cache dir; then unset the variable and confirm the visible guard message) is the manual end-to-end check worth repeating after future path changes.
 
@@ -82,7 +81,7 @@ The fix targets the correct layer. Distribution was never broken — the cache c
 
 The guard requirement matters as much as the substitution itself. A script reference that fails silently — a step quietly skipped when the variable is unset — degrades the skill's behavior without any signal, which is worse than a visible error on a platform difference. Failing visibly turns "this platform didn't expose the script" into an actionable message.
 
-Finally, the diagnostic lesson generalizes: the earlier "relative conventions still hold" conclusion was confidently wrong because it inferred runtime behavior from file layout. Any conclusion of the form "the paths will resolve" needs to ask *what directory will the process be in when it runs*, not *where did the files get copied*. The dated-correction pattern (append a Correction section, preserve the original text) keeps the research history honest without rewriting it.
+Finally, the diagnostic lesson generalizes: the research's cache-path question went unanswered because its evidence stopped at file layout and never tested runtime behavior — there was no wrong conclusion to catch, only a question left open. Any claim of the form "the paths will resolve" needs to ask *what directory will the process be in when it runs*, not *where did the files get copied*. The dated-correction pattern (append a Correction section, preserve the original text) keeps the research history honest without rewriting it.
 
 ## When to Apply
 
@@ -167,10 +166,10 @@ New gate `scripts/verify-script-refs.sh` makes the convention mechanically enfor
 
 - **Scans** `skills/*/SKILL.md` and `skills/*/references/**/*.md`; `INDEX.md` files are skipped as generator-owned listings, and `skills/*/scripts/*.sh` internals are out of scope (`$SCRIPT_DIR` is correct there).
 - **Flags** command-position references to `scripts/<name>.sh|.py` or `skills/<name>/scripts/<name>.sh|.py` that are not prefixed on the same token by `${CLAUDE_PLUGIN_ROOT}`, `${CLAUDE_SKILL_DIR}`, or `$SCRIPT_DIR`, reporting `file:line` per violation.
-- **Command position** means start of line; directly after `|`, `;`, `&`, `(`, `!`, or a backtick; after a markdown list marker; as the argv of `bash`/`sh`/`python`/`python3`; after `$(`; or after the shell keywords `then`/`do`/`else`/`elif` (so `if true; then scripts/foo.sh; fi` is caught). The keyword set was a round-1 remediation — the initial version missed same-line keyword invocations.
-- **Passes** prose code spans that only mention a script by name (fully wrapped in backticks, e.g. "Support Files" bullets) and existence-test arguments like `[ -f "$candidate/scripts/context-gather.sh" ]`; the `!`-prefilled exec form is a real invocation and does not get the prose exemption.
-- **Whitelists** exactly the three intentional exceptions above: `--script` wrapper arguments, the ts-compound `git rev-parse --show-toplevel` lines, and `$SCRIPT_DIR`-prefixed references.
-- **Wired into** `.pre-commit-config.yaml` (`always_run`, alongside `update-indexes` and `shellcheck`) and covered by 16 R4 tests in `tests/scripts/test-verify-script-refs.sh`, which exercise violation shapes, guarded shapes, each whitelist, and the error paths.
+- **Command position** is decided by a denylist: every preceding word defaults to a command position (so `sudo`, `xargs`, `time`, `nohup`, `find -exec`, and other launchers are caught), and the only exemptions are non-execution shapes — line-initial prose, markdown list markers, flag/option argument position (`cp -r scripts/foo.sh dst`, `[ -f scripts/foo.sh ]`), and quote-stripped separators. Leading `VAR=value` assignment words are consumed before classification, so `MODE=test scripts/foo.sh` is caught.
+- **Reports** backtick-quoted script references as advisories (`file:line` + token) instead of silently passing them: the gate exits 0, and the model running it judges each advisory line as mention-only or invocation. The `!`-prefilled exec form is a real invocation and stays on the violation path.
+- **Whitelists** exactly the three intentional exceptions above: `--script` wrapper arguments of actual `run-bundled-validator.sh` invocations (separator-free, double-dash only), the ts-compound `git rev-parse --show-toplevel` lines, and `$SCRIPT_DIR`-prefixed references.
+- **Wired into** `.pre-commit-config.yaml` (`always_run`, alongside `update-indexes` and `shellcheck`) and covered by 24 R4 tests in `tests/scripts/test-verify-script-refs.sh`, which exercise violation shapes, guarded shapes, each whitelist, advisories, and the error paths.
 
 ## Secondary learning: idempotent index regeneration
 
@@ -195,7 +194,7 @@ Recorded so they are not misattributed to this branch:
 
 - [Script Extraction Standards](../../standards/script-extraction-standards.md) — canonical rule ("Script path resolution")
 - [Plan: fix plugin script resolution](../../plans/2026-09-07-001-fix-plugin-script-resolution-plan.md) — the fix plan that produced this pattern (inventories A–D, verification steps)
-- [Research: Plugin Cache and Reload Behavior](../../plans/2026-06-22-003-research-plugin-cache-behavior-plan.md) — carries the dated correction of its earlier "relative conventions hold" conclusion
+- [Research: Plugin Cache and Reload Behavior](../../plans/2026-06-22-003-research-plugin-cache-behavior-plan.md) — carries a dated correction answering the cache-path question the research never posed
 - [Claude Code Plugin Repository Structure](claude-code-plugin-repository-structure.md) — plugin layout and installation mechanics
 - `scripts/run-bundled-validator.sh` — the wrapper pattern this guidance extends (Issue #109)
 - Issue #115 — the marketplace-install failure this resolves

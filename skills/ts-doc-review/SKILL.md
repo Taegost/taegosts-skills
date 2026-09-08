@@ -136,11 +136,19 @@ If the security-lens Kubernetes signal fired above (the document mentions Deploy
 **Script resolution.** `${CLAUDE_SKILL_DIR}` (this skill's directory) and `${CLAUDE_PLUGIN_ROOT}` (the plugin's install directory, for shared-tier scripts like `wait-for-file.sh`) are substituted at skill-load time on Claude Code, so these paths work regardless of the Bash tool's working directory. On platforms where the variables arrive unsubstituted, resolve the scripts from the loaded skill directory or from a taegosts-skills checkout. If still unresolvable, say so visibly and use the documented manual fallback — never silently skip.
 
 ```bash
-python3 "${CLAUDE_SKILL_DIR}/scripts/check-credentials-in-configmaps.py" .
-"${CLAUDE_SKILL_DIR}/scripts/check-networkpolicy-selectors.sh" .
+if [[ -f "${CLAUDE_SKILL_DIR}/scripts/check-credentials-in-configmaps.py" ]]; then
+  python3 "${CLAUDE_SKILL_DIR}/scripts/check-credentials-in-configmaps.py" .
+else
+  echo "check-credentials-in-configmaps.py not resolvable on this platform — K8s credentials scan unavailable; say so visibly and use the documented manual fallback. Never treat this as a clean scan." >&2
+fi
+if [[ -f "${CLAUDE_SKILL_DIR}/scripts/check-networkpolicy-selectors.sh" ]]; then
+  "${CLAUDE_SKILL_DIR}/scripts/check-networkpolicy-selectors.sh" .
+else
+  echo "check-networkpolicy-selectors.sh not resolvable on this platform — NetworkPolicy scan unavailable; say so visibly and use the documented manual fallback. Never treat this as a clean scan." >&2
+fi
 ```
 
-Both scripts scan the target repo on disk for `kind: ConfigMap` / `kind: NetworkPolicy` manifests — not the document's prose — so they surface issues in the actual manifest files the document discusses touching, not just what the document's text claims. Exit code 0 means findings exist (read the JSON on stdout); exit code 2 means the scan ran clean; exit code 1 means an error (missing/unreadable directory, bad input) — treat a `1` as "scan unavailable," not as a finding, and do not block the review on it.
+Both scripts scan the target repo on disk for `kind: ConfigMap` / `kind: NetworkPolicy` manifests — not the document's prose — so they surface issues in the actual manifest files the document discusses touching, not just what the document's text claims. Exit code 0 means findings exist (read the JSON on stdout); exit code 2 means the scan ran clean; exit code 1 means an error (missing/unreadable directory, bad input) — treat a `1` as "scan unavailable," not as a finding, and do not block the review on it. These exit codes apply only when a script actually runs: the guards above check each path before invoking, so an unresolvable `${CLAUDE_SKILL_DIR}` prints its notice to stderr and produces no exit code at all — it can never be mistaken for the exit-2 "ran clean" case.
 
 Pass any findings to security-lens-reviewer via the `{supplementary_context}` slot in its bootstrap prompt (see `references/subagent-bootstrap.md`), the same mechanism used for the feasibility reviewer's convention excerpts above. Skip this step entirely when the Kubernetes signal did not fire — these scripts are Kubernetes-specific and would just add noise on any other document.
 

@@ -21,7 +21,7 @@ The issue title assumes the scripts "are not being put into the plugin cache." T
 1. **Scripts ARE in the plugin cache.** Marketplace installs copy the entire plugin root (the repo root — `.claude-plugin/marketplace.json` declares `source: "./"`) into `~/.claude/plugins/cache/taegosts-skills/taegosts-skills/<version>/`. Verified on this machine: `474b19e4f24b/scripts/` contains all shared scripts and `474b19e4f24b` is the current `origin/main` HEAD.
 2. **The bug is path resolution, not distribution.** Skill bodies invoke scripts as bare relative paths. At execution time the Bash tool's CWD is the user's project, so the reference misses the cache copy. The repo already documents this exact mechanism in `skills/ts-compound/SKILL.md` (Phase 2 step 8 note) and in the header of `scripts/run-bundled-validator.sh` (added via #109 work), which solved it for skill-local *validators* only — the shared tier and most skill-local scripts are still invoked bare.
 3. **Official mechanism** (Claude Code docs, "Available string substitutions" under skills): `${CLAUDE_PLUGIN_ROOT}` is substituted at skill-load time to the plugin's installation directory and is explicitly intended for "resources shared between the plugin's skills"; `${CLAUDE_SKILL_DIR}` resolves to the loaded skill's own directory. Both work regardless of CWD.
-4. `docs/plans/2026-06-22-003-research-plugin-cache-behavior-plan.md` concluded that "relative conventions still hold" in the cache — incorrect, because skills execute with CWD = user project, not the cache directory. This plan corrects that record.
+4. `docs/plans/2026-06-22-003-research-plugin-cache-behavior-plan.md` reached no conclusion about cache paths — it never posed the question of whether relative conventions survive execution outside the repo (its "Questions to Answer" section covers reload, source types, and local development), so the question went unasked and unanswered. The gap let bare CWD-relative references keep shipping even though skills execute with CWD = user project, not the cache directory. This plan closes that gap.
 
 ### Chosen strategy
 
@@ -101,7 +101,7 @@ Same-skill references → `${CLAUDE_SKILL_DIR}/scripts/...`; the one cross-skill
    - `docs/ROUTING.md` — manually maintained (not generator-owned; `validate-index-standards.py` grants it an R7 exception), so edit directly: add the same resolution note near the top.
    - Update generator tests for the template change: `tests/scripts/test-index-scripts.py`, `tests/scripts/test-update-indexes.py`, and `tests/test_validate_index_standards.py` (assert the note is present in generated output, not just tolerate it).
 7. **Docs corrections:**
-   - `docs/plans/2026-06-22-003-research-plugin-cache-behavior-plan.md` — correct the "relative conventions still hold" conclusion.
+   - `docs/plans/2026-06-22-003-research-plugin-cache-behavior-plan.md` — append a Correction section answering the cache-path question the research never posed.
    - `docs/solutions/tooling-decisions/claude-code-plugin-repository-structure.md` — add the script-reference rule (shared tier via `${CLAUDE_PLUGIN_ROOT}`, skill-local via `${CLAUDE_SKILL_DIR}`).
    - New solutions entry for the resolution pattern (via the `ts-compound` skill, per repo convention for non-trivial fixes).
 8. **Ship:** PR via `ts-commit-push-pr`; body carries the diagnosis summary and `Fixes #115`.
