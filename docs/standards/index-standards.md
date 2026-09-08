@@ -187,4 +187,4 @@ Before marking an INDEX.md as complete, verify:
 - [ ] All links validate with filesystem checks
 - [ ] Placement rules satisfied (2+ related files, not root, not archive)
 - [ ] No duplicate coverage with another INDEX.md
-- [ ] Follows R3 frontmatter standard
+- [ ] Follows the script frontmatter convention (`docs/standards/script-frontmatter-convention.md`)

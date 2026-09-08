@@ -170,11 +170,13 @@ gh auth status >/dev/null 2>&1 || { echo '{"ok":false,"error":"gh auth not confi
 
 ## 10. Documentation
 
-Each script must have:
+Each command script must have:
 
 - A header comment explaining purpose, input, output, and exit codes
 - A `--help` flag that prints usage information
 - Exit codes documented in the help text
+
+**Scope:** these rules apply to command scripts only. Files under `scripts/lib/` are exempt — they are sourced/imported libraries (`docs/standards/script-extraction-standards.md`, "The `scripts/lib/` shared-library tier") and are never invoked as commands, so they have no `--help` surface. `scripts/verify-scripts.sh` enforces this split: the full check set for command scripts, syntax and control-character checks only for `scripts/lib/`.
 
 ## 11. Shellcheck Configuration
 
