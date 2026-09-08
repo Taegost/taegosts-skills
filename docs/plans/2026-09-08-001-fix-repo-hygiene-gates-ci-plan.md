@@ -3,6 +3,7 @@ title: "fix: Repo hygiene — gate exemptions, test discovery, fleet compliance,
 type: fix
 date: 2026-09-08
 issue: 118
+status: completed
 ---
 
 # fix: Repo hygiene — gate exemptions, test discovery, fleet compliance, and CI enforcement (Issue #118)
