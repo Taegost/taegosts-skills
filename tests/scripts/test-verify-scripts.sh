@@ -192,6 +192,40 @@ else
   die "(i) hidden dir content leaked into dir-mode scan"
 fi
 
+# (j) dir mode on the bare repo root itself: invoked as `.` from inside a
+# fixture repo whose host path contains a /tests/ segment, the target
+# resolves to exactly REPO_ROOT — no trailing component — so the first
+# dir-mode case arm must match the bare root explicitly. Without that, control
+# falls through to the /tests/-segment inference arm, REL_BASE is stripped to
+# the host prefix before tests/, every scanned file classifies as tests/, and
+# the gate exits 0 having checked nothing (silent false green). With the arm
+# matching, REL_BASE is the fixture root and the planted failing command
+# script is reported as a normal failure. The fixture must be its own git
+# repo so REPO_ROOT resolves to the fixture root when the gate runs there.
+jfix="$tmpdir/jroot/tests/fixrepo"
+mkdir -p "$jfix/scripts"
+printf '#!/bin/bash\necho tool\n' > "$jfix/scripts/broken.sh"   # command script, no --help
+chmod +x "$jfix/scripts/broken.sh"
+git init -q "$jfix"
+output=$(cd "$jfix" && bash "$SCRIPT" . 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 1 ]] \
+   && echo "$output" | grep -q "FAIL: scripts/broken.sh: missing --help flag" \
+   && ! echo "$output" | grep -q "0 failures"; then
+  ok "(j) bare repo-root target under a host /tests/ path is checked, not skipped"
+else
+  die "(j) bare repo-root target skipped everything or misreported (rc=$rc)"
+fi
+
+# (j) companion: the same bare-root invocation on the real repo root must
+# still exit 0 — extending the first arm must not disturb the normal
+# `verify-scripts.sh .` invocation on a clean repo.
+output=$(cd "$REPO_ROOT" && bash "$SCRIPT" . 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 0 ]]; then
+  ok "(j) bare repo-root invocation on the real repo still passes"
+else
+  die "(j) bare repo-root invocation on the real repo broke (rc=$rc)"
+fi
+
 echo ""
 echo "Results: $pass passed, $fail failed"
 if [[ $fail -eq 0 ]]; then
