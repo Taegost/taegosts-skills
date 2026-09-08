@@ -22,6 +22,7 @@ Usage:
     python3 scripts/update-indexes.py
     python3 scripts/update-indexes.py --dry-run
     python3 scripts/update-indexes.py --dir docs/plans
+    python3 scripts/update-indexes.py --skip-scripts
 
 Exit codes:
     0 - Success (INDEX.md files generated or nothing to do)
@@ -440,6 +441,10 @@ def stage_generated_files(repo_root: Path, paths: list) -> None:
 
 
 def main():
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(__doc__.strip())
+        sys.exit(0)
+
     parser = argparse.ArgumentParser(
         description="Generate INDEX.md files for documentation directories.",
         epilog="""

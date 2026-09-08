@@ -3,7 +3,9 @@
 U14: detect-overlap.py - fuzzy overlap scoring for solutions
 Given a proposed solution title and tags, search existing solutions for overlap.
 
-Input: --title <string> --tags <comma-separated> --solutions-dir <path>
+Usage:
+    python3 detect-overlap.py --title <string> --tags <comma-separated> --solutions-dir <path>
+
 Output: JSON with {matches: [{path, overlap_score, matching_dimensions}]}
 Exit codes: 0 (matches found), 1 (error), 2 (no matches)
 """
@@ -112,6 +114,10 @@ def tag_overlap(a_tags, b_tags):
 
 
 def main():
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(__doc__.strip())
+        sys.exit(0)
+
     parser = argparse.ArgumentParser(
         description="Detect overlap between a proposed solution and existing solutions."
     )

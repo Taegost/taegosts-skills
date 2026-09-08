@@ -15,6 +15,28 @@
 
 set -euo pipefail
 
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    cat <<'EOF'
+Usage: sync-taegosts-skills.sh [--dry-run]
+
+Maintain a persistent clone of taegosts-skills at
+$HERMES_HOME/taegosts-skills/ and sync skills, scripts, and tests to
+$HERMES_HOME/skills/.
+
+Only overwrites files that exist in the repo. Does NOT delete skills
+installed from other sources.
+
+Options:
+  --dry-run    Report what would change without modifying anything
+
+Environment:
+  HERMES_HOME  Base directory (default: $HOME)
+
+Exit codes: 0 (success), non-zero (clone, fetch, or sync failure)
+EOF
+    exit 0
+fi
+
 HERMES_HOME="${HERMES_HOME:-$HOME}"
 REPO_URL="${SYNC_REPO_URL:-https://github.com/Taegost/taegosts-skills.git}"
 CLONE_DIR="$HERMES_HOME/taegosts-skills"

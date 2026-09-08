@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """Extract session metadata from Claude Code, Codex, Cursor, and Pi JSONL files.
 
-Batch mode (preferred — one invocation for all files):
+Usage:
   python3 extract-metadata.py /path/to/dir/*.jsonl
   python3 extract-metadata.py file1.jsonl file2.jsonl file3.jsonl
-
-Single-file mode (stdin):
   head -20 <session.jsonl> | python3 extract-metadata.py
+
+The first two forms are batch mode (preferred — one invocation for all
+files); the last is single-file stdin mode.
+
+Flags:
+  --cwd-filter <name-or-path>  Only emit sessions whose cwd matches the filter
+  --keyword <kw1,kw2>          Count case-insensitive keyword matches per file
 
 Auto-detects platform from the JSONL structure.
 Outputs one JSON object per file, one per line.
@@ -15,6 +20,10 @@ Includes a final _meta line with processing stats.
 import sys
 import json
 import os
+
+if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+    print(__doc__.strip())
+    sys.exit(0)
 
 MAX_LINES = 25  # Only need first ~25 lines for metadata
 

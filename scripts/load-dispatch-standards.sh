@@ -135,6 +135,25 @@ validate_dispatch_invocation() {
 main() {
     local action="${1:-}"
 
+    if [[ "$action" == "--help" || "$action" == "-h" ]]; then
+        cat <<'EOF'
+Usage: load-dispatch-standards.sh {get_rule <id> | validate <skill-path>}
+
+Sourceable validation library for dispatch pattern standards. Source it to
+get get_dispatch_rule() and validate_dispatch_invocation(); when invoked
+directly, it supports:
+
+  get_rule <rule-id>     Print a dispatch rule section by ID
+                         (e.g., "bootstrap-only", "no-subagent-spawning")
+  validate <skill-path>  Validate a skill file follows dispatch patterns
+                         (DS-002: no-subagent-spawning)
+
+Exit codes: 0 (success), 1 (rule not found, skill file missing, or
+violations found)
+EOF
+        return 0
+    fi
+
     case "$action" in
         get_rule)
             local rule_id="${2:-}"

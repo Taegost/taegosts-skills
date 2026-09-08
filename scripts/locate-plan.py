@@ -118,6 +118,10 @@ def find_plan_by_keywords(keywords: list[str], plans_dir: Path) -> list[str]:
 
 
 def main():
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(__doc__.strip())
+        sys.exit(0)
+
     # Get the explicit path argument (if any)
     explicit_path = sys.argv[1] if len(sys.argv) > 1 else None
 

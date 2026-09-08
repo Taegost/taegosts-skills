@@ -8,6 +8,21 @@
 # Output: JSON report of gaps found (or empty if no gaps).
 set -euo pipefail
 
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  echo "Usage: detect-coverage-gaps.sh [base_branch]"
+  echo ""
+  echo "Flag changed scripts that have no corresponding test file."
+  echo "Discovers changed files autonomously via git diff + git ls-files"
+  echo "(excluding worktree checkouts). No line threshold — if a script was"
+  echo "changed, it needs a test."
+  echo ""
+  echo "Output: JSON report of gaps found"
+  echo "({\"gaps\": [...], \"count\": N}; empty list when there are none)."
+  echo ""
+  echo "Exit codes: 0 (success), 2 (not a git repository)"
+  exit 0
+fi
+
 # Escape special characters for JSON string values.
 # Handles: backslash, double-quote, newline, tab, carriage return.
 # Limitation: filenames with control characters other than \n, \t, \r may produce

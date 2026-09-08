@@ -15,6 +15,25 @@
 
 set -euo pipefail
 
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    cat <<'EOF'
+Usage: discover-sessions.sh <repo-name> <days> [--cwd /abs/repo/root] [--platform claude|codex|cursor|pi]
+
+Discover session files across Claude Code, Codex, Cursor, and Pi.
+Outputs one file path per line. Safe in both bash and zsh (all globs guarded).
+
+Arguments:
+  repo-name   Folder name of the repo (e.g., "my-repo"). Used for directory matching.
+  days        Scan window in days (e.g., 7). Files older than this are skipped.
+  --cwd       Absolute repo root. Used for exact Pi encoded-CWD discovery.
+  --platform  Restrict to a single platform. Omit to search all.
+
+Exit codes: 0 (sessions listed, possibly none), 1 (unknown platform or
+missing required arguments)
+EOF
+    exit 0
+fi
+
 REPO_NAME="${1:?Usage: discover-sessions.sh <repo-name> <days> [--cwd /abs/repo/root] [--platform claude|codex|cursor|pi]}"
 DAYS="${2:?Usage: discover-sessions.sh <repo-name> <days> [--cwd /abs/repo/root] [--platform claude|codex|cursor|pi]}"
 PLATFORM="all"

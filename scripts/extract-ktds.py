@@ -148,6 +148,10 @@ def extract_ktds(section_content: str) -> list[dict]:
 
 
 def main():
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(__doc__.strip())
+        sys.exit(0)
+
     if len(sys.argv) < 2:
         print("Usage: python3 scripts/extract-ktds.py <plan-file>", file=sys.stderr)
         sys.exit(1)

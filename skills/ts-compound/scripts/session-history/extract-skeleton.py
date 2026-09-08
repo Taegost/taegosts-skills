@@ -29,6 +29,10 @@ import sys
 import json
 import re
 
+if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+    print(__doc__.strip())
+    sys.exit(0)
+
 parser = argparse.ArgumentParser(add_help=True)
 parser.add_argument(
     "--output",

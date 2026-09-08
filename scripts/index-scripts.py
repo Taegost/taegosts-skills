@@ -328,6 +328,10 @@ def process_directory(directory: Path, title: str, description: str,
 
 
 def main():
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(__doc__.strip())
+        sys.exit(0)
+
     parser = argparse.ArgumentParser(
         description="Generate INDEX.md files for script directories.",
         epilog="""
