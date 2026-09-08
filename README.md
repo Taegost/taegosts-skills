@@ -143,6 +143,7 @@ This repo uses [pre-commit](https://pre-commit.com/) to run checks automatically
    ```bash
    # Linux x86_64 (the variant CI installs; other platform tarballs are on the release page)
    curl -fsSL https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz -o /tmp/shellcheck.tar.xz
+   echo "6c881ab0698e4e6ea235245f22832860544f17ba386442fe7e9d629f8cbedf87  /tmp/shellcheck.tar.xz" | sha256sum -c -
    tar -xJf /tmp/shellcheck.tar.xz -C /tmp
    sudo mv /tmp/shellcheck-v0.10.0/shellcheck /usr/local/bin/shellcheck
    ```
