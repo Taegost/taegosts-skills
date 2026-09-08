@@ -271,6 +271,26 @@ else
   sed -n '1,20p' "$tmpdir/separator.out"
 fi
 
+# (d4) the wrapper exception requires the wrapper to be the invoked command:
+# run-bundled-validator.sh in argument position (after some-runner) does not
+# whitelist its --script argument; a real quoted-path invocation still passes
+mkdir -p "$tmpdir/wrapperargpos/skills/test-skill"
+cat > "$tmpdir/wrapperargpos/skills/test-skill/SKILL.md" <<'MD'
+```bash
+some-runner run-bundled-validator.sh --script scripts/foo.sh
+"${CLAUDE_PLUGIN_ROOT}/scripts/run-bundled-validator.sh" --skill-dir "${CLAUDE_SKILL_DIR}" --script scripts/validate-frontmatter.py -- docs/foo.md
+```
+MD
+run_gate "$tmpdir/wrapperargpos/skills" "$tmpdir/wrapperargpos.out"
+violations=$(grep -c 'unguarded script reference' "$tmpdir/wrapperargpos.out" || true)
+if [[ $rc -eq 1 ]] && [[ "$violations" -eq 1 ]] && grep -q 'scripts/foo\.sh' "$tmpdir/wrapperargpos.out" \
+   && ! grep -q 'scripts/validate-frontmatter\.py' "$tmpdir/wrapperargpos.out"; then
+  ok "argument-position wrapper mention flagged; quoted-path wrapper invocation whitelisted"
+else
+  die "wrapper command-word restriction wrong (rc=$rc, violations=$violations)"
+  sed -n '1,20p' "$tmpdir/wrapperargpos.out"
+fi
+
 # (e) prose mention of a script name in a bullet is an advisory, not a
 # violation: exit stays 0, the advisory names file:line and the token
 mkdir -p "$tmpdir/prose/skills/test-skill"

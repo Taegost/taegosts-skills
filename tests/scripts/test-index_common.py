@@ -201,6 +201,25 @@ class TestLooksGenerated:
         content = "---\ntags: [guide, reference]\n---\n\n# Title\n"
         assert looks_generated(content) is False
 
+    def test_reindex_tag_does_not_mark_generated(self):
+        """A tag containing "index" only as a substring ("reindex") is not
+        a generator fingerprint: only the exact token counts, so a
+        hand-written file stays hand-written."""
+        content = "---\ntags: [reindex]\n---\n\n# Title\n"
+        assert looks_generated(content) is False
+
+    def test_not_index_tag_does_not_mark_generated(self):
+        """A hyphenated tag ("not-index") is not an index tag: substring
+        matching would misclassify it, exact-token matching does not."""
+        content = "---\ntags: [not-index]\n---\n\n# Title\n"
+        assert looks_generated(content) is False
+
+    def test_exact_index_tag_alone_marks_generated(self):
+        """The bare [index] tag still marks the file as
+        generator-maintained (guard against over-tightening the match)."""
+        content = "---\ntags: [index]\n---\n\n# Title\n"
+        assert looks_generated(content) is True
+
     def test_no_frontmatter_and_no_note_is_legacy(self):
         """A plain hand-written file (no frontmatter, no note) is treated
         as legacy hand-maintained."""

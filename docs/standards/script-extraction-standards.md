@@ -40,3 +40,10 @@ Runtime script invocations inside skills must resolve against the plugin install
 - **Script-to-script references** inside the scripts themselves keep using `$SCRIPT_DIR`-relative paths; a script resolving its own dependencies from its own location is correct in every layout.
 
 Unprefixed runtime references are caught by the `scripts/verify-script-refs.sh` regression gate.
+
+### The `scripts/lib/` shared-library tier
+
+`scripts/lib/` is the shared library tier: first-party repo code whose files are sourced (`source .../input-validation.sh`) or imported (`from index_common import ...`, after the importer adds `scripts/lib/` to `sys.path`) by other scripts, never invoked directly as commands.
+
+- **Runtime-invocation rules do not apply inside `scripts/lib/`.** The `${CLAUDE_PLUGIN_ROOT}`/`${CLAUDE_SKILL_DIR}` prefix requirement enforced by `scripts/verify-script-refs.sh` governs command-position invocations in skill markdown; lib files are consumed via `source`/import from other scripts that already resolve their own location.
+- **INDEX listing inside `scripts/lib/` is best-effort at the top level only.** Generators list top-level `lib/` files but intentionally do not recurse into nested subdirectories of `lib/`. Coverage gaps inside `scripts/lib/` (e.g. a nested `lib/nested/helper.sh` not appearing in `scripts/INDEX.md`) are expected and must not be flagged in review.

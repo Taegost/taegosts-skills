@@ -157,8 +157,13 @@ def scan_scripts(directory: Path) -> list[dict]:
         return scripts
 
     for filepath in sorted(directory.iterdir()):
-        # Recurse into helper-library subdirectories (e.g. scripts/lib/),
-        # indexing them under their relative path (e.g. lib/input-validation.sh)
+        # List top-level files of helper-library subdirectories (e.g.
+        # scripts/lib/) under their lib/-prefixed name -- best-effort
+        # listing only; nested subdirectories of lib/ are intentionally
+        # NOT recursed into. scripts/lib/ is the shared library tier
+        # (sourced/imported by other scripts, never invoked as commands);
+        # see the scripts/lib/ exemption in
+        # docs/standards/script-extraction-standards.md
         if filepath.is_dir():
             if filepath.name == "lib":
                 for libfile in sorted(filepath.iterdir()):

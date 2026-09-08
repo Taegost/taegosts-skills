@@ -73,14 +73,17 @@ def looks_generated(content: str) -> bool:
     """True when content carries a generator fingerprint.
 
     A file counts as generator-maintained when it embeds the resolution
-    note, or when its frontmatter tags include "index" (both generators
-    emit an index tag). Files carrying neither marker are treated as
-    hand-written and regenerated best-effort instead of failing.
+    note, or when its frontmatter tags include the exact token "index"
+    (both generators emit an index tag). Files carrying neither marker
+    are treated as hand-written and regenerated best-effort instead of
+    failing.
     """
     if RESOLUTION_NOTE in content:
         return True
     tags = read_frontmatter_field(content, "tags")
-    return tags is not None and "index" in tags
+    return tags is not None and bool(
+        re.search(r"(?<![\w-])index(?![\w-])", tags)
+    )
 
 
 def extract_extra_sections(existing: str) -> tuple[str | None, str | None]:

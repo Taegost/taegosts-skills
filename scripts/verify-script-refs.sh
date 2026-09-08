@@ -245,14 +245,17 @@ classify_occurrence() {
 
   # Whitelist 1: run-bundled-validator.sh --script <path> — the wrapper resolves
   # that argument relative to --skill-dir by contract (established in Issue
-  # #109). Restricted to actual wrapper invocations: the wrapper name
-  # must appear earlier in the same command, with only words between it and
-  # --script. Any other tool's --script argument is classified normally.
+  # #109). Restricted to invocations where the wrapper is the invoked command:
+  # its name must start the command or follow a path separator (the quoted
+  # "${CLAUDE_PLUGIN_ROOT}/scripts/..." form), with only words between it and
+  # --script. Argument-position mentions (the wrapper passed to another tool,
+  # e.g. "some-runner run-bundled-validator.sh ...") do not whitelist — any
+  # other tool's --script argument is classified normally.
   local prevrt wrapper_re
   prevrt="${prev//\"/}"
   prevrt="${prevrt//\'/}"
   prevrt="$(rtrim "$prevrt")"
-  wrapper_re='(^|[^A-Za-z0-9_-])run-bundled-validator\.sh([[:space:]]+[^[:space:];|&]+)*[[:space:]]+--script$'
+  wrapper_re='(^|/)run-bundled-validator\.sh([[:space:]]+[^[:space:];|&]+)*[[:space:]]+--script$'
   if [[ "$prevrt" =~ $wrapper_re ]]; then
     return 0
   fi
