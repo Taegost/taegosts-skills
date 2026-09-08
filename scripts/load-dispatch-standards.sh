@@ -3,11 +3,10 @@
 #
 # PURPOSE:
 #   This is a sourceable validation library, not a standalone script.
-#   It provides functions to load dispatch standards and validate skills
-#   against required patterns (DS-002: no-subagent-spawning).
+#   It validates skill files against required dispatch patterns
+#   (DS-002: no-subagent-spawning).
 #
 # INPUTS:
-#   get_rule <id>                    - Fetch a specific dispatch rule by ID
 #   validate <skill-path>            - Validate a skill file follows dispatch patterns
 #
 # PRIMARY CONSUMERS:
@@ -20,52 +19,6 @@
 #   validate_dispatch_invocation "skills/ts-work/SKILL.md"
 
 set -euo pipefail
-
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "${REPO_ROOT:-.}")"
-STANDARDS_FILE="${REPO_ROOT}/docs/standards/dispatch-standards.md"
-
-# Validate that the standards file exists
-_validate_standards_file() {
-    if [[ ! -f "$STANDARDS_FILE" ]]; then
-        echo "ERROR: Dispatch standards file not found: $STANDARDS_FILE" >&2
-        return 1
-    fi
-}
-
-# Get a specific rule by ID (e.g., "bootstrap-only", "no-subagent-spawning")
-get_dispatch_rule() {
-    local rule_id="$1"
-    _validate_standards_file || return 1
-
-    # Extract the rule section between ### DS-NNN: <rule-id> and the next ### or ##
-    local in_rule=0
-    local rule_text=""
-
-    while IFS= read -r line; do
-        # Check if we're entering the target rule section
-        if [[ "$line" =~ ^###\ DS-[0-9]+:\ ${rule_id}$ ]]; then
-            in_rule=1
-            continue
-        fi
-
-        # Check if we're leaving the rule section (next heading at same or higher level)
-        if [[ $in_rule -eq 1 ]] && [[ "$line" =~ ^##[#]?\  ]]; then
-            break
-        fi
-
-        # Collect rule text
-        if [[ $in_rule -eq 1 ]]; then
-            rule_text+="${line}"$'\n'
-        fi
-    done < "$STANDARDS_FILE"
-
-    if [[ -z "$rule_text" ]]; then
-        echo "ERROR: Rule '$rule_id' not found in dispatch standards" >&2
-        return 1
-    fi
-
-    echo "$rule_text"
-}
 
 # Validate whether a skill file follows the bootstrap dispatch pattern
 validate_dispatch_invocation() {
@@ -137,32 +90,20 @@ main() {
 
     if [[ "$action" == "--help" || "$action" == "-h" ]]; then
         cat <<'EOF'
-Usage: load-dispatch-standards.sh {get_rule <id> | validate <skill-path>}
+Usage: load-dispatch-standards.sh validate <skill-path>
 
 Sourceable validation library for dispatch pattern standards. Source it to
-get get_dispatch_rule() and validate_dispatch_invocation(); when invoked
-directly, it supports:
+get validate_dispatch_invocation(); when invoked directly, it supports:
 
-  get_rule <rule-id>     Print a dispatch rule section by ID
-                         (e.g., "bootstrap-only", "no-subagent-spawning")
   validate <skill-path>  Validate a skill file follows dispatch patterns
                          (DS-002: no-subagent-spawning)
 
-Exit codes: 0 (success), 1 (rule not found, skill file missing, or
-violations found)
+Exit codes: 0 (success), 1 (skill file missing or violations found)
 EOF
         return 0
     fi
 
     case "$action" in
-        get_rule)
-            local rule_id="${2:-}"
-            if [[ -z "$rule_id" ]]; then
-                echo "Usage: $0 get_rule <rule-id>" >&2
-                return 1
-            fi
-            get_dispatch_rule "$rule_id"
-            ;;
         validate)
             local skill_path="${2:-}"
             if [[ -z "$skill_path" ]]; then
@@ -172,7 +113,7 @@ EOF
             validate_dispatch_invocation "$skill_path"
             ;;
         *)
-            echo "Usage: $0 {get_rule <id> | validate <skill-path>}" >&2
+            echo "Usage: $0 validate <skill-path>" >&2
             return 1
             ;;
     esac

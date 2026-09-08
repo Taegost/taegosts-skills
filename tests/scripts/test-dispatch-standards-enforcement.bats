@@ -6,7 +6,6 @@
 setup() {
     REPO_ROOT="$(git rev-parse --show-toplevel)"
     SCRIPT_PATH="${REPO_ROOT}/scripts/load-dispatch-standards.sh"
-    STANDARDS_FILE="${REPO_ROOT}/docs/standards/dispatch-standards.md"
 
     # Create a temporary directory for mock skill files
     export TEST_TEMP_DIR="$(mktemp -d)"
@@ -15,24 +14,6 @@ setup() {
 teardown() {
     # Clean up temporary directory
     rm -rf "$TEST_TEMP_DIR"
-}
-
-@test "load-dispatch-standards.sh successfully loads the standards" {
-    run bash "$SCRIPT_PATH" get_rule bootstrap-only
-    [ "$status" -eq 0 ]
-    [ -n "$output" ]
-}
-
-@test "standards contain a rule about file path dispatch" {
-    run bash "$SCRIPT_PATH" get_rule bootstrap-only
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"file path"* ]]
-}
-
-@test "standards contain a rule about no subagent spawning" {
-    run bash "$SCRIPT_PATH" get_rule no-subagent-spawning
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"Agent"* ]]
 }
 
 @test "validate_dispatch_invocation correctly identifies a compliant skill" {
@@ -116,22 +97,4 @@ EOF
     run bash "$SCRIPT_PATH" validate "/nonexistent/path/skill.md"
     [ "$status" -eq 1 ]
     [[ "$output" == *"not found"* ]]
-}
-
-@test "standards contain rule about file-path-delegation" {
-    run bash "$SCRIPT_PATH" get_rule file-path-delegation
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"file path"* ]]
-}
-
-@test "standards contain rule about script-via-index" {
-    run bash "$SCRIPT_PATH" get_rule script-via-index
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"INDEX.md"* ]]
-}
-
-@test "standards contain rule about routing-first" {
-    run bash "$SCRIPT_PATH" get_rule routing-first
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"ROUTING.md"* ]]
 }
