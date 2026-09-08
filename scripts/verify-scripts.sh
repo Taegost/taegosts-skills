@@ -193,7 +193,10 @@ elif [[ -d "${1:-.}" ]]; then
     *) REL_BASE="$target" ;;
   esac
   files=()
-  while IFS= read -r f; do files+=("$f"); done < <(find "$target" \( -name "*.sh" -o -name "*.py" \) | sort)
+  # Prune hidden directories (.git/, .claude/ worktrees, plugin caches): harness
+  # and VCS machinery, not repo content -- a live worktree under
+  # .claude/worktrees/ would otherwise be scanned as if it were the repo.
+  while IFS= read -r f; do files+=("$f"); done < <(find "$target" -type d -name '.*' -prune -o \( -name "*.sh" -o -name "*.py" \) -print | sort)
 else
   echo "verify-scripts.sh: no files to check" >&2
   exit 1
