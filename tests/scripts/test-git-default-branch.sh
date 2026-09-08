@@ -130,6 +130,22 @@ else
   die "DEFAULT_BRANCH format (rc=$rc, DEFAULT_BRANCH=$DEFAULT_BRANCH)"
 fi
 
+# Given: the script is sourced from a bash subprocess while --help is in play
+# (a caller whose own $1 is --help takes the help branch in sourced context)
+# When: source the script, then continue with a statement after the source line
+# Then: sourced --help exits 0, prints usage, and does NOT abort the sourcing
+# shell mid-script — a bare `exit 0` in the help branch would kill the caller,
+# so the SURVIVED sentinel is the discriminating assertion
+sourced_out=$(bash -c 'source "$1" --help' _ "$SCRIPT" 2>&1) && rc_sourced=0 || rc_sourced=$?
+survivor_out=$(bash -c 'source "$1" --help; echo SURVIVED' _ "$SCRIPT" 2>&1) && rc_survivor=0 || rc_survivor=$?
+if [[ $rc_sourced -eq 0 ]] && echo "$sourced_out" | grep -q "Usage" \
+  && [[ $rc_survivor -eq 0 ]] && echo "$survivor_out" | grep -q "Usage" \
+  && echo "$survivor_out" | grep -q "SURVIVED"; then
+  ok "sourced --help prints usage and lets the sourcing shell continue"
+else
+  die "sourced --help (source rc=$rc_sourced, survivor rc=$rc_survivor, out=$sourced_out | $survivor_out)"
+fi
+
 echo ""
 echo "Results: $pass passed, $fail failed"
 [[ $fail -eq 0 ]] && exit 0 || exit 1
