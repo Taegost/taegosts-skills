@@ -149,6 +149,49 @@ else
   die "(f) --file out-of-scope report wrong (rc=$rc)"
 fi
 
+# (g) dir mode run directly ON the tests/ directory classifies its contents as
+# out of scope: the only file present is missing-help-test.sh, so with the
+# tests/ exemption applied there is nothing left to flag — rc 0, no FAIL line,
+# and the out-of-scope summary. Regression guard for the dir branch inferring
+# REL_BASE the same way --file does; without it the file is checked as "full"
+# scope and flagged.
+output=$(bash "$SCRIPT" "$fix/tests" 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 0 ]] \
+   && ! echo "$output" | grep -q "FAIL:.*missing-help-test" \
+   && echo "$output" | grep -q "Out of scope (tests/, not checked): 1 file(s) skipped"; then
+  ok "(g) dir mode on tests/ itself skips its contents as out of scope"
+else
+  die "(g) dir mode on tests/ flagged its contents (rc=$rc)"
+fi
+
+# (h) dir mode run directly ON the scripts/lib directory keeps the lib
+# exemption — helper.sh (no --help, no exec bit, valid syntax) passes and
+# counts toward the passed total — while broken.sh still fails, reported by
+# its repo-relative path from the inferred tree root, not its bare basename.
+output=$(bash "$SCRIPT" "$fix/scripts/lib" 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 1 ]] \
+   && ! echo "$output" | grep -q "FAIL: helper.sh" \
+   && echo "$output" | grep -q "FAIL: scripts/lib/broken.sh: bash syntax error" \
+   && echo "$output" | grep -q "1 passed"; then
+  ok "(h) dir mode on scripts/lib/ keeps exemption, reports rel-path failure"
+else
+  die "(h) dir mode on scripts/lib/ wrong (rc=$rc)"
+fi
+
+# (i) hidden directories are pruned in dir mode: a file that would fail loudly
+# (bash syntax error) placed under $fix/.claude/worktrees/ is never
+# enumerated, so the checked-file count stays at the 6 enumerable fixture
+# files and no failure line references the hidden path.
+mkdir -p "$fix/.claude/worktrees/scripts"
+printf 'if then\n' > "$fix/.claude/worktrees/scripts/broken.sh"
+output=$(bash "$SCRIPT" "$fix" 2>&1) && rc=0 || rc=$?
+if echo "$output" | grep -q "checking 6 files" \
+   && ! echo "$output" | grep -q "FAIL:.*\.claude"; then
+  ok "(i) hidden dirs (.claude/worktrees) pruned from dir-mode scan"
+else
+  die "(i) hidden dir content leaked into dir-mode scan"
+fi
+
 echo ""
 echo "Results: $pass passed, $fail failed"
 if [[ $fail -eq 0 ]]; then

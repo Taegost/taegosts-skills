@@ -190,6 +190,13 @@ elif [[ -d "${1:-.}" ]]; then
   target="$(cd "${1:-.}" && pwd)"
   case "$target" in
     "$REPO_ROOT"/*) REL_BASE="$REPO_ROOT" ;;
+    # Outside the repo, mirror the --file branch: infer the tree root from a
+    # tests/ or scripts/lib/ segment, including the target being that
+    # directory itself (no trailing content), so a dir passed by path
+    # classifies on the same repo-relative prefixes (tests/ first: out of
+    # scope trumps the lib tier).
+    *"/tests"|*"/tests/"*) REL_BASE="${target%%"/tests"*}" ;;
+    *"/scripts/lib"|*"/scripts/lib/"*) REL_BASE="${target%%"/scripts/lib"*}" ;;
     *) REL_BASE="$target" ;;
   esac
   files=()
