@@ -15,15 +15,11 @@
 #   - running from a tmpdir cwd creates no files (no side effects)
 #   - `-h` exits 0 with usage — all 26 handle `-h` by design (uniform
 #     `--help | -h` early check, verified in source 2026-09-08)
-#   - help documents exit codes — asserted only for the 23 scripts whose
-#     help does document them
+#   - help documents exit codes — asserted for all 26 fleet scripts
 #
-# Exit-code documentation is NOT asserted for the three session-history
-# extract-*.py scripts: their only designed exit is 0 (help); failures
-# surface as unhandled exceptions, so they have no meaningful distinct exit
-# codes to document under the plan's "where the script has meaningful
-# distinct ones" clause. Checked and reported to the dispatcher as an
-# observation, not silently skipped.
+# All three session-history extract-*.py scripts document exit codes
+# (0 - Success / 1 - Error (unhandled exception)) as of the bd248e7
+# remediation, so the exit-code assertion covers the full fleet.
 #
 # Expectation lists are encoded from a probe of actual help output
 # (2026-09-08), per the verify-before-asserting convention.
@@ -73,10 +69,9 @@ FLEET_SCRIPTS=(
   "skills/ts-compound/scripts/session-history/extract-skeleton.py"
 )
 
-# Scripts whose --help output documents exit codes (probed reality). All 23
+# Scripts whose --help output documents exit codes (probed reality). All 26
 # have meaningful distinct exit codes (0/1, 0/1/2, or 0/2 splits) and
-# document them. The three FLEET_SCRIPTS absent from this list get no such
-# assertion — see the header comment.
+# document them.
 EXIT_DOC_SCRIPTS=(
   "scripts/detect-changed-code-files.sh"
   "scripts/detect-coverage-gaps.sh"
@@ -101,6 +96,9 @@ EXIT_DOC_SCRIPTS=(
   "skills/ts-verify-implementation/scripts/verify-coverage-threshold.sh"
   "skills/ts-compound-refresh/scripts/validate-doc-claims.py"
   "skills/ts-compound-refresh/scripts/validate-frontmatter.py"
+  "skills/ts-compound/scripts/session-history/extract-errors.py"
+  "skills/ts-compound/scripts/session-history/extract-metadata.py"
+  "skills/ts-compound/scripts/session-history/extract-skeleton.py"
 )
 
 for rel in "${FLEET_SCRIPTS[@]}"; do
