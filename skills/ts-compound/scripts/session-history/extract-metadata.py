@@ -13,6 +13,10 @@ Flags:
   --cwd-filter <name-or-path>  Only emit sessions whose cwd matches the filter
   --keyword <kw1,kw2>          Count case-insensitive keyword matches per file
 
+Exit codes:
+    0 - Success
+    1 - Error (unhandled exception)
+
 Auto-detects platform from the JSONL structure.
 Outputs one JSON object per file, one per line.
 Includes a final _meta line with processing stats.

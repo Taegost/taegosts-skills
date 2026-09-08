@@ -5,6 +5,10 @@ Usage:
   cat <session.jsonl> | python3 extract-skeleton.py
   cat <session.jsonl> | python3 extract-skeleton.py --output PATH
 
+Exit codes:
+    0 - Success
+    1 - Error (unhandled exception)
+
 Auto-detects platform (Claude Code, Codex, Cursor, or Pi) from the JSONL structure.
 Extracts:
   - User messages (text only, no tool results)
