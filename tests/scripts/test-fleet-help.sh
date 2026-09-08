@@ -143,6 +143,7 @@ for rel in "${FLEET_SCRIPTS[@]}"; do
   if [[ -z "$(ls -A "$workdir")" ]]; then
     ok "$name: --help creates no files in cwd"
   else
+    # shellcheck disable=SC2012  # listing names is the point here, not parsing
     die "$name: --help creates no files in cwd ($(ls -A "$workdir" | tr '\n' ' '))"
   fi
 
