@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-verify-scripts.sh — tests for verify-scripts.sh
+# Test: tests for scripts/verify-scripts.sh — scope classification, lib exemption, rel-path output
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
