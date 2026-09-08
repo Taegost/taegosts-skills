@@ -5,6 +5,10 @@ Usage:
   cat <session.jsonl> | python3 extract-errors.py
   cat <session.jsonl> | python3 extract-errors.py --output PATH
 
+Exit codes:
+    0 - Success
+    1 - Error (unhandled exception)
+
 Auto-detects platform from the JSONL structure.
 Note: Cursor agent transcripts do not log tool results, so no errors can be extracted.
 Finds failed tool calls / commands and outputs them with timestamps.
