@@ -3,6 +3,7 @@ title: "fix: Resolve shared script paths for marketplace-installed skills (Issue
 type: fix
 date: 2026-09-07
 origin: "https://github.com/taegost/taegosts-skills/issues/115"
+status: completed
 ---
 
 # fix: Resolve shared script paths for marketplace-installed skills (Issue #115)
