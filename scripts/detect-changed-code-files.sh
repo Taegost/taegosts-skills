@@ -7,6 +7,20 @@
 # Output: one file path per line, or empty if no code files changed.
 set -euo pipefail
 
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  echo "Usage: detect-changed-code-files.sh [base_branch]"
+  echo ""
+  echo "Return the list of modified code-bearing files, one path per line."
+  echo "Filters out test files and non-script files (.md, .yaml, .json, .txt)."
+  echo ""
+  echo "If base_branch is not provided, uses the default branch"
+  echo "(origin/main or origin/master). Collects files from the diff against"
+  echo "the base branch plus staged, unstaged, and untracked files."
+  echo ""
+  echo "Exit codes: 0 (success), 2 (not a git repository or no default branch)"
+  exit 0
+fi
+
 BASE_BRANCH="${1:-}"
 if [[ -z "$BASE_BRANCH" ]]; then
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

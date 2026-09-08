@@ -5,6 +5,11 @@ Usage:
   cat <session.jsonl> | python3 extract-skeleton.py
   cat <session.jsonl> | python3 extract-skeleton.py --output PATH
 
+Exit codes:
+    0 - Success
+    1 - Error (unhandled exception)
+    2 - Invalid command-line arguments (argparse)
+
 Auto-detects platform (Claude Code, Codex, Cursor, or Pi) from the JSONL structure.
 Extracts:
   - User messages (text only, no tool results)
@@ -28,6 +33,10 @@ import os
 import sys
 import json
 import re
+
+if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+    print(__doc__.strip())
+    sys.exit(0)
 
 parser = argparse.ArgumentParser(add_help=True)
 parser.add_argument(

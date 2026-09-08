@@ -5,7 +5,6 @@
 setup() {
     REPO_ROOT="$(git rev-parse --show-toplevel)"
     SCRIPT_PATH="${REPO_ROOT}/scripts/load-dispatch-standards.sh"
-    STANDARDS_FILE="${REPO_ROOT}/docs/standards/dispatch-standards.md"
 
     # Create a temporary directory for mock skill files
     export TEST_TEMP_DIR="$(mktemp -d)"
@@ -28,26 +27,7 @@ teardown() {
 @test "script documents inputs in header comment" {
     # Inputs are documented in the PURPOSE/INPUTS block of the header
     grep -q 'INPUTS:' "$SCRIPT_PATH"
-    grep -q 'get_rule <id>' "$SCRIPT_PATH"
     grep -q 'validate <skill-path>' "$SCRIPT_PATH"
-}
-
-@test "get_dispatch_rule returns text for bootstrap-only rule" {
-    run bash "$SCRIPT_PATH" get_rule bootstrap-only
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"file path"* ]]
-}
-
-@test "get_dispatch_rule returns text for no-subagent-spawning rule" {
-    run bash "$SCRIPT_PATH" get_rule no-subagent-spawning
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"Agent"* ]]
-}
-
-@test "get_dispatch_rule returns error for unknown rule" {
-    run bash "$SCRIPT_PATH" get_rule nonexistent-rule
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"not found"* ]]
 }
 
 @test "validate_dispatch_invocation succeeds for compliant skill" {

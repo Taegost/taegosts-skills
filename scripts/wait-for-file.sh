@@ -9,6 +9,20 @@
 # or failed command in the pipeline terminates the script early.
 set -euo pipefail
 
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  echo "Usage: wait-for-file.sh <file_path> [timeout_seconds] [poll_interval_seconds]"
+  echo ""
+  echo "Poll for file existence."
+  echo ""
+  echo "Arguments:"
+  echo "  file_path                Path to wait for (required)"
+  echo "  timeout_seconds          Max seconds to wait (default: 180)"
+  echo "  poll_interval_seconds    Seconds between checks (default: 10)"
+  echo ""
+  echo "Exit codes: 0 (file found), 1 (timeout)"
+  exit 0
+fi
+
 FILE_PATH="${1:?Usage: wait-for-file.sh <file_path> [timeout_seconds] [poll_interval_seconds]}"
 TIMEOUT="${2:-180}"
 INTERVAL="${3:-10}"

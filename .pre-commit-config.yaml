@@ -22,3 +22,10 @@ repos:
         pass_filenames: false
         always_run: true
         description: Fails on unguarded runtime script invocations in SKILL.md and references/*.md; enforces the script path resolution standard (docs/standards/script-extraction-standards.md, Issue #115).
+      - id: verify-scripts
+        name: Verify script command-surface compliance
+        entry: scripts/verify-scripts.sh --all
+        language: script
+        pass_filenames: false
+        always_run: true
+        description: Gate checks --help/exec-bit/syntax on command scripts; tests/ skipped, scripts/lib/ syntax-only (docs/standards/script-extraction-standards.md, Issue #118).

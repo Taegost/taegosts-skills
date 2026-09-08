@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  battery:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+
+      # setup-python's tool-cache interpreter is not PEP 668 externally
+      # managed, unlike the runner image's system Python — plain pip on
+      # system python fails there.
+      - name: Install pytest
+        run: pip install pytest==9.1.0
+
+      # -g writes into /usr/local, which the runner user cannot write — sudo it.
+      - name: Install bats
+        run: sudo npm install -g bats@1.13.0
+
+      # The runner image preinstalls shellcheck 0.9.0; the .shellcheckrc
+      # disables are written against 0.10.0. Pin the official release
+      # tarball and assert the version so drift fails loudly.
+      - name: Install shellcheck 0.10.0
+        run: |
+          curl -fsSL https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz -o /tmp/shellcheck.tar.xz
+          echo "6c881ab0698e4e6ea235245f22832860544f17ba386442fe7e9d629f8cbedf87  /tmp/shellcheck.tar.xz" | sha256sum -c -
+          tar -xJf /tmp/shellcheck.tar.xz -C /tmp
+          sudo mv /tmp/shellcheck-v0.10.0/shellcheck /usr/local/bin/shellcheck
+          shellcheck --version | grep -Fx 'version: 0.10.0'
+
+      - name: Run pytest suite
+        run: python -m pytest tests/
+
+      - name: Run bash + bats test suites
+        run: scripts/run-test-suites.sh
+
+      # Exit codes: 0 clean / 1 not installed / 2 findings. Exit 1 must
+      # fail this step — it means the install step above broke.
+      - name: Run shellcheck
+        run: scripts/run-shellcheck.sh
+
+      - name: Verify script references
+        run: scripts/verify-script-refs.sh
+
+      - name: Verify scripts gate
+        run: scripts/verify-scripts.sh --all

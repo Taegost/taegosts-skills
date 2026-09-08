@@ -40,12 +40,14 @@ The existing trigger (unit's `Files:` list contains test files → `implementer-
 
 ### Test conventions
 
-New test files created by auto-dispatch follow established patterns:
+New test files created by auto-dispatch follow established patterns. For bash suites (`.sh`):
 
 - `ok()`/`die()` helpers for pass/fail reporting
 - `tmpdir` with `trap 'rm -rf "$tmpdir"' EXIT` for cleanup
 - Exit-code assertions (not just output content)
 - Negative verification technique (test error paths)
+
+For Python suites (`.py`): pytest test functions in a `test_<name>.py` file, collected by bare `pytest tests/` (see [testing standards](../../standards/testing-standards.md)).
 
 ### Failure handling
 
@@ -72,7 +74,7 @@ Unit U3: "Create validator script"
   1. Dispatch implementer-general → creates scripts/validate.py
   2. Run detect-changed-code-files.sh → returns ["scripts/validate.py"]
   3. Check Test Scenarios → non-empty, has non-manual tests
-  4. Dispatch implementer-tests → creates tests/test-validate.py
+  4. Dispatch implementer-tests → creates tests/test_validate.py
 ```
 
 ## Related

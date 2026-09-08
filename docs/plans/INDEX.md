@@ -4,7 +4,7 @@ description: "Index of documentation in docs/plans/."
 status: active
 version: "1.0"
 created: 2026-07-08
-last-updated: 2026-09-07
+last-updated: 2026-09-08
 owner: wave-2-dispatch-index-automation
 dependencies: []
 tags: [index]
@@ -37,3 +37,4 @@ Paths below are relative to this index's directory. On Claude Code marketplace i
 | [2026-07-05-001-feat-test-coverage-token-efficiency-plan.md](./2026-07-05-001-feat-test-coverage-token-efficiency-plan.md) | Close the test-coverage blind spot where changed scripts ship without automated tests (Issue 102), reduce token consumption in ts-plan and ts-doc-review by standardizing subagent dispatch and restr... |
 | [2026-07-05-001-feat-wave-2-script-extraction-index-infrastructure-plan.md](./2026-07-05-001-feat-wave-2-script-extraction-index-infrastructure-plan.md) | Extract inline scripts from six skills into reusable script files, build automated index infrastructure (index-scripts.py, update-indexes.py, ROUTING.md), unify the dispatch pattern to Bootstrap ac... |
 | [2026-09-07-001-fix-plugin-script-resolution-plan.md](./2026-09-07-001-fix-plugin-script-resolution-plan.md) | Marketplace-installed skills fail to find the shared `scripts/` tier (and most skill-local scripts) because every skill invokes them with bare CWD-relative paths. The Bash tool's CWD at skill-execu... |
+| [2026-09-08-001-fix-repo-hygiene-gates-ci-plan.md](./2026-09-08-001-fix-repo-hygiene-gates-ci-plan.md) | Fix the `scripts/verify-scripts.sh` gate's two design gaps (tests/ scanning, missing library category), rename the four dash-named Python test suites — one also converted to pytest idiom — so bare ... |

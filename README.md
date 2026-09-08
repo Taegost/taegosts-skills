@@ -139,18 +139,24 @@ This repo uses [pre-commit](https://pre-commit.com/) to run checks automatically
    pre-commit install
    ```
    Without this step, `.pre-commit-config.yaml` has no effect — the checks below will not run automatically, and skipped checks silently let issues through.
-3. **Install [ShellCheck](https://www.shellcheck.net/)**, required by the `shellcheck` hook (blocks any commit that touches a `.sh` file if it has a finding):
+3. **Install [ShellCheck](https://www.shellcheck.net/)** 0.10.0, required by the `shellcheck` hook (blocks any commit that touches a `.sh` file if it has a finding). Package managers serve mismatched versions (Homebrew 0.11.x; apt/Scoop 0.9.0), so the official GitHub release tarball is the install path that matches CI:
    ```bash
-   # macOS
-   brew install shellcheck
-
-   # Debian/Ubuntu
-   apt-get install shellcheck
-
-   # Windows (via Scoop)
-   scoop install shellcheck
+   # Linux x86_64 (the variant CI installs; other platform tarballs are on the release page)
+   curl -fsSL https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz -o /tmp/shellcheck.tar.xz
+   echo "6c881ab0698e4e6ea235245f22832860544f17ba386442fe7e9d629f8cbedf87  /tmp/shellcheck.tar.xz" | sha256sum -c -
+   tar -xJf /tmp/shellcheck.tar.xz -C /tmp
+   sudo mv /tmp/shellcheck-v0.10.0/shellcheck /usr/local/bin/shellcheck
    ```
    Verify with `shellcheck --version`. See `scripts/run-shellcheck.sh --help` for how it's invoked, and `.shellcheckrc` for project-specific configuration.
+4. **Install [pytest](https://pytest.org) and [bats](https://bats-core.readthedocs.io/)** to run the test suite (`pytest tests/` and `scripts/run-test-suites.sh`):
+   ```bash
+   pip install pytest==9.1.0
+
+   # Requires Node.js/npm
+   npm install -g bats@1.13.0
+   ```
+
+Pinned tool versions are the same ones CI runs; `.github/workflows/ci.yml` is the canonical version record.
 
 ### Fix an existing skill
 

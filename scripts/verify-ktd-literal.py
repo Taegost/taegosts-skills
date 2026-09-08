@@ -189,6 +189,10 @@ def generate_diff(normalized_spec: str, normalized_content: str) -> str:
 
 
 def main():
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(__doc__.strip())
+        sys.exit(0)
+
     parser = argparse.ArgumentParser(
         description='Verify whether a [literal] KTD spec appears in a target file.'
     )

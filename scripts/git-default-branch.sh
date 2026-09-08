@@ -6,6 +6,23 @@
 # Exits with error if not in a git repo or default branch cannot be determined.
 # Source this file at the top of scripts that need the repo root and base branch.
 
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  echo "Usage: source git-default-branch.sh"
+  echo ""
+  echo "Resolve the repo root and default branch. Source this file at the top"
+  echo "of scripts that need the repo root and base branch."
+  echo ""
+  echo "Sets: REPO_ROOT, DEFAULT_BRANCH (origin/main or origin/master)"
+  echo ""
+  echo "Exit codes: 0 (success), 2 (not a git repository or cannot determine"
+  echo "the default branch)"
+  # Sourced context: return to the caller instead of killing its shell.
+  if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+    return 0
+  fi
+  exit 0
+fi
+
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
   echo "Error: not in a git repository" >&2
   exit 2

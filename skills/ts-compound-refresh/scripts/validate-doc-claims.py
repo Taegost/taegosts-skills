@@ -123,6 +123,10 @@ def normalize_path(token: str) -> str:
 
 
 def main(argv: list[str]) -> int:
+    if "--help" in argv[1:] or "-h" in argv[1:]:
+        print(__doc__.strip())
+        return 0
+
     if len(argv) != 2:
         usage_fail(f"usage: {os.path.basename(argv[0])} <doc-path>")
 

@@ -185,10 +185,10 @@ The general lesson: a generator that runs automatically on every commit must be 
 
 ## Known pre-existing issues (not introduced by this fix)
 
-Recorded so they are not misattributed to this branch:
+Recorded so they are not misattributed to this branch. Both entries this fix inherited were resolved 2026-09-08 by the Issue #118 repo-hygiene work:
 
-- A bare `verify-scripts.sh` full run reports roughly 58 FAILs on `main` (non-executable files, missing `--help` on files this fix never touched).
-- `pytest tests/` does not auto-collect the dash-named Python tests in `tests/scripts/` (e.g. `test-index-scripts.py`, `test-update-indexes.py`) — pytest's default `python_files` pattern is `test_*.py`.
+- The `verify-scripts.sh` full-run FAIL counters (roughly 58 on `main`) — resolved 2026-09-08 by gate scope classification (`tests/` skipped, `scripts/lib/` syntax-only) plus the fleet `--help`/exec-bit compliance batch.
+- `pytest tests/` not collecting the dash-named Python tests — resolved 2026-09-08 by underscore renames to `test_<name>.py`.
 
 ## Related
 

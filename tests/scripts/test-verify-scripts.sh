@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
+# Test: tests for scripts/verify-scripts.sh — scope classification, lib exemption, rel-path output
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SCRIPT="$REPO_ROOT/scripts/verify-scripts.sh"
 pass=0 fail=0
+ok() { pass=$((pass + 1)); echo "  PASS: $1"; }
+die() { fail=$((fail + 1)); echo "  FAIL: $1"; }
+
 tmpdir=$(mktemp -d)
 cleanup() { rm -rf "$tmpdir"; }
 trap cleanup EXIT
@@ -11,71 +15,39 @@ echo "=== test-verify-scripts.sh ==="
 
 # --help
 output=$("$SCRIPT" --help 2>&1)
-if echo "$output" | grep -q "Usage:"; then
-  echo "PASS: --help"; pass=$((pass+1))
-else
-  echo "FAIL: --help"; fail=$((fail+1))
-fi
+if echo "$output" | grep -q "Usage:"; then ok "--help"; else die "--help"; fi
 
 # good .sh
 echo "#!/bin/bash" > "$tmpdir/good.sh" && chmod +x "$tmpdir/good.sh"
 echo "# help text with --help" >> "$tmpdir/good.sh"
-if "$SCRIPT" --file "$tmpdir/good.sh" >/dev/null 2>&1; then
-  echo "PASS: good .sh"; pass=$((pass+1))
-else
-  echo "FAIL: good .sh"; fail=$((fail+1))
-fi
+if "$SCRIPT" --file "$tmpdir/good.sh" >/dev/null 2>&1; then ok "good .sh"; else die "good .sh"; fi
 
 # bad .sh (syntax error)
 echo "if then else" > "$tmpdir/bad.sh"
-if "$SCRIPT" --file "$tmpdir/bad.sh" >/dev/null 2>&1; then
-  echo "FAIL: bad .sh"; fail=$((fail+1))
-else
-  echo "PASS: bad .sh fails"; pass=$((pass+1))
-fi
+if "$SCRIPT" --file "$tmpdir/bad.sh" >/dev/null 2>&1; then die "bad .sh"; else ok "bad .sh fails"; fi
 
 # good .py
 echo "#!/usr/bin/env python3" > "$tmpdir/good.py" && chmod +x "$tmpdir/good.py"
 echo "# --help" >> "$tmpdir/good.py"
 echo "print(42)" >> "$tmpdir/good.py"
-if "$SCRIPT" --file "$tmpdir/good.py" >/dev/null 2>&1; then
-  echo "PASS: good .py"; pass=$((pass+1))
-else
-  echo "FAIL: good .py"; fail=$((fail+1))
-fi
+if "$SCRIPT" --file "$tmpdir/good.py" >/dev/null 2>&1; then ok "good .py"; else die "good .py"; fi
 
 # bad .py (syntax error)
 echo "def foo(" > "$tmpdir/bad.py"
-if "$SCRIPT" --file "$tmpdir/bad.py" >/dev/null 2>&1; then
-  echo "FAIL: bad .py"; fail=$((fail+1))
-else
-  echo "PASS: bad .py fails"; pass=$((pass+1))
-fi
+if "$SCRIPT" --file "$tmpdir/bad.py" >/dev/null 2>&1; then die "bad .py"; else ok "bad .py fails"; fi
 
 # unsupported extension
 echo "content" > "$tmpdir/test.md"
 output=$("$SCRIPT" --file "$tmpdir/test.md" 2>&1)
-if echo "$output" | grep -q "0 passed"; then
-  echo "PASS: unsupported ext skipped"; pass=$((pass+1))
-else
-  echo "FAIL: unsupported ext"; fail=$((fail+1))
-fi
+if echo "$output" | grep -q "0 passed"; then ok "unsupported ext skipped"; else die "unsupported ext"; fi
 
 # --all mode (rc may be 0 or 1 depending on scanned scripts — assert output + valid rc)
 output=$("$SCRIPT" --all 2>&1) && rc=0 || rc=$?
-if [[ $rc -le 1 ]] && echo "$output" | grep -q "checking"; then
-  echo "PASS: --all mode"; pass=$((pass+1))
-else
-  echo "FAIL: --all (rc=$rc)"; fail=$((fail+1))
-fi
+if [[ $rc -le 1 ]] && echo "$output" | grep -q "checking"; then ok "--all mode"; else die "--all mode (rc=$rc)"; fi
 
 # dir arg (same — valid rc range + output presence)
 output=$("$SCRIPT" "$REPO_ROOT/scripts" 2>&1) && rc=0 || rc=$?
-if [[ $rc -le 1 ]] && echo "$output" | grep -q "passed"; then
-  echo "PASS: dir arg"; pass=$((pass+1))
-else
-  echo "FAIL: dir arg (rc=$rc)"; fail=$((fail+1))
-fi
+if [[ $rc -le 1 ]] && echo "$output" | grep -q "passed"; then ok "dir arg"; else die "dir arg (rc=$rc)"; fi
 
 # syntax-error file should not count as passed
 echo "#!/bin/bash" > "$tmpdir/mixed.sh" && chmod +x "$tmpdir/mixed.sh"
@@ -83,31 +55,175 @@ echo "# --help" >> "$tmpdir/mixed.sh"
 echo "if then" >> "$tmpdir/mixed.sh"
 output=$("$SCRIPT" --file "$tmpdir/mixed.sh" 2>&1)
 if echo "$output" | grep -q "0 passed"; then
-  echo "PASS: syntax failure doesn't count as passed"; pass=$((pass+1))
+  ok "syntax failure doesn't count as passed"
 else
-  echo "FAIL: syntax failure counted as passed"; fail=$((fail+1))
+  die "syntax failure counted as passed"
 fi
 
 # .py with control characters should fail
 printf '#!/usr/bin/env python3\n# --help\nprint(42)\x07' > "$tmpdir/ctrl.py" && chmod +x "$tmpdir/ctrl.py"
-if "$SCRIPT" --file "$tmpdir/ctrl.py" >/dev/null 2>&1; then
-  echo "FAIL: .py control chars not caught"; fail=$((fail+1))
-else
-  echo "PASS: .py control chars caught"; pass=$((pass+1))
-fi
+if "$SCRIPT" --file "$tmpdir/ctrl.py" >/dev/null 2>&1; then die ".py control chars"; else ok ".py control chars caught"; fi
 
 # --file without path should error
-if "$SCRIPT" --file 2>/dev/null; then
-  echo "FAIL: --file without path should error"; fail=$((fail+1))
-else
-  echo "PASS: --file without path errors"; pass=$((pass+1))
-fi
+if "$SCRIPT" --file 2>/dev/null; then die "--file without path"; else ok "--file without path errors"; fi
 
 # unknown flag should error
-if "$SCRIPT" --bogus 2>/dev/null; then
-  echo "FAIL: --bogus should error"; fail=$((fail+1))
+if "$SCRIPT" --bogus 2>/dev/null; then die "--bogus"; else ok "--bogus errors"; fi
+
+# ---------------------------------------------------------------------
+# Scope classification (plan U1 scenarios a–f): a standalone fixture tree
+# outside the repo. The gate infers the fixture tree root from tests/ and
+# scripts/lib/ path segments, so repo-relative classification applies to
+# fixtures the same way it does inside the repo.
+# ---------------------------------------------------------------------
+fix="$tmpdir/fixture"
+mkdir -p "$fix/tests" "$fix/scripts/lib" "$fix/scripts/alpha" "$fix/scripts/beta"
+printf '#!/bin/bash\necho hi\n' > "$fix/tests/missing-help-test.sh"          # (a),(f): non-exec, no --help
+printf '#!/bin/bash\nlib_fn() { echo x; }\n' > "$fix/scripts/lib/helper.sh"  # (b): non-exec, no --help, valid
+printf 'if then\n' > "$fix/scripts/lib/broken.sh"                            # (c): syntax error
+printf '#!/bin/bash\necho tool\n' > "$fix/scripts/tool.sh"                   # (d): command script, no --help
+chmod +x "$fix/scripts/tool.sh"
+printf '#!/bin/bash\n# --help\necho dup\n' > "$fix/scripts/alpha/dup.sh"     # (e): compliant basename twin
+chmod +x "$fix/scripts/alpha/dup.sh"
+printf '#!/bin/bash\necho dup\n' > "$fix/scripts/beta/dup.sh"                # (e): failing basename twin
+chmod +x "$fix/scripts/beta/dup.sh"
+
+# One dir-mode run over the fixture tree, shared by scenarios (a), (d), (e).
+dir_output=$(bash "$SCRIPT" "$fix" 2>&1) && dir_rc=0 || dir_rc=$?
+
+# (a) a --help-less non-executable file under tests/ is not flagged in dir mode:
+# it is still enumerated (classification happens at check time), reported in the
+# out-of-scope summary, and never appears as a failure.
+if [[ $dir_rc -eq 1 ]] \
+   && echo "$dir_output" | grep -q "checking 6 files" \
+   && ! echo "$dir_output" | grep -q "missing-help-test" \
+   && echo "$dir_output" | grep -q "Out of scope (tests/, not checked): 1 file(s) skipped"; then
+  ok "(a) tests/ file scanned but not flagged, counted as skipped"
 else
-  echo "PASS: --bogus errors"; pass=$((pass+1))
+  die "(a) tests/ file not skipped in dir mode (rc=$dir_rc)"
+fi
+
+# (d) a command script (not under scripts/lib/) missing --help still fails
+if echo "$dir_output" | grep -q "FAIL: scripts/tool.sh: missing --help flag" \
+   && ! echo "$dir_output" | grep -q "FAIL: scripts/tool.sh: not executable"; then
+  ok "(d) command script missing --help still fails"
+else
+  die "(d) command script missing --help not flagged"
+fi
+
+# (e) failure lines carry the repo-relative path, not the bare basename; the
+# compliant basename twin (scripts/alpha/dup.sh) is not flagged
+if echo "$dir_output" | grep -q "FAIL: scripts/beta/dup.sh: missing --help flag" \
+   && ! echo "$dir_output" | grep -q "FAIL: dup.sh:" \
+   && ! echo "$dir_output" | grep -q "FAIL: scripts/alpha/dup.sh"; then
+  ok "(e) failures report repo-relative paths, duplicate basenames disambiguated"
+else
+  die "(e) failure output does not use repo-relative paths"
+fi
+
+# (b) a scripts/lib/ file missing both --help and the exec bit passes when
+# syntactically valid — command checks are exempt, syntax checks retained
+output=$(bash "$SCRIPT" --file "$fix/scripts/lib/helper.sh" 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 0 ]] && echo "$output" | grep -q "1 passed"; then
+  ok "(b) scripts/lib/ exempt from --help and exec-bit checks"
+else
+  die "(b) scripts/lib/ exemption not applied (rc=$rc)"
+fi
+
+# (c) a scripts/lib/ file with a syntax error still fails
+output=$(bash "$SCRIPT" --file "$fix/scripts/lib/broken.sh" 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 1 ]] && echo "$output" | grep -q "FAIL: scripts/lib/broken.sh: bash syntax error"; then
+  ok "(c) scripts/lib/ syntax error still fails"
+else
+  die "(c) scripts/lib/ syntax error not caught (rc=$rc)"
+fi
+
+# (f) --file on a test file reports it as out of scope and exits 0; the skip is
+# not counted as passed
+output=$(bash "$SCRIPT" --file "$fix/tests/missing-help-test.sh" 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 0 ]] \
+   && echo "$output" | grep -q "SKIP: tests/missing-help-test.sh (out of scope: test scripts are not checked)" \
+   && echo "$output" | grep -q "0 passed"; then
+  ok "(f) --file on a test file reports out of scope, exits 0"
+else
+  die "(f) --file out-of-scope report wrong (rc=$rc)"
+fi
+
+# (g) dir mode run directly ON the tests/ directory classifies its contents as
+# out of scope: the only file present is missing-help-test.sh, so with the
+# tests/ exemption applied there is nothing left to flag — rc 0, no FAIL line,
+# and the out-of-scope summary. Regression guard for the dir branch inferring
+# REL_BASE the same way --file does; without it the file is checked as "full"
+# scope and flagged.
+output=$(bash "$SCRIPT" "$fix/tests" 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 0 ]] \
+   && ! echo "$output" | grep -q "FAIL:.*missing-help-test" \
+   && echo "$output" | grep -q "Out of scope (tests/, not checked): 1 file(s) skipped"; then
+  ok "(g) dir mode on tests/ itself skips its contents as out of scope"
+else
+  die "(g) dir mode on tests/ flagged its contents (rc=$rc)"
+fi
+
+# (h) dir mode run directly ON the scripts/lib directory keeps the lib
+# exemption — helper.sh (no --help, no exec bit, valid syntax) passes and
+# counts toward the passed total — while broken.sh still fails, reported by
+# its repo-relative path from the inferred tree root, not its bare basename.
+output=$(bash "$SCRIPT" "$fix/scripts/lib" 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 1 ]] \
+   && ! echo "$output" | grep -q "FAIL: helper.sh" \
+   && echo "$output" | grep -q "FAIL: scripts/lib/broken.sh: bash syntax error" \
+   && echo "$output" | grep -q "1 passed"; then
+  ok "(h) dir mode on scripts/lib/ keeps exemption, reports rel-path failure"
+else
+  die "(h) dir mode on scripts/lib/ wrong (rc=$rc)"
+fi
+
+# (i) hidden directories are pruned in dir mode: a file that would fail loudly
+# (bash syntax error) placed under $fix/.claude/worktrees/ is never
+# enumerated, so the checked-file count stays at the 6 enumerable fixture
+# files and no failure line references the hidden path.
+mkdir -p "$fix/.claude/worktrees/scripts"
+printf 'if then\n' > "$fix/.claude/worktrees/scripts/broken.sh"
+output=$(bash "$SCRIPT" "$fix" 2>&1) && rc=0 || rc=$?
+if echo "$output" | grep -q "checking 6 files" \
+   && ! echo "$output" | grep -q "FAIL:.*\.claude"; then
+  ok "(i) hidden dirs (.claude/worktrees) pruned from dir-mode scan"
+else
+  die "(i) hidden dir content leaked into dir-mode scan"
+fi
+
+# (j) dir mode on the bare repo root itself: invoked as `.` from inside a
+# fixture repo whose host path contains a /tests/ segment, the target
+# resolves to exactly REPO_ROOT — no trailing component — so the first
+# dir-mode case arm must match the bare root explicitly. Without that, control
+# falls through to the /tests/-segment inference arm, REL_BASE is stripped to
+# the host prefix before tests/, every scanned file classifies as tests/, and
+# the gate exits 0 having checked nothing (silent false green). With the arm
+# matching, REL_BASE is the fixture root and the planted failing command
+# script is reported as a normal failure. The fixture must be its own git
+# repo so REPO_ROOT resolves to the fixture root when the gate runs there.
+jfix="$tmpdir/jroot/tests/fixrepo"
+mkdir -p "$jfix/scripts"
+printf '#!/bin/bash\necho tool\n' > "$jfix/scripts/broken.sh"   # command script, no --help
+chmod +x "$jfix/scripts/broken.sh"
+git init -q "$jfix"
+output=$(cd "$jfix" && bash "$SCRIPT" . 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 1 ]] \
+   && echo "$output" | grep -q "FAIL: scripts/broken.sh: missing --help flag" \
+   && ! echo "$output" | grep -q "0 failures"; then
+  ok "(j) bare repo-root target under a host /tests/ path is checked, not skipped"
+else
+  die "(j) bare repo-root target skipped everything or misreported (rc=$rc)"
+fi
+
+# (j) companion: the same bare-root invocation on the real repo root must
+# still exit 0 — extending the first arm must not disturb the normal
+# `verify-scripts.sh .` invocation on a clean repo.
+output=$(cd "$REPO_ROOT" && bash "$SCRIPT" . 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 0 ]]; then
+  ok "(j) bare repo-root invocation on the real repo still passes"
+else
+  die "(j) bare repo-root invocation on the real repo broke (rc=$rc)"
 fi
 
 echo ""

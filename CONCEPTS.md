@@ -45,3 +45,13 @@ The required pattern for consuming a bundled script on platforms where the Claud
 ## Content-Idempotent Regeneration
 
 The property that re-running an index generator on unchanged content leaves the file completely untouched, including hand-maintained frontmatter and sections. Required because the generators run automatically on every commit; without it the automation itself becomes the source of drift.
+
+## Check Class
+
+The scope tier a compliance gate assigns to a file based on its repo-relative path, determining which checks run against it. Three tiers: full (all checks), lib (syntax and control-character checks only), skip (out of scope entirely).
+
+Classification happens at a single choke point inside the per-file check function, never in each scan mode's file-list builder, so every invocation mode applies the same policy. Skipped files are counted in a skip summary and never counted as passed; library-tier files keep the cheap checks because a syntax-broken library breaks every importer.
+
+## Command-Surface Script
+
+A script invoked directly as a command, as opposed to a sourced or imported library file or a test script. Only command-surface scripts owe a `--help` branch and an executable bit; compliance means help is answered before any argument validation or side effect, not that the string `--help` appears in the file.

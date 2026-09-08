@@ -76,22 +76,24 @@ else
 fi
 trap 'rm -rf "$tmpdir"' EXIT
 
-# Given: valid PR number format
-# When: check input validation accepts numeric (may fail on gh call)
-# Then: doesn't fail on format validation
-output=$("$SCRIPT" --pr-url "123" 2>&1) && rc=0 || rc=$?
-if [[ $rc -eq 1 ]] && (echo "$output" | grep -qi "Failed to fetch\|metacharacter\|format error"); then
-  ok "numeric PR number accepted (gh call expected to fail)"
+# Given: valid PR number format, stub gh that fails everything
+# When: run with a numeric PR (accepted by format validation)
+# Then: fails at the gh-auth step, not at format validation — deterministic
+# in any environment (CI runners have gh installed but unauthenticated;
+# dev machines have it authenticated). The stub forces the same path both ways.
+output=$(PATH="$stub_bin:$PATH" "$SCRIPT" --pr-url "123" 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 1 ]] && (echo "$output" | grep -qi "not authenticated\|failed to fetch"); then
+  ok "numeric PR number accepted (fails at gh, not validation)"
 else
   die "numeric PR number (rc=$rc, output=$output)"
 fi
 
-# Given: valid PR URL format
-# When: check input validation accepts URL (may fail on gh call)
-# Then: doesn't fail on format validation
-output=$("$SCRIPT" --pr-url "https://github.com/owner/repo/pull/123" 2>&1) && rc=0 || rc=$?
-if [[ $rc -eq 1 ]] && (echo "$output" | grep -qi "Failed to fetch\|metacharacter\|format error"); then
-  ok "PR URL format accepted (gh call expected to fail)"
+# Given: valid PR URL format, stub gh that fails everything
+# When: run with a URL PR (accepted by format validation)
+# Then: fails at the gh-auth step, not at format validation
+output=$(PATH="$stub_bin:$PATH" "$SCRIPT" --pr-url "https://github.com/owner/repo/pull/123" 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 1 ]] && (echo "$output" | grep -qi "not authenticated\|failed to fetch"); then
+  ok "PR URL format accepted (fails at gh, not validation)"
 else
   die "PR URL format (rc=$rc, output=$output)"
 fi

@@ -5,6 +5,11 @@ Usage:
   cat <session.jsonl> | python3 extract-errors.py
   cat <session.jsonl> | python3 extract-errors.py --output PATH
 
+Exit codes:
+    0 - Success
+    1 - Error (unhandled exception)
+    2 - Invalid command-line arguments (argparse)
+
 Auto-detects platform from the JSONL structure.
 Note: Cursor agent transcripts do not log tool results, so no errors can be extracted.
 Finds failed tool calls / commands and outputs them with timestamps.
@@ -21,6 +26,10 @@ import io
 import os
 import sys
 import json
+
+if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+    print(__doc__.strip())
+    sys.exit(0)
 
 parser = argparse.ArgumentParser(add_help=True)
 parser.add_argument(
