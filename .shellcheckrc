@@ -1,5 +1,5 @@
 # Shellcheck configuration for taegosts-skills
-# See docs/solutions/script-security-standards.md#shellcheck-configuration for rationale.
+# See docs/standards/script-security-standards.md#11-shellcheck-configuration for rationale.
 
 # Shell dialect
 shell=bash

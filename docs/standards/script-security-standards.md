@@ -1,6 +1,13 @@
+---
+tags: [standards, security, shell-scripts, shellcheck]
+description: Canonical reference for shell script security and quality standards — strict mode, input validation, error format, and shellcheck enforcement.
+---
+
 # Script Security Standards
 
 This document defines the security and quality standards for all bash scripts in this repository.
+
+The canonical implementation of the validation patterns in sections 2, 3, and 6 lives in `scripts/lib/input-validation.sh` — source it rather than re-implementing the regexes (scripts in `scripts/` use `source "$SCRIPT_DIR/lib/input-validation.sh"`; skill-local scripts use `source "$SCRIPT_DIR/../../../scripts/lib/input-validation.sh"`).
 
 ## 1. Shell Flags
 
