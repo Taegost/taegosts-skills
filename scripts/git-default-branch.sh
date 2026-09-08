@@ -16,6 +16,10 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   echo ""
   echo "Exit codes: 0 (success), 2 (not a git repository or cannot determine"
   echo "the default branch)"
+  # Sourced context: return to the caller instead of killing its shell.
+  if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+    return 0
+  fi
   exit 0
 fi
 
