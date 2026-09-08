@@ -50,21 +50,40 @@ for field in current_branch default_branch is_detached dirty_files untracked_fil
   fi
 done
 
-# Given: running in the real repo
-# When: check specific values
-# Then: current_branch matches git branch, default_branch is "main"
-branch=$(grep '"current_branch"' /tmp/git-ctx-test.json | sed 's/.*": "//;s/".*//')
-if [[ "$branch" == "$(git symbolic-ref --short HEAD 2>/dev/null)" ]]; then
-  ok "current_branch matches actual branch"
+# Given: temp repo with a known branch and origin/HEAD pointing at main
+# When: run the script from inside it
+# Then: current_branch/default_branch/is_detached report the fixture state.
+# CI checkouts run detached with no origin/HEAD — value assertions against
+# the real repo are environment-dependent; the fixture pins them.
+fxt=$(mktemp -d)
+cd "$fxt" || exit 1
+git init -b feature-x >/dev/null 2>&1
+git config user.email "test@test.com"
+git config user.name "Test"
+git commit --allow-empty -m "init" >/dev/null 2>&1
+git remote add origin https://example.com/fake.git 2>/dev/null
+git update-ref refs/remotes/origin/main "$(git rev-parse HEAD)"
+git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/main
+fx_output=$("$SCRIPT" 2>&1) && rc=0 || rc=$?
+fx_branch=$(grep '"current_branch"' <<< "$fx_output" | sed 's/.*": "//;s/".*//')
+fx_default=$(grep '"default_branch"' <<< "$fx_output" | sed 's/.*": "//;s/".*//')
+
+if [[ $rc -eq 0 ]] && [[ "$fx_branch" == "feature-x" ]]; then
+  ok "current_branch matches fixture branch"
 else
-  die "current_branch mismatch"
+  die "current_branch in fixture (rc=$rc, got=$fx_branch)"
 fi
 
-default=$(grep '"default_branch"' /tmp/git-ctx-test.json | sed 's/.*": "//;s/".*//')
-if [[ "$default" == "main" ]]; then
+if [[ "$fx_default" == "main" ]]; then
   ok "default_branch is main"
 else
-  die "default_branch is $default"
+  die "default_branch is $fx_default"
+fi
+
+if grep -q '"is_detached": false' <<< "$fx_output"; then
+  ok "is_detached false on a branch"
+else
+  die "is_detached not false in fixture"
 fi
 
 # Given: outside a git repo
@@ -72,7 +91,7 @@ fi
 # Then: exits 1
 tmpdir=$(mktemp -d)
 cd "$tmpdir" || exit 1
-trap 'rm -rf "$tmpdir"' EXIT
+trap 'rm -rf "$tmpdir" "$fxt"' EXIT
 output=$("$SCRIPT" 2>&1) && rc=0 || rc=$?
 if [[ $rc -eq 1 ]]; then
   ok "exits 1 outside git repo"

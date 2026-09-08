@@ -72,17 +72,28 @@ else
   die "unknown argument (rc=$rc, output=$output)"
 fi
 
-# Valid PR number format accepted (may fail on gh, but passes input validation)
-output=$("$SCRIPT" --pr-url "123" 2>&1) && rc=0 || rc=$?
-if [[ $rc -eq 0 ]] || (echo "$output" | grep -q "failed to fetch"); then
+# Valid PR number format accepted (stub gh forces a deterministic failure
+# past format validation — CI runners have gh unauthenticated, dev machines
+# authenticated; the stub makes both take the same path)
+stub_bin="$tmpdir/stub_bin"
+mkdir -p "$stub_bin"
+cat > "$stub_bin/gh" <<'STUB'
+#!/usr/bin/env bash
+echo "stub gh: refusing" >&2
+exit 1
+STUB
+chmod +x "$stub_bin/gh"
+
+output=$(PATH="$stub_bin:$PATH" "$SCRIPT" --pr-url "123" 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 1 ]] && (echo "$output" | grep -qi "not authenticated\|failed to fetch"); then
   ok "numeric PR number accepted by validation"
 else
   die "numeric PR number (rc=$rc, output=$output)"
 fi
 
-# Valid PR URL format accepted (may fail on gh, but passes input validation)
-output=$("$SCRIPT" --pr-url "https://github.com/owner/repo/pull/123" 2>&1) && rc=0 || rc=$?
-if [[ $rc -eq 0 ]] || (echo "$output" | grep -q "failed to fetch"); then
+# Valid PR URL format accepted (same stub — fails at gh, not validation)
+output=$(PATH="$stub_bin:$PATH" "$SCRIPT" --pr-url "https://github.com/owner/repo/pull/123" 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 1 ]] && (echo "$output" | grep -qi "not authenticated\|failed to fetch"); then
   ok "PR URL format accepted by validation"
 else
   die "PR URL format (rc=$rc, output=$output)"

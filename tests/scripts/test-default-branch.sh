@@ -23,21 +23,14 @@ else
   die "--help flag (rc=$rc)"
 fi
 
-# Given: the taegosts-skills-fork repo (has origin/main)
-# When: run the script
-# Then: outputs "main"
-output=$("$SCRIPT" 2>&1) && rc=0 || rc=$?
-if [[ $rc -eq 0 ]] && [[ "$output" == "main" ]]; then
-  ok "resolves default branch in real repo"
-else
-  die "default branch in real repo (rc=$rc, output=$output)"
-fi
-
-# Given: temp repo with origin/main ref
+# Given: temp repo with origin/HEAD symbolic ref (strategy 1)
 # When: run the script in that repo
 # Then: outputs "main"
+# CI checkouts are detached with no origin/HEAD and no remote-tracking refs,
+# so the real repo resolves differently there (strategy 4 or error) — each
+# strategy is covered by its own fixture instead of the ambient checkout.
 tmpdir=$(mktemp -d)
-trap 'rm -rf "$tmpdir"' EXIT
+trap 'rm -rf "$tmpdir" "$tmpdir2"' EXIT
 cd "$tmpdir" || exit 1
 git init -b main >/dev/null 2>&1
 git config user.email "test@test.com"
@@ -45,19 +38,38 @@ git config user.name "Test"
 git commit --allow-empty -m "init" >/dev/null 2>&1
 git remote add origin https://example.com/fake.git 2>/dev/null
 git update-ref refs/remotes/origin/main "$(git rev-parse HEAD)"
+git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/main
 output=$("$SCRIPT" 2>&1) && rc=0 || rc=$?
 if [[ $rc -eq 0 ]] && [[ "$output" == "main" ]]; then
-  ok "resolves main in temp repo"
+  ok "resolves via origin/HEAD symbolic ref (strategy 1)"
 else
-  die "temp repo (rc=$rc, output=$output)"
+  die "origin/HEAD strategy (rc=$rc, output=$output)"
+fi
+
+# Given: temp repo with only a refs/remotes/origin/main ref (strategy 2)
+# When: run the script in that repo
+# Then: outputs "main"
+tmpdir2=$(mktemp -d)
+cd "$tmpdir2" || exit 1
+git init -b trunk >/dev/null 2>&1
+git config user.email "test@test.com"
+git config user.name "Test"
+git commit --allow-empty -m "init" >/dev/null 2>&1
+git remote add origin https://example.com/fake.git 2>/dev/null
+git update-ref refs/remotes/origin/main "$(git rev-parse HEAD)"
+output=$("$SCRIPT" 2>&1) && rc=0 || rc=$?
+if [[ $rc -eq 0 ]] && [[ "$output" == "main" ]]; then
+  ok "resolves via origin/main ref (strategy 2)"
+else
+  die "origin/main strategy (rc=$rc, output=$output)"
 fi
 
 # Given: outside a git repo
 # When: run in a non-git directory
 # Then: should error
-tmpdir2=$(mktemp -d)
-cd "$tmpdir2" || exit 1
-trap 'rm -rf "$tmpdir" "$tmpdir2"' EXIT  # extend to cover tmpdir2
+tmpdir3=$(mktemp -d)
+cd "$tmpdir3" || exit 1
+trap 'rm -rf "$tmpdir" "$tmpdir2" "$tmpdir3"' EXIT  # extend to cover all fixtures
 output=$("$SCRIPT" 2>&1) && rc=0 || rc=$?
 if [[ $rc -eq 1 ]]; then
   ok "errors outside git repo"
