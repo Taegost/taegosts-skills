@@ -17,14 +17,23 @@ This is the required process for ALL coding tasks across ALL projects. Do not sk
 
 ### Phase 0: Setup
 
-1. **Add scripts to PATH** — detect repo root and add both `scripts/` and `skills/*/scripts/` to PATH:
+1. **Add scripts to PATH** — resolve the plugin root and add both `scripts/` and `skills/*/scripts/` to PATH so the bare-name script invocations in later phases resolve. On Claude Code, `${CLAUDE_PLUGIN_ROOT}` is substituted at skill-load time; when it is empty (other platforms), locate a taegosts-skills checkout instead. If neither resolves, say so visibly and continue without the bundled helper scripts:
 
    ```bash
-   REPO_ROOT="$(git rev-parse --show-toplevel)"
-   export PATH="$REPO_ROOT/scripts:$PATH"
-   for d in "$REPO_ROOT/skills"/*/scripts; do
-     [[ -d "$d" ]] && export PATH="$d:$PATH"
-   done
+   PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-}"
+   if [ -z "$PLUGIN_ROOT" ]; then
+     for candidate in "$HOME/ws/taegosts-skills" "$HOME/_ws/taegosts-skills" "$HOME/src/taegosts-skills"; do
+       if [ -f "$candidate/scripts/context-gather.sh" ]; then PLUGIN_ROOT="$candidate"; break; fi
+     done
+   fi
+   if [ -z "$PLUGIN_ROOT" ]; then
+     echo "taegosts-skills scripts unresolvable (CLAUDE_PLUGIN_ROOT unset and no taegosts-skills checkout found); continuing without the bundled helper scripts." >&2
+   else
+     export PATH="$PLUGIN_ROOT/scripts:$PATH"
+     for d in "$PLUGIN_ROOT"/skills/*/scripts; do
+       [[ -d "$d" ]] && export PATH="$d:$PATH"
+     done
+   fi
    ```
 
 ### Phase 1: Planning

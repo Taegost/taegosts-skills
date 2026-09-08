@@ -4,7 +4,7 @@ description: "Index of documentation in docs/plans/."
 status: active
 version: "1.0"
 created: 2026-07-08
-last-updated: 2026-07-08
+last-updated: 2026-09-07
 owner: wave-2-dispatch-index-automation
 dependencies: []
 tags: [index]
@@ -13,6 +13,8 @@ tags: [index]
 # Plans Index
 
 Index of documentation in docs/plans/.
+
+Paths below are relative to this index's directory. On Claude Code marketplace installs, resolve them through ${CLAUDE_PLUGIN_ROOT}/<repo-relative-path>; on other platforms, resolve from the loaded skill directory or the taegosts-skills checkout.
 
 | Link | Description |
 |------|-------------|
@@ -34,3 +36,4 @@ Index of documentation in docs/plans/.
 | [2026-07-05-001-extraction-enumeration.md](./2026-07-05-001-extraction-enumeration.md) | **Date:** 2026-07-07 **Scope:** Inline bash blocks in 5 target skills for Wave 2 extraction |
 | [2026-07-05-001-feat-test-coverage-token-efficiency-plan.md](./2026-07-05-001-feat-test-coverage-token-efficiency-plan.md) | Close the test-coverage blind spot where changed scripts ship without automated tests (Issue 102), reduce token consumption in ts-plan and ts-doc-review by standardizing subagent dispatch and restr... |
 | [2026-07-05-001-feat-wave-2-script-extraction-index-infrastructure-plan.md](./2026-07-05-001-feat-wave-2-script-extraction-index-infrastructure-plan.md) | Extract inline scripts from six skills into reusable script files, build automated index infrastructure (index-scripts.py, update-indexes.py, ROUTING.md), unify the dispatch pattern to Bootstrap ac... |
+| [2026-09-07-001-fix-plugin-script-resolution-plan.md](./2026-09-07-001-fix-plugin-script-resolution-plan.md) | Marketplace-installed skills fail to find the shared `scripts/` tier (and most skill-local scripts) because every skill invokes them with bare CWD-relative paths. The Bash tool's CWD at skill-execu... |

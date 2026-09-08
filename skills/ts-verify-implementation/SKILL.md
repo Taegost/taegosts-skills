@@ -26,15 +26,17 @@ This skill uses the **bootstrap dispatch pattern** — reviewers receive file pa
 
 When locating scripts, consult `docs/ROUTING.md` first to find the correct paths via INDEX.md files:
 - Core scripts: `scripts/INDEX.md`
-- Skill-specific scripts: `skills/ts-verify-implementation/scripts/INDEX.md`
+- Skill-specific scripts: `${CLAUDE_PLUGIN_ROOT}/skills/ts-verify-implementation/scripts/INDEX.md`
 - Reviewer agents: `references/agents/` (read directly)
+
+**Script resolution.** `${CLAUDE_PLUGIN_ROOT}` is substituted to the plugin's install directory at skill-load time on Claude Code, so plugin-rooted script paths work regardless of the Bash tool's working directory. On platforms where it arrives unsubstituted, resolve shared-tier scripts from the loaded skill directory (`<skill-dir>/../../scripts/`) or from a taegosts-skills checkout. If still unresolvable, say so visibly and use the documented manual fallback — never silently skip.
 
 ## Process
 
 ### 1. Determine base branch
 
 ```bash
-base_branch=$(scripts/context-gather.sh | python3 -c "import sys, json; print(json.load(sys.stdin)['default_branch'])")
+base_branch=$("${CLAUDE_PLUGIN_ROOT}/scripts/context-gather.sh" | python3 -c "import sys, json; print(json.load(sys.stdin)['default_branch'])")
 ```
 
 **Verification scope:** This skill verifies `git diff ${base_branch}...HEAD` plus staged/unstaged changes in the main working tree. It does not verify content under `.claude/worktrees/` — those are isolated checkouts for implementation-in-progress work from other sessions, not part of this branch's diff. If `git worktree list` shows entries besides the main tree, exclude their paths from every file-scanning step below (subagent dispatch, coverage-gap detection).
@@ -51,7 +53,7 @@ Store the returned **plan path** and **plan content** for all subsequent steps.
 
 After loading the plan, extract the Key Technical Decisions section using the plan path returned by `load-plan`:
 ```bash
-python3 scripts/extract-ktds.py "<plan-path>"
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/extract-ktds.py" "<plan-path>"
 ```
 
 This returns a JSON object with `plan`, `ktds`, and `count` fields. The `ktds` field contains an array of KTDs with their type markers (`[literal]` or `[behavioral]`). Store the `ktds` array for cross-referencing in Step 4.
@@ -86,7 +88,7 @@ For each KTD extracted in Step 2:
    ```bash
    KTD_SPEC_FILE=$(mktemp /tmp/ktd-spec-XXXXXX.txt)
    printf '%s\n' '<KTD spec text>' > "$KTD_SPEC_FILE"
-   python3 scripts/verify-ktd-literal.py --spec-file "$KTD_SPEC_FILE" --file "<target-file>"
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/verify-ktd-literal.py" --spec-file "$KTD_SPEC_FILE" --file "<target-file>"
    rm -f "$KTD_SPEC_FILE"
    ```
    The script returns JSON with `match: true/false` and a diff if mismatched. Include this output in the subagent's context.
@@ -123,7 +125,7 @@ Each subagent receives:
 Run the coverage-gap detector to flag changed scripts without corresponding test files:
 
 ```bash
-scripts/detect-coverage-gaps.sh "$base_branch"
+"${CLAUDE_PLUGIN_ROOT}/scripts/detect-coverage-gaps.sh" "$base_branch"
 ```
 
 The detector autonomously discovers changed files via `git diff` and checks whether each changed script has a corresponding test file in `tests/`. No line threshold — if a script was changed, it needs a test. Add any gaps found as findings in the results (severity: Major).

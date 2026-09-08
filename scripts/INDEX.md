@@ -4,7 +4,7 @@ description: "Index of all scripts in scripts/."
 status: active
 version: "1.0"
 created: 2026-07-08
-last-updated: 2026-07-09
+last-updated: 2026-09-08
 owner: wave-2-dispatch-index-automation
 dependencies: []
 tags: [index, scripts]
@@ -13,6 +13,8 @@ tags: [index, scripts]
 # Scripts Index
 
 Index of all scripts in scripts/.
+
+Paths below are relative to this index's directory. On Claude Code marketplace installs, resolve them through ${CLAUDE_PLUGIN_ROOT}/<repo-relative-path>; on other platforms, resolve from the loaded skill directory or the taegosts-skills checkout.
 
 | Link | Description |
 |------|-------------|
@@ -28,7 +30,8 @@ Index of all scripts in scripts/.
 | [git-context.sh](./git-context.sh) | Produce a unified git state snapshot as JSON |
 | [git-default-branch.sh](./git-default-branch.sh) | Resolve repo root and default branch. |
 | [index-scripts.py](./index-scripts.py) | Generate INDEX.md files for script directories. |
-| [lib/input-validation.sh](./lib/input-validation.sh) | Sourceable validation helpers for GitHub API interactions (metacharacter checks, gh CLI/auth checks, format validators) |
+| [lib/index_common.py](./lib/index_common.py) | Shared helpers for the INDEX.md generators. |
+| [lib/input-validation.sh](./lib/input-validation.sh) | Provide sourceable validation helpers for GitHub API interactions (metacharacter checks, gh CLI/auth checks, format validators) |
 | [load-dispatch-standards.sh](./load-dispatch-standards.sh) | Sourceable validation library for dispatch pattern standards |
 | [locate-plan.py](./locate-plan.py) | Non-interactive plan location script. |
 | [pr-metadata.sh](./pr-metadata.sh) | Fetch PR metadata from GitHub API as JSON |
@@ -44,5 +47,6 @@ Index of all scripts in scripts/.
 | [validate-index-standards.py](./validate-index-standards.py) | Validate R7/R8 compliance for documentation files. |
 | [verify-fix.sh](./verify-fix.sh) | Confirm that a file edit actually landed |
 | [verify-ktd-literal.py](./verify-ktd-literal.py) | Verify whether a [literal] KTD specification appears in a target file. |
+| [verify-script-refs.sh](./verify-script-refs.sh) | Detect unguarded runtime script invocations in skill markdown |
 | [verify-scripts.sh](./verify-scripts.sh) | Pre-commit gate for scripts |
 | [wait-for-file.sh](./wait-for-file.sh) | Poll for file existence. |

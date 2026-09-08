@@ -29,3 +29,19 @@ An agent file that conforms to the standard frontmatter schema (`name`, `descrip
 ## Plan Discovery
 
 The mechanism by which skills locate and load plan documents. Uses three-tier discovery: explicit path, PR body scanning, and branch-name keyword extraction. Implemented by `skills/load-plan/` and `scripts/locate-plan.py`.
+
+## Plugin Cache
+
+The local copy of an installed plugin that Claude Code executes skills from, keyed by marketplace, plugin name, and version. Marketplace installs copy the entire plugin repository root into it, so a "script not found" failure is almost never a distribution problem — the copy is complete; the reference is what's wrong.
+
+## Script Reference Tiers
+
+The three canonical ways a skill references a bundled script at runtime: the plugin-shared tier (scripts usable by every skill), the skill-local tier (a skill's own scripts), and cross-skill references (another skill's scripts). Each tier has exactly one correct reference form, chosen so the path resolves at skill-load time regardless of the working directory the script executes from.
+
+## Guarded Fallback
+
+The required pattern for consuming a bundled script on platforms where the Claude Code substitution variables are unset: attempt resolution from the loaded skill directory or a repository checkout, and if still unresolvable, emit a visible error and use the documented manual fallback — never silently skip the step.
+
+## Content-Idempotent Regeneration
+
+The property that re-running an index generator on unchanged content leaves the file completely untouched, including hand-maintained frontmatter and sections. Required because the generators run automatically on every commit; without it the automation itself becomes the source of drift.

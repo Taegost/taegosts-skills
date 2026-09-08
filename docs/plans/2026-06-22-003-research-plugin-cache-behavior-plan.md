@@ -46,3 +46,9 @@ A short findings doc (or update to this plan) answering each question with evide
 
 - `docs/plans/2026-06-22-002-feat-documentation-lifecycle-plan.md` — U3 is blocked on this research
 - `STRATEGY.md` — "Contribution steps" metric (fewer steps = better)
+
+## Correction (2026-09-07)
+
+This research reached no conclusion about cache path resolution: it never posed the question of whether the repo's relative path conventions survive marketplace installation — its "Questions to Answer" section below covers reload/clone behavior, source types, and local development, not execution-time path resolution — so the question went unasked and unanswered. The original content above is preserved as written for history. The correct mechanism: skills execute with the Bash tool's CWD set to the **user's project**, not the cache directory, so CWD-relative script references such as `scripts/context-gather.sh` resolve against `<user-project>/scripts/` and miss the cache copy. The scripts themselves are copied to the cache correctly (`~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/`) — the failure is path resolution, not distribution (Issue #115).
+
+Runtime script references in skills now use `${CLAUDE_PLUGIN_ROOT}` (plugin-shared and cross-skill tiers) and `${CLAUDE_SKILL_DIR}` (skill-local tier); see the [Script Extraction Standards](../standards/script-extraction-standards.md) ("Script path resolution") for the canonical rule and the [fix: Resolve shared script paths for marketplace-installed skills (Issue #115)](2026-09-07-001-fix-plugin-script-resolution-plan.md) plan for the change set. This correction closes the documentation gap that caused Issue #115.

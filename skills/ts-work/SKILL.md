@@ -12,6 +12,8 @@ Execute work efficiently while maintaining quality and finishing features.
 
 This command takes a work document (plan or specification) or a bare prompt describing the work, and executes it systematically. The focus is on **shipping complete features** by understanding requirements quickly, following existing patterns, and maintaining quality throughout.
 
+**Script resolution.** `${CLAUDE_PLUGIN_ROOT}` is substituted to the plugin's install directory at skill-load time on Claude Code, so plugin-rooted script paths work regardless of the Bash tool's working directory. On platforms where it arrives unsubstituted, resolve shared-tier scripts from the loaded skill directory (`<skill-dir>/../../scripts/`) or from a taegosts-skills checkout. If still unresolvable, say so visibly and use the documented manual fallback — never silently skip.
+
 ## Input Document
 
 <input_document> #$ARGUMENTS </input_document>
@@ -62,7 +64,7 @@ Determine how to proceed based on what was provided in `<input_document>`.
 
    - **Extract KTD specifications.** After reading the plan, extract the Key Technical Decisions section:
      ```bash
-     python3 scripts/extract-ktds.py "docs/plans/$ARGUMENTS"
+     python3 "${CLAUDE_PLUGIN_ROOT}/scripts/extract-ktds.py" "docs/plans/$ARGUMENTS"
      ```
      This returns a JSON object with `plan`, `ktds`, and `count` fields. The `ktds` field contains an array of KTDs with their type markers (`[literal]` or `[behavioral]`). For each KTD:
      - **Literal KTDs** (`[literal]`): Present as a "verification constraint" with the exact spec text. The implementer must confirm the implementation matches the spec exactly. These are carried forward as checklist items.
@@ -166,7 +168,7 @@ Determine how to proceed based on what was provided in `<input_document>`.
    - Otherwise → use `implementer-general` from `references/agents/implementer-general.md` (this is the default; it covers application code, scripts, production config, infrastructure, and any mixed unit)
    - If the unit has an `Execution note` indicating test-first → dispatch `implementer-tests` first, then `implementer-general`
 
-   **Auto-dispatch for test coverage.** After `implementer-general` completes, if `scripts/detect-changed-code-files.sh` returns non-empty AND the unit has a `Test Scenarios:` section with non-manual-only tests, dispatch `implementer-tests` to create or update corresponding test files. Auto-dispatch follows R4 conventions: `ok()`/`die()` helpers, `tmpdir` with cleanup trap, exit-code assertions.
+   **Auto-dispatch for test coverage.** After `implementer-general` completes, if `${CLAUDE_PLUGIN_ROOT}/scripts/detect-changed-code-files.sh` returns non-empty AND the unit has a `Test Scenarios:` section with non-manual-only tests, dispatch `implementer-tests` to create or update corresponding test files. Auto-dispatch follows R4 conventions: `ok()`/`die()` helpers, `tmpdir` with cleanup trap, exit-code assertions.
 
    **Existing trigger (hard constraint).** If the unit's `Files:` list contains test files, `implementer-tests` MUST be dispatched regardless of the auto-dispatch gates above.
 
@@ -198,7 +200,7 @@ Determine how to proceed based on what was provided in `<input_document>`.
 
    **Permission mode:** Omit the `mode` parameter when dispatching subagents so the user's configured permission settings apply. Do not pass `mode: "auto"` — it overrides user-level settings like `bypassPermissions`.
 
-   **Notification recovery.** When agents run in the background, completion notifications may be missed. Each agent writes its output to disk as its primary completion signal. The orchestrator can detect completion via Monitor-based file watching or polling fallback (`scripts/wait-for-file.sh`). See `docs/solutions/workflow-issues/notification-resilience-via-disk-state.md`.
+   **Notification recovery.** When agents run in the background, completion notifications may be missed. Each agent writes its output to disk as its primary completion signal. The orchestrator can detect completion via Monitor-based file watching or polling fallback (`${CLAUDE_PLUGIN_ROOT}/scripts/wait-for-file.sh`). See `docs/solutions/workflow-issues/notification-resilience-via-disk-state.md`.
 
    **After each subagent completes (serial mode):**
    1. Review the subagent's diff — verify changes match the unit's scope and `Files:` list

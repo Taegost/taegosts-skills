@@ -34,8 +34,14 @@ Create a single, well-crafted git commit from the current working tree changes.
 
 Run the shared git context script to gather all context as JSON:
 
+**Script resolution.** `${CLAUDE_PLUGIN_ROOT}` is substituted to the plugin's install directory at skill-load time on Claude Code. On platforms where it arrives unsubstituted, resolve the script from the loaded skill directory (`<skill-dir>/../../scripts/`) or from a taegosts-skills checkout; if still unresolvable, say so visibly and gather the context with the individual git commands above — never silently skip.
+
 ```bash
-../../scripts/context-gather.sh
+if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/scripts/context-gather.sh" ]; then
+  "${CLAUDE_PLUGIN_ROOT}/scripts/context-gather.sh"
+else
+  echo "context-gather.sh not resolvable on this platform (CLAUDE_PLUGIN_ROOT unset or script missing); gather the context manually." >&2
+fi
 ```
 
 Parse the JSON output for: current_branch, default_branch, recent_commits, working_tree (staged/modified/untracked), unpushed_count, is_dirty, has_open_pr, has_open_pr_error.

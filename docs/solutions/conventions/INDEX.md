@@ -4,7 +4,7 @@ description: "Index of documentation in docs/solutions/conventions/."
 status: active
 version: "1.0"
 created: 2026-07-08
-last-updated: 2026-07-08
+last-updated: 2026-09-07
 owner: wave-2-dispatch-index-automation
 dependencies: []
 tags: [index]
@@ -13,6 +13,8 @@ tags: [index]
 # Conventions Index
 
 Index of documentation in docs/solutions/conventions/.
+
+Paths below are relative to this index's directory. On Claude Code marketplace installs, resolve them through ${CLAUDE_PLUGIN_ROOT}/<repo-relative-path>; on other platforms, resolve from the loaded skill directory or the taegosts-skills checkout.
 
 ## Relationship to docs/standards/
 

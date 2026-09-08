@@ -77,8 +77,10 @@ Each finding MUST be a separate inline review comment (conversation thread), not
 
 Fetch PR metadata in a single call (if not already available from earlier in the session):
 
+**Script resolution.** On Claude Code, `${CLAUDE_SKILL_DIR}` (this skill's directory) and `${CLAUDE_PLUGIN_ROOT}` (the plugin's install directory, for cross-skill scripts) are substituted at skill-load time, so these script paths work regardless of the Bash tool's working directory. On platforms where the variables arrive unsubstituted, resolve the scripts from the loaded skill directory or from a taegosts-skills checkout. If still unresolvable, say so visibly and use the documented manual fallback — never silently skip.
+
 ```bash
-PR_DATA=$(skills/ts-pr-review/scripts/fetch-pr-data.sh "$PR_URL")
+PR_DATA=$("${CLAUDE_SKILL_DIR}/scripts/fetch-pr-data.sh" "$PR_URL")
 ```
 
 Parse the result with `jq` to extract individual fields:
@@ -96,7 +98,7 @@ PR_TITLE=$(echo "$PR_DATA" | jq -r '.title')
 Findings in `review.json` already carry `file` and `line` (new-file line numbers). Before posting, verify each finding's line is commentable — i.e., it appears as an added or context line in the PR diff. Save the diff once and build the verification map from it:
 
 ```bash
-gh pr diff "$PR_URL" | skills/ts-pr-review/scripts/map-diff-lines.sh > /tmp/ts-pr-review-linemap.txt
+gh pr diff "$PR_URL" | "${CLAUDE_SKILL_DIR}/scripts/map-diff-lines.sh" > /tmp/ts-pr-review-linemap.txt
 ```
 
 This outputs `file:new-file-line` for every added line. For each finding:
@@ -158,7 +160,7 @@ gh api repos/{owner}/{repo}/pulls/{number}/reviews --input review.json
 **Fallback:** If the review API fails, or some findings target non-commentable lines (per 4b), post those findings in a single flat comment with each finding as a separate section split by `---` separators:
 
 ```bash
-skills/ts-pr-fix-findings/scripts/post-pr-comment.sh --repo {owner}/{repo} --pr {number} --body "$FALLBACK_BODY"
+"${CLAUDE_PLUGIN_ROOT}/skills/ts-pr-fix-findings/scripts/post-pr-comment.sh" --repo {owner}/{repo} --pr {number} --body "$FALLBACK_BODY"
 ```
 
 Inline-postable findings still go through the review API; only the un-postable remainder uses the flat comment.

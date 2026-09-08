@@ -63,7 +63,7 @@ When locating scripts or reviewer agents, consult `docs/ROUTING.md` first to fin
 
 **Script resolution:**
 - Core scripts: `scripts/INDEX.md`
-- Skill-specific scripts: `skills/ts-code-review/scripts/INDEX.md`
+- Skill-specific scripts: `${CLAUDE_PLUGIN_ROOT}/skills/ts-code-review/scripts/INDEX.md`
 - Reviewer agents: `references/agents/` (read directly, no INDEX.md needed)
 
 ## Output format

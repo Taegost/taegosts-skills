@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# input-validation.sh -- Sourceable validation helpers for GitHub API interactions
+# input-validation.sh -- Provide sourceable validation helpers for GitHub API interactions (metacharacter checks, gh CLI/auth checks, format validators)
 #
 # PURPOSE:
 #   Deduplicates the shell-metacharacter regex and gh-CLI/format validation

@@ -8,6 +8,16 @@ with title (from first # heading) and description (from first paragraph).
 
 Delegates to scripts/index-scripts.py for script directory indexing.
 
+Regeneration is content-idempotent: an existing INDEX.md keeps its
+"created:" date and its hand-maintained "owner:" field, and is left
+completely untouched when the regenerated content differs only in the
+"last-updated:" line.
+
+Hand-maintained content between the resolution note and the link table,
+and any content after the table, is preserved across regeneration. A
+generated-looking INDEX.md without a link table aborts regeneration
+with a diagnostic instead of being silently overwritten.
+
 Usage:
     python3 scripts/update-indexes.py
     python3 scripts/update-indexes.py --dry-run
@@ -24,7 +34,26 @@ import argparse
 import re
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
+
+# Import bootstrap: the generators run as standalone scripts, so
+# scripts/lib/ is not on sys.path. Mirror how shell scripts source lib/
+# by adding this script's own lib/ directory before the shared-module
+# import below.
+_LIB_DIR = str(Path(__file__).resolve().parent / "lib")
+if _LIB_DIR not in sys.path:
+    sys.path.insert(0, _LIB_DIR)
+
+from index_common import (
+    DEFAULT_OWNER,
+    RESOLUTION_NOTE,
+    TABLE_HEADER,
+    IndexStructureError,
+    differs_only_by_last_updated,
+    extract_extra_sections,
+    read_frontmatter_field,
+)
 
 
 def extract_title(filepath: Path) -> str | None:
@@ -161,20 +190,33 @@ def collect_docs(directory: Path) -> list[dict]:
 
 
 def generate_index_md(entries: list[dict], title: str, description: str,
-                      owner: str = "wave-2-dispatch-index-automation") -> str:
+                      owner: str = DEFAULT_OWNER,
+                      created: str | None = None,
+                      last_updated: str | None = None,
+                      extra_sections: str | None = None,
+                      trailing_content: str | None = None) -> str:
     """Generate INDEX.md content in R3/R8 format.
 
     Args:
         entries: List of entry dicts (from collect_docs).
         title: Top-level heading text.
         description: Frontmatter description text.
-        owner: Plan or project identifier.
+        owner: Plan or project identifier (pass a pre-existing index's owner
+            to preserve it across regeneration).
+        created: Frontmatter created date (defaults to today for new files).
+        last_updated: Frontmatter last-updated date (defaults to today).
+        extra_sections: Hand-maintained content carried over from the
+            existing INDEX.md, inserted between the resolution note and the
+            link table.
+        trailing_content: Hand-maintained content carried over from after
+            the existing link table, appended after the regenerated rows.
 
     Returns:
         Markdown content string.
     """
-    from datetime import date
     today = date.today().isoformat()
+    created = created or today
+    last_updated = last_updated or today
 
     lines = [
         "---",
@@ -182,8 +224,8 @@ def generate_index_md(entries: list[dict], title: str, description: str,
         f'description: "{description}"',
         "status: active",
         'version: "1.0"',
-        f"created: {today}",
-        f"last-updated: {today}",
+        f"created: {created}",
+        f"last-updated: {last_updated}",
         f"owner: {owner}",
         "dependencies: []",
         "tags: [index]",
@@ -193,9 +235,17 @@ def generate_index_md(entries: list[dict], title: str, description: str,
         "",
         description,
         "",
-        "| Link | Description |",
-        "|------|-------------|",
+        RESOLUTION_NOTE,
+        "",
     ]
+
+    if extra_sections:
+        lines.extend([extra_sections, ""])
+
+    lines.extend([
+        TABLE_HEADER,
+        "|------|-------------|",
+    ])
 
     for entry in entries:
         name = entry["name"]
@@ -212,7 +262,10 @@ def generate_index_md(entries: list[dict], title: str, description: str,
             link_path = f"./{name}"
         lines.append(f"| [{name}]({link_path}) | {desc} |")
 
-    lines.append("")  # trailing newline
+    if trailing_content:
+        lines.extend(["", trailing_content, ""])
+    else:
+        lines.append("")  # trailing newline
     return "\n".join(lines)
 
 
@@ -243,7 +296,18 @@ def process_directory(directory: Path, repo_root: Path,
                       dry_run: bool = False) -> Path | None:
     """Scan a docs directory and generate its INDEX.md.
 
-    Returns the path to the generated INDEX.md, or None if nothing to index.
+    Idempotent: an existing INDEX.md keeps its "created:" date and its
+    hand-maintained "owner:" field, and is left completely untouched when
+    the regenerated content differs only in the "last-updated:" line.
+    Hand-maintained content between the resolution note and the link
+    table, and any content after the table, is carried over unchanged.
+
+    Aborts the run (diagnostic on stderr, exit 1, no write) when the
+    existing INDEX.md looks generator-maintained but has no link table,
+    since its hand-maintained content could not be safely preserved.
+
+    Returns the path to the written INDEX.md, or None if nothing to index or
+    nothing changed.
     """
     entries = collect_docs(directory)
 
@@ -253,12 +317,39 @@ def process_directory(directory: Path, repo_root: Path,
     title = derive_title(directory)
     description = derive_description(directory, repo_root)
     index_path = directory / "INDEX.md"
-    content = generate_index_md(entries, title, description)
+    existing: str | None = None
+    if index_path.exists():
+        try:
+            existing = index_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            existing = None
+
+    created = (read_frontmatter_field(existing, "created")
+               if existing else None) or date.today().isoformat()
+    owner = (read_frontmatter_field(existing, "owner")
+             if existing else None) or DEFAULT_OWNER
+    extra_sections = trailing_content = None
+    if existing:
+        try:
+            extra_sections, trailing_content = extract_extra_sections(existing)
+        except IndexStructureError as e:
+            print(f"Error: refusing to regenerate {index_path}: {e}",
+                  file=sys.stderr)
+            sys.exit(1)
+    content = generate_index_md(entries, title, description,
+                                owner=owner,
+                                created=created,
+                                last_updated=date.today().isoformat(),
+                                extra_sections=extra_sections,
+                                trailing_content=trailing_content)
 
     if dry_run:
         print(f"[dry-run] Would write {index_path}", file=sys.stderr)
         print(content)
         return index_path
+
+    if existing is not None and differs_only_by_last_updated(existing, content):
+        return None
 
     # Atomic write: write to temp file, then rename to target
     # This prevents partial writes if the process is interrupted

@@ -62,7 +62,7 @@ These files are the durable contract for the workflow. Read them on-demand at th
 - `references/agents/session-historian.md` — skill-local synthesis prompt for optional session-history compounding context (read only when the user opts into session history)
 - `assets/resolution-template.md` — section structure for new docs (read when assembling)
 - `scripts/session-history/` — session discovery and extraction scripts copied into this skill so session-history support does not depend on the deleted `ce-sessions` public skill
-- `scripts/validate-frontmatter.py` — frontmatter parser-safety validator (run in Phase 2 step 8 via `scripts/run-bundled-validator.sh`, the repo-level wrapper that resolves `${CLAUDE_SKILL_DIR}` and falls back to a manual checklist elsewhere)
+- `scripts/validate-frontmatter.py` — frontmatter parser-safety validator (run in Phase 2 step 8 via `${CLAUDE_PLUGIN_ROOT}/scripts/run-bundled-validator.sh`, the repo-level wrapper that resolves `${CLAUDE_SKILL_DIR}` and falls back to a manual checklist elsewhere)
 
 This skill uses the **Bootstrap dispatch pattern** — subagents receive file paths, not inline content. Each subagent reads its own operating contract, role prompt, and schema from disk. This reduces orchestrator dispatch output and decouples agent identity from the orchestrator's context window.
 
@@ -360,10 +360,10 @@ The orchestrating agent (main conversation) performs these steps:
 5. Validate YAML frontmatter against `references/schema.yaml`, including the YAML-safety quoting rule for array items (see `references/yaml-schema.md` > YAML Safety Rules)
 6. Create directory if needed: `mkdir -p docs/solutions/[category]/`
 7. Write the file: either the updated existing doc or the new `docs/solutions/[category]/[filename].md`
-8. **Validate parser-safety of the written frontmatter** to catch silent-corruption issues the prose rules miss: malformed `---` delimiter lines, unquoted ` #` in scalar values (silent comment truncation), and unquoted `: ` in scalar values (silent mapping confusion). The bundled validator ships **inside the skill bundle**, so a bare project-relative path misses it — resolve and run it through `scripts/run-bundled-validator.sh`, which handles the `${CLAUDE_SKILL_DIR}` resolution and existence-guard fallback:
+8. **Validate parser-safety of the written frontmatter** to catch silent-corruption issues the prose rules miss: malformed `---` delimiter lines, unquoted ` #` in scalar values (silent comment truncation), and unquoted `: ` in scalar values (silent mapping confusion). The bundled validator ships **inside the skill bundle**, so a bare project-relative path misses it — resolve and run it through `${CLAUDE_PLUGIN_ROOT}/scripts/run-bundled-validator.sh`, which handles the `${CLAUDE_SKILL_DIR}` resolution and existence-guard fallback:
 
    ```bash
-   scripts/run-bundled-validator.sh --skill-dir "${CLAUDE_SKILL_DIR:-<absolute path of the directory containing the SKILL.md you just read>}" --script scripts/validate-frontmatter.py -- <output-path>
+   "${CLAUDE_PLUGIN_ROOT}/scripts/run-bundled-validator.sh" --skill-dir "${CLAUDE_SKILL_DIR:-<absolute path of the directory containing the SKILL.md you just read>}" --script scripts/validate-frontmatter.py -- <output-path>
    ```
 
    - **Exit 0:** parser-safe.

@@ -133,12 +133,26 @@ Do NOT activate adversarial on a routine plan document that derives from a valid
 
 If the security-lens Kubernetes signal fired above (the document mentions Deployments, ConfigMaps, NetworkPolicies, Secrets, or other manifest `kind:` values), run the two bundled K8s security scripts against the repo root before dispatching agents:
 
+**Script resolution.** `${CLAUDE_SKILL_DIR}` (this skill's directory) and `${CLAUDE_PLUGIN_ROOT}` (the plugin's install directory, for shared-tier scripts like `wait-for-file.sh`) are substituted at skill-load time on Claude Code, so these paths work regardless of the Bash tool's working directory. On platforms where the variables arrive unsubstituted, resolve the scripts from the loaded skill directory or from a taegosts-skills checkout. If still unresolvable, say so visibly and use the documented manual fallback — never silently skip.
+
 ```bash
-python3 skills/ts-doc-review/scripts/check-credentials-in-configmaps.py .
-skills/ts-doc-review/scripts/check-networkpolicy-selectors.sh .
+creds_rc=0
+if [[ -f "${CLAUDE_SKILL_DIR}/scripts/check-credentials-in-configmaps.py" ]]; then
+  creds_output="$(python3 "${CLAUDE_SKILL_DIR}/scripts/check-credentials-in-configmaps.py" . 2>&1)" || creds_rc=$?
+else
+  creds_output="unavailable: script not resolvable on this platform — never treat this as a clean scan; use the documented manual fallback"; creds_rc="unavailable"
+fi
+np_rc=0
+if [[ -f "${CLAUDE_SKILL_DIR}/scripts/check-networkpolicy-selectors.sh" ]]; then
+  np_output="$("${CLAUDE_SKILL_DIR}/scripts/check-networkpolicy-selectors.sh" . 2>&1)" || np_rc=$?
+else
+  np_output="unavailable: script not resolvable on this platform — never treat this as a clean scan; use the documented manual fallback"; np_rc="unavailable"
+fi
+echo "K8s credentials scan (check-credentials-in-configmaps.py): rc=${creds_rc} — ${creds_output}"
+echo "K8s NetworkPolicy scan (check-networkpolicy-selectors.sh): rc=${np_rc} — ${np_output}"
 ```
 
-Both scripts scan the target repo on disk for `kind: ConfigMap` / `kind: NetworkPolicy` manifests — not the document's prose — so they surface issues in the actual manifest files the document discusses touching, not just what the document's text claims. Exit code 0 means findings exist (read the JSON on stdout); exit code 2 means the scan ran clean; exit code 1 means an error (missing/unreadable directory, bad input) — treat a `1` as "scan unavailable," not as a finding, and do not block the review on it.
+Both scripts scan the target repo on disk for `kind: ConfigMap` / `kind: NetworkPolicy` manifests — not the document's prose — so they surface issues in the actual manifest files the document discusses touching, not just what the document's text claims. Each scan's outcome is captured into a named variable and printed on its own summary line, so both statuses are always visible and neither scan's failure can be masked by the other's success. Per scan: `rc=0` means findings exist (the JSON is captured with the output and printed on that scan's summary line — pass it to the reviewer); `rc=2` means the scan ran clean; `rc=1` means an error (missing/unreadable directory, bad input) — treat a `1` as "scan unavailable," not as a finding, and do not block the review on it. These exit codes apply only when a script actually runs: the guard checks each path before invoking, so an unresolvable `${CLAUDE_SKILL_DIR}` records `rc=unavailable` on that scan's summary line and produces no exit code at all — it can never be mistaken for the `rc=2` "ran clean" case. Conclude "ran clean" only when both summary lines read `rc=2`; if either line says anything else, say so visibly and use the documented manual fallback.
 
 Pass any findings to security-lens-reviewer via the `{supplementary_context}` slot in its bootstrap prompt (see `references/subagent-bootstrap.md`), the same mechanism used for the feasibility reviewer's convention excerpts above. Skip this step entirely when the Kubernetes signal did not fire — these scripts are Kubernetes-specific and would just add noise on any other document.
 
@@ -233,7 +247,7 @@ Cross-session persistence is out of scope. A new invocation of ts-doc-review on 
 
 **Error handling:** If a subagent fails or times out, proceed with findings from subagents that completed. Note the failed reviewer in the Coverage section. Do not block the entire review on a single reviewer failure.
 
-**Notification recovery.** When agents run in the background, completion notifications may be missed (~40-50% failure rate). Each agent writes its findings to disk as its primary completion signal. The orchestrator can detect completion by checking file existence via Monitor-based file watching (`inotifywait -m <dir> -e close_write`) or polling fallback (`scripts/wait-for-file.sh`). See `docs/solutions/workflow-issues/notification-resilience-via-disk-state.md` for the full recovery pattern.
+**Notification recovery.** When agents run in the background, completion notifications may be missed (~40-50% failure rate). Each agent writes its findings to disk as its primary completion signal. The orchestrator can detect completion by checking file existence via Monitor-based file watching (`inotifywait -m <dir> -e close_write`) or polling fallback (`${CLAUDE_PLUGIN_ROOT}/scripts/wait-for-file.sh`). See `docs/solutions/workflow-issues/notification-resilience-via-disk-state.md` for the full recovery pattern.
 
 **Dispatch limit:** Even at the maximum team size (every always-on and conditional agent activated), use bounded parallel dispatch. If the harness cap is lower than the selected team size, queue the remainder and launch them as active reviewers complete.
 

@@ -94,6 +94,18 @@ The `name` field must match the directory name. A mismatch (e.g., `name: knap-my
 }
 ```
 
+### Script path resolution
+
+Once installed, the plugin runs from the cache (`~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/`), but skills execute with the Bash tool's CWD set to the **user's project** — so script references inside skills must never be CWD-relative:
+
+- Plugin-shared scripts: `${CLAUDE_PLUGIN_ROOT}/scripts/<script>`
+- Another skill's scripts: `${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>/scripts/<script>`
+- The loaded skill's own scripts: `${CLAUDE_SKILL_DIR}/scripts/<script>`
+
+`${CLAUDE_PLUGIN_ROOT}` and `${CLAUDE_SKILL_DIR}` are Claude Code string substitutions resolved at skill-load time, independent of CWD. On platforms where the variables arrive unset, resolve from the loaded skill directory or the plugin checkout and fail visibly rather than silently skipping.
+
+The [Script Extraction Standards](../../standards/script-extraction-standards.md) ("Script path resolution") carry the full canonical rule; [Claude Code Plugin Script Path Resolution](claude-code-plugin-script-path-resolution.md) documents the resolved pattern and the failure it prevents.
+
 ## Why This Matters
 
 Using `plugin.json` instead of `marketplace.json` at the repo root is a silent failure. Claude Code's plugin discovery looks for `marketplace.json` to register a new marketplace source; it never finds `plugin.json` at that level, so the plugin simply does not appear. No error message — the skills just aren't there.

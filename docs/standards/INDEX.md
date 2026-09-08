@@ -4,7 +4,7 @@ description: "Index of documentation in docs/standards/."
 status: active
 version: "1.0"
 created: 2026-07-08
-last-updated: 2026-07-09
+last-updated: 2026-09-07
 owner: wave-2-dispatch-index-automation
 dependencies: []
 tags: [index]
@@ -13,6 +13,8 @@ tags: [index]
 # Standards Index
 
 Index of documentation in docs/standards/.
+
+Paths below are relative to this index's directory. On Claude Code marketplace installs, resolve them through ${CLAUDE_PLUGIN_ROOT}/<repo-relative-path>; on other platforms, resolve from the loaded skill directory or the taegosts-skills checkout.
 
 ## Relationship to docs/solutions/conventions/
 
@@ -30,4 +32,5 @@ When adding a new document, ask: is this a rule the repo enforces (→ `docs/sta
 | [link-convention.md](./link-convention.md) | Canonical standard for markdown links across all documentation in taegosts-skills. |
 | [script-extraction-standards.md](./script-extraction-standards.md) | Canonical reference for when inline bash blocks in skills should be extracted to standalone scripts. |
 | [script-frontmatter-convention.md](./script-frontmatter-convention.md) | Canonical reference for the description comment format used in all shell scripts across the repository. |
+| [script-security-standards.md](./script-security-standards.md) | This document defines the security and quality standards for all bash scripts in this repository. |
 | [testing-standards.md](./testing-standards.md) | If a script exists and was changed, it needs a corresponding test file. No line threshold. |
