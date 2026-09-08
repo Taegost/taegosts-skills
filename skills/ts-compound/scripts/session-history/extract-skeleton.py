@@ -8,6 +8,7 @@ Usage:
 Exit codes:
     0 - Success
     1 - Error (unhandled exception)
+    2 - Invalid command-line arguments (argparse)
 
 Auto-detects platform (Claude Code, Codex, Cursor, or Pi) from the JSONL structure.
 Extracts:

@@ -8,6 +8,7 @@ Usage:
 Exit codes:
     0 - Success
     1 - Error (unhandled exception)
+    2 - Invalid command-line arguments (argparse)
 
 Auto-detects platform from the JSONL structure.
 Note: Cursor agent transcripts do not log tool results, so no errors can be extracted.
