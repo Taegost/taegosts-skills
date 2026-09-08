@@ -189,7 +189,11 @@ elif [[ "${1:-}" == -* ]]; then
 elif [[ -d "${1:-.}" ]]; then
   target="$(cd "${1:-.}" && pwd)"
   case "$target" in
-    "$REPO_ROOT"/*) REL_BASE="$REPO_ROOT" ;;
+    # The bare repo root itself (no trailing component) carries no "/*" for
+    # the glob, so match it explicitly: the first arm covers the repo root
+    # plus everything under it. Falling through instead would hand a root
+    # sitting at a host .../tests path to the inference arm below.
+    "$REPO_ROOT"|"$REPO_ROOT"/*) REL_BASE="$REPO_ROOT" ;;
     # Outside the repo, mirror the --file branch: infer the tree root from a
     # tests/ or scripts/lib/ segment, including the target being that
     # directory itself (no trailing content), so a dir passed by path
