@@ -28,7 +28,12 @@ Input (positional, required):
 Output (stdout): one JSON object:
     findings        primary findings after merge/gate, each with stable `#`
                     (monotonic across the full primary set), merge-tier
-                    fields, contributing `reviewers` list, and final routing
+                    fields, contributing `reviewers` list, and final routing;
+                    merged dedup groups also carry `candidate_lines` (every
+                    member's (file, line), deduped and sorted) so downstream
+                    anchoring can fall back when the kept representative's
+                    primary line is not commentable — omitted for
+                    single-member groups
     pre_existing    findings with pre_existing: true, separated before
                     demotion/gating (informational; no stable `#`)
     residual_risks  union across validated returns, plus demoted findings
@@ -96,9 +101,11 @@ not implemented here.
 
 Exit codes:
     0 - Success (merged JSON on stdout; malformed or unreadable RETURNS are
-        dropped and reported inside coverage, not fatal)
+        dropped and reported inside coverage, not fatal — unless every
+        return is dropped, which leaves nothing to merge and exits 1)
     1 - Usage or input error (missing/unreadable compact-dir, no *.json
-        files in it); reason on stderr
+        files in it, every compact return dropped as malformed/unreadable);
+        reason on stderr
 
 Usage:
     merge-findings.py <compact-dir>
@@ -338,6 +345,12 @@ def merge_group(group: list) -> dict:
                 suggested = member["suggested_fix"]
                 break
 
+    # Every group member's (file, line), deduped and deterministically
+    # sorted: build-review-payload.sh falls back through these when the kept
+    # representative's primary anchor is not a commentable line, so a dedup
+    # merge cannot strand a finding off the diff.
+    candidate_lines = sorted({(f["file"], f["line"]) for f in group})
+
     return {
         "title": best["title"],
         "severity": severity,
@@ -349,6 +362,7 @@ def merge_group(group: list) -> dict:
         "requires_verification": requires_verification,
         "pre_existing": all(f["pre_existing"] for f in group),
         "suggested_fix": suggested,
+        "candidate_lines": candidate_lines,
         "reviewers": reviewers,
         # merge bookkeeping (stripped from output)
         "_group_size": len(group),
@@ -403,6 +417,11 @@ def _public(finding: dict, number: int | None) -> dict:
     )}
     if isinstance(finding.get("suggested_fix"), str):
         out["suggested_fix"] = finding["suggested_fix"]
+    # Schema-minimal: candidate_lines appears only when the dedup group had
+    # more than one anchor (a single-member group has nothing to fall back
+    # through).
+    if len(finding.get("candidate_lines") or []) > 1:
+        out["candidate_lines"] = finding["candidate_lines"]
     if number is not None:
         out["#"] = number
     return out
@@ -438,6 +457,16 @@ def merge(compact_dir: Path) -> dict:
             returns_dropped.append({"file": path.name, "reason": reason})
         else:
             returns.append(validated)
+
+    # Individual malformed returns drop loudly in coverage and the merge
+    # continues — but when EVERY return was dropped there is nothing to
+    # merge, and a clean zero-findings output would post a false APPROVE.
+    # That is fatal: routes to main()'s except -> exit 1.
+    if return_paths and not returns:
+        raise ValueError(
+            f"all {len(return_paths)} compact return(s) in {compact_dir} "
+            "were dropped as malformed/unreadable; see returns_dropped for reasons"
+        )
 
     coverage = {
         "returns_total": len(return_paths),

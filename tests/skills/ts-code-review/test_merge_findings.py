@@ -8,7 +8,10 @@ exemption, corroboration exemption), the late confidence gate with the
 P0/P1-at-50+ exception, actionable/report-only partition, sort and stable
 numbering, true-promotion counting, the requires_verification OR-merge,
 unreadable-return drop-and-continue, and the CLI contract (--help exit 0,
-bad input exit 1).
+bad input exit 1). Later additions pin the all-returns-dropped fatality,
+candidate_lines emission for dedup groups, suggested_fix inheritance from a
+sibling, P0 low-anchor suppression, P3 advisory demotion, and the
+file/line sort tiebreak.
 """
 
 import json
@@ -468,6 +471,29 @@ class TestScenario10SortAndNumbering:
         assert [n for n, _ in ordered] == [1, 2, 3], \
             "stable # values are monotonic across the full primary set"
 
+    def test_file_then_line_tiebreak_within_severity_and_anchor(self, tmp_path):
+        """Pin the remaining sort keys: two findings sharing severity and
+        anchor order by file path, then line number (both ascending)."""
+        compact = stage_returns(tmp_path, {
+            "correctness.json": reviewer_return("correctness", [
+                finding(title="Zeta file", severity="P2",
+                        file="app/models/zeta.rb", line=7),
+                finding(title="Alpha later line", severity="P2",
+                        file="app/models/alpha.rb", line=100),
+                finding(title="Alpha earlier line", severity="P2",
+                        file="app/models/alpha.rb", line=99),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        ordered = [f["title"] for f in payload["findings"]]
+        assert ordered == [
+            "Alpha earlier line",
+            "Alpha later line",
+            "Zeta file",
+        ], "lower file path sorts first, then lower line number"
+
 
 class TestScenario10bPreExistingSeparation:
     """pre_existing: true findings separate into payload["pre_existing"]
@@ -661,6 +687,186 @@ class TestScenario15UnreadableReturnDrop:
         assert dropped[0]["reason"].startswith("unreadable"), \
             f"got: {dropped[0]['reason']}"
         assert payload["coverage"]["returns_total"] == 2
+
+
+class TestScenario16AllReturnsDropped:
+    """When every compact return is dropped (malformed/unreadable) there is
+    nothing to merge: the run fails loudly (exit 1) instead of emitting a
+    clean zero-findings merge that would post a false APPROVE review."""
+
+    def test_all_returns_dropped_exits_one(self, tmp_path):
+        compact = stage_returns(tmp_path, {
+            "correctness.json": {
+                "reviewer": "correctness",
+                "findings": "not-a-list",  # wrong type: whole return dropped
+                "residual_risks": [],
+                "testing_gaps": [],
+            },
+            "security.json": {
+                "reviewer": "security",
+                "findings": [],
+                # residual_risks/testing_gaps missing: whole return dropped
+            },
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 1, "all returns dropped must be fatal, not a clean merge"
+        assert payload is None, "no clean zero-findings output may be printed"
+        assert "all 2 compact return(s)" in stderr
+        assert "dropped" in stderr
+
+    def test_some_valid_returns_still_merge(self, tmp_path):
+        """Control for the fatality: one dropped return among valid ones
+        stays non-fatal (the drop-and-continue rule is unchanged)."""
+        compact = stage_returns(tmp_path, {
+            "correctness.json": {
+                "reviewer": "correctness",
+                "findings": "not-a-list",
+                "residual_risks": [],
+                "testing_gaps": [],
+            },
+            "security.json": reviewer_return("security", [
+                finding(title="Survivor"),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        assert [f["title"] for f in payload["findings"]] == ["Survivor"]
+
+
+class TestScenario17CandidateLines:
+    """Merged dedup groups carry every member's (file, line) so downstream
+    linemap anchoring (build-review-payload.sh) can fall back when the kept
+    representative's primary line is not commentable."""
+
+    def test_dedup_group_carries_all_member_anchors(self, tmp_path):
+        compact = stage_returns(tmp_path, {
+            "correctness.json": reviewer_return("correctness", [
+                finding(line=50),
+            ]),
+            "security.json": reviewer_return("security", [
+                finding(line=52),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        assert len(payload["findings"]) == 1
+        merged = payload["findings"][0]
+        assert merged["candidate_lines"] == [
+            ["app/controllers/sessions_controller.rb", 50],
+            ["app/controllers/sessions_controller.rb", 52],
+        ], "both member anchors, deduped and sorted"
+
+    def test_duplicate_member_anchors_dedupe(self, tmp_path):
+        """Two members on the same line dedupe to one candidate — equal to
+        the primary anchor, so nothing extra is emitted (schema-minimal:
+        candidate_lines carries fallback anchors only)."""
+        compact = stage_returns(tmp_path, {
+            "correctness.json": reviewer_return("correctness", [
+                finding(line=50),
+            ]),
+            "security.json": reviewer_return("security", [
+                finding(line=50),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        assert payload["coverage"]["dedup_merges"] == 1
+        assert "candidate_lines" not in payload["findings"][0]
+
+    def test_single_member_group_omits_candidate_lines(self, tmp_path):
+        """Schema-minimal pin: single-member groups carry no candidate_lines
+        (nothing to fall back through)."""
+        compact = stage_returns(tmp_path, {
+            "correctness.json": reviewer_return("correctness", [
+                finding(title="Lone finding"),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        assert "candidate_lines" not in payload["findings"][0]
+
+
+class TestScenario18SuggestedFixInheritance:
+    """The merged suggested_fix falls back to a sibling's when the kept
+    representative (highest severity/anchor) carries none."""
+
+    def test_best_without_fix_inherits_sibling_fix(self, tmp_path):
+        compact = stage_returns(tmp_path, {
+            "security.json": reviewer_return("security", [
+                # Highest severity: becomes the kept representative, no fix.
+                finding(severity="P0", confidence=75),
+            ]),
+            "correctness.json": reviewer_return("correctness", [
+                finding(severity="P1", confidence=75,
+                        suggested_fix="Allowlist the redirect target"),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        assert len(payload["findings"]) == 1
+        merged = payload["findings"][0]
+        assert merged["severity"] == "P0", "security's P0 is the group max"
+        assert merged["suggested_fix"] == "Allowlist the redirect target", \
+            "merged suggested_fix equals the sibling's"
+
+    def test_no_member_with_fix_omits_field(self, tmp_path):
+        compact = stage_returns(tmp_path, {
+            "security.json": reviewer_return("security", [
+                finding(severity="P0"),
+            ]),
+            "correctness.json": reviewer_return("correctness", [
+                finding(severity="P1"),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        assert len(payload["findings"]) == 1
+        assert "suggested_fix" not in payload["findings"][0]
+
+
+class TestScenario19P0LowAnchorSuppressed:
+    """Gate pin: the P0/P1 exception requires anchor 50+ — a P0 at 25 is
+    suppressed and counted by anchor, not passed through on severity alone."""
+
+    def test_p0_at_twentyfive_suppressed_by_anchor(self, tmp_path):
+        compact = stage_returns(tmp_path, {
+            "security.json": reviewer_return("security", [
+                finding(severity="P0", confidence=25),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        assert payload["findings"] == [], "P0 at anchor 25 is below the gate"
+        assert payload["coverage"]["suppressed_by_anchor"] == {"25": 1}
+
+
+class TestScenario20P3AdvisoryDemotion:
+    """Demotion covers P3 as well as P2: a single non-testing reviewer's P3
+    advisory demotes to residual_risks with the demoted count."""
+
+    def test_p3_advisory_single_reviewer_demoted(self, tmp_path):
+        compact = stage_returns(tmp_path, {
+            "maintainability.json": reviewer_return("maintainability", [
+                finding(severity="P3", autofix_class="advisory",
+                        owner="human", confidence=75),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        assert payload["findings"] == [], "demoted finding leaves primary"
+        assert payload["residual_risks"] == [
+            "app/controllers/sessions_controller.rb:42 -- Unvalidated redirect"
+        ]
+        assert payload["coverage"]["demoted"] == 1
 
 
 class TestCliContract:
