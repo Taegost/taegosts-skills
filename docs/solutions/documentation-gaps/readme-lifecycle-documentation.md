@@ -201,5 +201,5 @@ docs/                             # Plans and solutions
 ## Related
 
 - `docs/solutions/tooling-decisions/claude-code-plugin-repository-structure.md` — covers the manifest format decision (marketplace.json vs plugin.json) and directory layout. This doc complements it by covering how to document the structure and usage for contributors.
-- `docs/plans/2026-06-22-002-feat-documentation-lifecycle-plan.md` — the implementation plan that produced the README documentation.
-- `docs/plans/2026-06-22-003-research-plugin-cache-behavior-plan.md` — research on plugin caching that will enable the fix-cycle walkthrough (U3 of the documentation plan, currently blocked).
+- Implementation plan for the README documentation (removed from `docs/plans/` in ad3b560; git history).
+- Research on plugin caching for the fix-cycle walkthrough, U3 of the documentation plan (removed from `docs/plans/` in ad3b560; git history; U3 was still blocked when the research was removed).

@@ -87,13 +87,11 @@ Specialized skills may adapt these headings (e.g., "What You Verify" instead of 
 
 ### Dispatch Patterns
 
-Two dispatch patterns coexist:
+**Bootstrap** is the dispatch pattern for every skill that dispatches subagents: the orchestrator sends a short read-list prompt — file paths plus dynamic slots, not inline content. The subagent reads its own operating contract, agent file, and schema from disk, then acknowledges what it read before starting. See `docs/solutions/conventions/subagent-bootstrap-dispatch.md` for the pattern itself and `docs/standards/agent-standards.md` for the standard.
 
-1. **Template-wrapped** (`ts-code-review`, `ts-doc-review`): The orchestrator injects agent file content into a template via `{agent_file}` substitution. The template provides shared structure (output contract, confidence rubric, schema) and the agent file provides domain-specific identity and scope.
+**Deprecated fallback — inline dispatch** (formerly split into "Direct-seed" and "Template-wrapped" naming): the orchestrator seeds agent file content directly into a generic subagent prompt. It survives only as the fallback for harnesses whose subagent primitive has no file-read tools. Do not use it as the primary pattern for new skills or new agents; every dispatch goes through the read-list prompt.
 
-2. **Direct-seed** (`ts-work`, `ts-compound`, `ts-plan`): The orchestrator seeds agent file content directly into a generic subagent prompt. The agent file carries the full context including output contract.
-
-Both patterns require the agent file to be self-contained in terms of identity and scope. When adding a new agent, check which dispatch pattern the parent skill uses.
+Agent files must be self-contained in terms of identity and scope regardless of dispatch pattern — the inline fallback inlines the same file the read-list would point at, so the file carries the full context including output contract.
 
 ### File Placement
 
@@ -128,7 +126,7 @@ Never hardcode agent counts in documentation or orchestrator prompts. Rosters ch
 
 - **Updating a catalog or orchestrator prompt**: Verify that every agent referenced actually exists on disk. Replace hardcoded counts with directory-aware references. Ensure dispatch variable names match the agent file's `name` field.
 
-- **Adding agents to a new skill**: Choose the dispatch pattern (template-wrapped or direct-seed) based on whether shared structure is needed. Place agents in `skills/<new-skill>/references/agents/`. Follow the implementer or reviewer template based on the agent's role.
+- **Adding agents to a new skill**: Dispatch via bootstrap (the read-list prompt); inlining agent content is the deprecated fallback for harnesses without file-read tools. Place agents in `skills/<new-skill>/references/agents/`. Follow the implementer or reviewer template based on the agent's role.
 
 ## Examples
 

@@ -190,7 +190,7 @@ If any verification step fails, fix the issue before proceeding. Do not commit a
 
 After all individual finding remediations pass Step 6 verification, run holistic verification against the full feature plan:
 
-1. Invoke `/ts-verify-implementation <plan-path>` — pass the full plan path from Step 0a (e.g., `docs/plans/2026-07-04-002-feat-pr-fix-findings-verification-loop-plan.md`). The skill delegates path resolution to `load-plan`, which handles explicit paths, PR body scanning, and branch name extraction.
+1. Invoke `/ts-verify-implementation <plan-path>` — pass the full plan path from Step 0a (e.g., `docs/plans/2026-09-08-002-feat-review-pipeline-token-reduction-plan.md`). The skill delegates path resolution to `load-plan`, which handles explicit paths, PR body scanning, and branch name extraction.
 2. If the sub-skill fails to execute (error, timeout, or unavailable), write verdict `INFRA-FAILURE` to the tracker file, log a warning, and continue to Step 7. Do not block the PR update on verification infrastructure failures — but the failure must be recorded, not silent.
 3. If the sub-skill executes but returns a PARTIAL or FAIL verdict, write that verdict to the tracker file and proceed to Step 6b.
 4. If the sub-skill returns PASS, write verdict `PASS` to the tracker file, then proceed to Step 7.

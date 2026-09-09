@@ -53,6 +53,7 @@ Documented solutions to past problems, organized by category with YAML frontmatt
 | [solutions/tooling-decisions/](solutions/tooling-decisions/) | Tooling and architecture decisions |
 | [solutions/workflow-issues/](solutions/workflow-issues/) | Workflow patterns and resilience |
 | [solutions/documentation-gaps/](solutions/documentation-gaps/) | Documentation lifecycle solutions |
+| [solutions/architecture-patterns/](solutions/architecture-patterns/) | Structural patterns for skills and pipelines |
 
 ## Plans
 

@@ -132,7 +132,7 @@ If `locate-plan.py` returns multiple matches:
 ### Explicit path
 
 ```bash
-/load-plan plan:docs/plans/2026-07-02-004-fix-review-skills-plan-validation-plan.md
+/load-plan plan:docs/plans/2026-09-08-002-feat-review-pipeline-token-reduction-plan.md
 ```
 
 ### Auto-discovery (interactive)

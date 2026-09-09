@@ -7,7 +7,7 @@ problem_type: convention
 component: documentation
 severity: medium
 applies_when:
-  - Dispatching subagents in ts-doc-review, ts-plan, or ts-work
+  - Dispatching subagents in any skill
   - Reducing token consumption in orchestrator dispatch
   - Adding new skills that dispatch subagents
 tags:
@@ -72,7 +72,7 @@ When a harness lacks subagent file-read tools (e.g., `Agent` tool in Claude Code
 
 - Any skill that dispatches subagents with template/agent/schema content
 - When the subagent has file-read capabilities (the platform's `Agent` or `spawn_agent` primitive)
-- For ts-doc-review, ts-plan, and ts-work (the three skills in scope for this pattern)
+- Every skill that dispatches subagents uses this pattern (see `docs/standards/agent-standards.md`); the inline-content form survives only as the fallback for harnesses without file-read tools
 
 ## Examples
 
@@ -103,21 +103,10 @@ Document content:
 [full document text]
 ```
 
-### ts-work dispatch (bootstrap)
-
-```text
-Read these files IN FULL before starting:
-1. references/agents/implementer-general.md (your operating contract)
-2. The unit context below (Goal, Files, Approach, Test scenarios)
-
-After reading, emit acknowledgment.
-
-[unit context inline]
-```
-
 ## Related
 
 - `docs/standards/agent-standards.md` — agent definition format
 - `skills/ts-doc-review/references/subagent-bootstrap.md` — orchestrator-facing bootstrap prompt shape (kept out of the orchestrator's default-loaded context except this small file)
+- `skills/ts-code-review/references/subagent-bootstrap.md` — same shape for the multi-agent review pipeline (reviewer and validator dispatch)
 - `skills/ts-doc-review/references/subagent-template.md` — reviewer's operating contract, read by the subagent itself
 - `docs/solutions/workflow-issues/notification-resilience-via-disk-state.md` — disk-first state pattern

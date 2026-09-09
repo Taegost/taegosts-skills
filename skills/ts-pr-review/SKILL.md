@@ -22,22 +22,13 @@ If no argument is provided, list open PRs and prompt the user to specify one.
 
 These are always-constraints. Violating any of them means the review is invalid and must not be posted.
 
-1. **The review MUST come from the `/ts-code-review` skill.** Reading the diff yourself and writing up findings is NOT a review, no matter how thorough it feels. If you have findings but did not invoke `/ts-code-review` in this session, you have skipped the process — stop and go back to step 2.
-2. **HARD GATE before posting:** Step 4 consumes findings ONLY from the `ts-code-review` run artifact (`review.json`). If that file does not exist on disk, you cannot proceed to step 4. There is no fallback path that lets you post self-generated findings.
+1. **The review MUST come from the `/ts-code-review` skill.** Reading the diff yourself and writing up findings is NOT a review, no matter how thorough it feels. If you have findings but did not invoke `/ts-code-review` in this session, you have skipped the process — stop and go back to step 1.
+2. **HARD GATE before posting:** Step 3 consumes findings ONLY from the `ts-code-review` run artifact (`review.json`). If that file does not exist on disk, you cannot proceed to step 3. There is no fallback path that lets you post self-generated findings.
 3. **No tool-call budget.** Use as many tool calls as the process requires. The multi-agent review pipeline is expected to make many calls; this is correct behavior, not waste. Never skip, truncate, or substitute a lighter review to save calls. (Avoid *redundant* calls — re-fetching data you already have — but never trade process steps for call count.)
 
 ## Process
 
-### 1. Ensure the ts-code-review skill is available
-
-Verify availability with a concrete check — do not assume:
-
-- Confirm the `/ts-code-review` slash command is present in the available skills/commands list, OR
-- Confirm its skill file exists on disk (e.g., `ls` the plugin's skills directory).
-
-If it is not available, stop and alert the user. Do not continue, and do not perform a review yourself as a substitute.
-
-### 2. Dispatch the review via ts-code-review
+### 1. Dispatch the review via ts-code-review
 
 Invoke the `ts-code-review` skill in agent mode, passing the PR through:
 
@@ -49,13 +40,13 @@ Rules for this invocation:
 
 - **Do NOT pass `base:`** alongside the PR target — `ts-code-review` treats that combination as a conflict and will abort.
 - **Do NOT check out the PR branch.** `ts-code-review` handles PR scope itself (`pr-remote` / `local-aligned` detection) without mutating the working tree.
-- `mode:agent` returns a single JSON object and writes the full run artifact to `/tmp/taegosts-skills/ts-code-review/<run-id>/` — including `review.json`. This artifact is the sole source of findings for step 4.
+- `mode:agent` returns a single JSON object and writes the full run artifact to `/tmp/taegosts-skills/ts-code-review/<run-id>/` — including `review.json`. This artifact is the sole source of findings for step 3.
 - Handle the JSON `status` field:
   - `"skipped"` (PR closed/merged/trivial) — relay the reason to the user and stop.
   - `"failed"` or `"degraded"` — relay the reason to the user and stop. Do NOT fall back to reviewing the diff yourself.
-  - `"complete"` — continue to step 3.
+  - `"complete"` — continue to step 2.
 
-### 3. Verify the run artifact (HARD GATE)
+### 2. Verify the run artifact (HARD GATE)
 
 Before doing anything else, confirm the artifact exists:
 
@@ -65,15 +56,15 @@ test -f "$RUN_DIR/review.json" && echo "GATE PASSED" || echo "GATE FAILED"
 ```
 
 - **GATE FAILED:** Stop. Report to the user that `ts-code-review` did not produce its run artifact. Do not post anything to the PR. Do not reconstruct findings from memory or from the JSON response alone if it conflicts with a missing/failed run.
-- **GATE PASSED:** Read `review.json`. All findings, severities, file paths, and line numbers for step 4 come from this file — not from your own reading of the diff.
+- **GATE PASSED:** Read `review.json`. All findings, severities, file paths, and line numbers for step 3 come from this file — not from your own reading of the diff.
 
-If `review.json` reports zero findings, post a brief approving review (or comment) noting the clean result, then go to step 5.
+If `review.json` reports zero findings, skip the assessment boilerplate but still run steps 3b-3e — the shortcut is about prose, not about bypassing the payload builder, which is the only step that renders `residual_risks` and `testing_gaps`. `build-review-payload.sh` already emits a clean `APPROVE` event for the fully-empty case (zero findings with empty `residual_risks`/`testing_gaps` leave `fallback-findings.md` at 0 bytes, so the `test -s` flat-comment gate in 3e stays closed); when residual risks or testing gaps exist, they render as Info entries in the fallback comment instead of vanishing.
 
-### 4. Post the review to the pull request
+### 3. Post the review to the pull request
 
 Each finding MUST be a separate inline review comment (conversation thread), not part of one flat comment. Use the GitHub pull request review endpoint to post all findings as a single review with multiple inline comments.
 
-#### 4a. Gather review metadata
+#### 3a. Gather review metadata
 
 Fetch PR metadata in a single call (if not already available from earlier in the session):
 
@@ -93,79 +84,68 @@ PR_TITLE=$(echo "$PR_DATA" | jq -r '.title')
 - `headRefOid` is the `commit_id` for the review. Cross-check it against `scope.head_sha` / `scope.pr_url` in `review.json` — if the PR head has moved since the review ran, warn the user and ask whether to re-run rather than posting stale line numbers.
 - If you have already reviewed this PR in a prior run, read the responses to your previous comments and use them to inform framing (e.g., note which prior findings were addressed).
 
-#### 4b. Map and verify line numbers
+#### 3b. Map and verify line numbers
 
-Findings in `review.json` already carry `file` and `line` (new-file line numbers). Before posting, verify each finding's line is commentable — i.e., it appears as an added or context line in the PR diff. Save the diff once and build the verification map from it:
+Save the diff once and turn it into the linemap the payload builder partitions on:
 
 ```bash
 gh pr diff "$PR_URL" | "${CLAUDE_SKILL_DIR}/scripts/map-diff-lines.sh" > /tmp/ts-pr-review-linemap.txt
 ```
 
-This outputs `file:new-file-line` for every added line. For each finding:
+The output is `file:new-file-line` for every added line. `build-review-payload.sh` (3c) reads this linemap to partition findings: a finding whose `file:line` appears in the map posts as an inline comment; findings on unchanged lines, in files outside the diff, or flagged pre-existing route to the fallback flat comment (3e) instead of being dropped.
 
-- Line present in the map -> post as an inline comment at that line with `side: "RIGHT"`.
-- Line NOT present in the map (finding on an unchanged line, or a file not in the diff) -> route that finding to the fallback flat section (4e) instead of dropping it.
+#### 3c. Build the review payload
 
-Parse the diff ONCE. Do not re-fetch or re-parse it per finding.
+Two actions:
 
-#### 4c. Build the review payload
+1. **Author the assessment.** From `review.json`'s verdict and coverage, write a 2-3 sentence overall assessment to a file. This is the only payload content you author — everything else comes from the script:
 
-Map `ts-code-review` severities to the display scale:
+   ```bash
+   cat > /tmp/ts-pr-review-assessment.md <<'EOF'
+   <2-3 sentence assessment of the verdict and finding coverage>
+   EOF
+   ```
 
-| ts-code-review | Display severity |
-|----------------|------------------|
-| P0 | Critical |
-| P1 | High |
-| P2 | Moderate |
-| P3 | Minor |
-| `advisory` findings / `residual_risks` / `testing_gaps` | Info |
+2. **Run the payload builder.** The severity mapping (P0-P3 and advisory-class findings -> Critical/High/Moderate/Minor/Info), the comment-body layout, the inline-vs-fallback partition, and the review event all live in the script:
 
-Create a JSON file with the review body and inline comments. The `body` field is the top-level review summary (include the `ts-code-review` verdict and run ID for traceability). Each entry in `comments` becomes its own conversation thread:
+   ```bash
+   OUT_DIR="/tmp/ts-pr-review/<run-id>"
+   "${CLAUDE_SKILL_DIR}/scripts/build-review-payload.sh" \
+     --review-json "$RUN_DIR/review.json" \
+     --linemap /tmp/ts-pr-review-linemap.txt \
+     --pr-number <pr-number> --head-sha "$HEAD_SHA" \
+     --pr-title "$PR_TITLE" --run-id <run-id> \
+     --out-dir "$OUT_DIR" \
+     --assessment-file /tmp/ts-pr-review-assessment.md
+   ```
 
-```json
-{
-  "body": "## Code Review — PR #N: <title>\n\n**Verdict: <APPROVE|REQUEST_CHANGES>** (<ts-code-review verdict>)\n\n<overall assessment from review.json>\n\n_Review pipeline: ts-code-review run `<run-id>`_",
-  "commit_id": "<head-sha>",
-  "event": "COMMENT",
-  "comments": [
-    {
-      "path": "relative/path/to/file.ext",
-      "line": 42,
-      "side": "RIGHT",
-      "body": "### <severity emoji> Finding 1 — <Severity> | `file.ext` line 42\n\n**Summary:** <finding title>\n\n**Description:** <why_it_matters from review.json, max 10 lines>\n\n**Reason:** <evidence from review.json>\n\n**Severity:** <Critical|High|Moderate|Minor|Info>\n\n**Proposed Fix:** <suggested_fix, max 10 lines>\n\n**AI Prompt:** <prompt for an AI agent to validate and fix>"
-    }
-  ]
-}
-```
+   It writes `review-payload.json` (the `gh api` POST body) and `fallback-findings.md` (flat-comment body for findings the linemap can't place, plus residual risks and testing gaps rendered as Info entries) into `$OUT_DIR` — never the working directory — and prints `inline=<n> fallback=<n> event=<EVENT>`.
 
-- `path` — file path relative to the repo root, matching the diff
-- `line` — the line number in the **new file** (right side of the diff) where the comment should appear
-- `body` — the full finding text (all fields: Summary, Description, Reason, Severity, Proposed Fix, AI Prompt)
-- `side` — required for inline comments on PR diffs; set to `"RIGHT"` to comment on added/modified lines and unchanged context lines (the right side of the diff). Use `"LEFT"` for deleted lines. The GitHub Reviews API requires this field to disambiguate which side of a diff the comment applies to.
-- `event` — use `COMMENT` for findings; use `APPROVE` if all findings are Info-only; use `REQUEST_CHANGES` if any Moderate+ findings exist
+The review event is deterministic, chosen by the script: any Moderate (P2) or higher finding -> `REQUEST_CHANGES`; only Minor (P3) findings -> `COMMENT` with a body note (deliberate behavior change — P3-only reviews no longer use judgment to escalate); Info-only or zero findings -> `APPROVE`. Rankings count non-pre-existing findings only — pre-existing findings are report-only (routed to the fallback comment), so a review whose only P2+ findings are all `pre_existing: true` posts `APPROVE`.
 
-#### 4d. Severity rules for the review event
+**Manual fallback:** if `build-review-payload.sh` fails, you may construct `review-payload.json` yourself per the GitHub pull request reviews API contract (`body`, `commit_id`, `event`, `comments[]` with `path`, `line`, `side: "RIGHT"`, `body`), applying the same severity mapping, event rule (including the pre-existing exclusion), and linemap partition the script encodes, then continue at 3e.
 
-- Any Moderate (P2) or higher finding -> `event: REQUEST_CHANGES`
-- Only Info findings -> `event: APPROVE`
-- Only Minor (P3) findings -> use judgment on `APPROVE` vs `REQUEST_CHANGES`
-- If GitHub rejects `REQUEST_CHANGES` on your own PR (common), fall back to `COMMENT` and note in the body that changes are requested
+#### 3d. Review event override
 
-#### 4e. Post the review
+The review event is set deterministically by `build-review-payload.sh` (3c) — do not hand-edit it. The one judgment call that remains yours: if GitHub rejects `REQUEST_CHANGES` because the PR is your own (common), change the payload's `event` to `COMMENT`, note in the body that changes are requested, and post per 3e.
+
+#### 3e. Post the review
+
+Post the payload as a single review:
 
 ```bash
-gh api repos/{owner}/{repo}/pulls/{number}/reviews --input review.json
+gh api repos/{owner}/{repo}/pulls/{number}/reviews --input "$OUT_DIR/review-payload.json"
 ```
 
-**Fallback:** If the review API fails, or some findings target non-commentable lines (per 4b), post those findings in a single flat comment with each finding as a separate section split by `---` separators:
+Then, only if `$OUT_DIR/fallback-findings.md` is non-empty, post it as a flat conversation comment. `post-pr-comment.sh` has no `--body-file` option — it reads the comment body from stdin when `--body` is omitted:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/ts-pr-fix-findings/scripts/post-pr-comment.sh" --repo {owner}/{repo} --pr {number} --body "$FALLBACK_BODY"
+test -s "$OUT_DIR/fallback-findings.md" && \
+  "${CLAUDE_PLUGIN_ROOT}/skills/ts-pr-fix-findings/scripts/post-pr-comment.sh" \
+    --repo {owner}/{repo} --pr {number} < "$OUT_DIR/fallback-findings.md"
 ```
 
-Inline-postable findings still go through the review API; only the un-postable remainder uses the flat comment.
-
-### 5. Display a summary to the user
+### 4. Display a summary to the user
 
 - Give a brief summary of the number of items found and the `ts-code-review` verdict
 - Include the run artifact path (`/tmp/taegosts-skills/ts-code-review/<run-id>/`) so the full report is auditable
