@@ -31,18 +31,9 @@ Parse `$ARGUMENTS` for optional tokens. Strip each recognized token before inter
 | `grouping:off` | `grouping:off` | Suppress triage groups: no Triage Groups section, empty `triage_groups` in JSON |
 | `grouping:always` | `grouping:always` | Always build triage groups, even for small reviews |
 
-**Grouping is presentation, not a mode.** The `grouping:` tokens change how the finding set is organized for triage — never reviewer selection, merge logic, scope rules, or the Stage 5c apply decision.
+**Conflicting arguments — stop without dispatching reviewers** when multiple incompatible scope selectors appear together (e.g. `base:` with a PR number or branch target), when multiple distinct `mode:` tokens appear other than the `mode:agent`/`mode:headless` alias pair, or when multiple distinct `grouping:` tokens appear (e.g. `grouping:off` with `grouping:always`). Deprecated `mode:autofix` is **not** a conflict — ignore the token and proceed with the normal flow. Emit a one-line failure reason — in `mode:agent`, return JSON: `{"status":"failed","reason":"..."}`.
 
-**Mode alias:** `mode:headless` normalizes to `mode:agent`. `mode:agent` + `mode:headless` is not a conflict.
-
-**Conflicting arguments:** Stop without dispatching reviewers when:
-- Multiple incompatible scope selectors appear together (e.g. `base:` **and** a PR number/branch target — `base:` means "review the current checkout against this base")
-- Multiple distinct `mode:` tokens other than the `mode:agent`/`mode:headless` alias pair
-- Multiple distinct `grouping:` tokens (e.g. `grouping:off` **and** `grouping:always`)
-
-Deprecated `mode:autofix` is **not** a conflict — ignore the token and proceed with the normal flow (see below).
-
-Emit a one-line failure reason. In `mode:agent`, return JSON: `{"status":"failed","reason":"..."}`.
+For the full edge rules behind this summary — grouping-is-presentation semantics, `mode:headless` alias normalization, conflict examples, and deprecated-token handling — read `references/argument-parsing.md` before dispatching reviewers.
 
 ## Operating principles
 
@@ -77,17 +68,7 @@ When locating scripts or reviewer agents, consult `docs/ROUTING.md` first to fin
 
 ## Quick Review Short-Circuit
 
-If `$ARGUMENTS` indicates the user wants a quick, fast, or light code review — and **`mode:agent` is not active** — do not dispatch the multi-agent flow.
-
-**Announce the chosen path** before any other work (Quick review vs Multi-agent review). Skip this announcement when `mode:agent` is active.
-
-Sequence:
-
-1. **Run the harness's built-in code review.** Forward any review target after stripping tokens. Then stop — do not dispatch the multi-agent pipeline.
-2. **Exemption:** If no built-in review exists, continue into the full multi-agent review.
-3. **`mode:agent` bypasses this short-circuit** — always run the full multi-agent review and return JSON.
-
-**Deprecated:** `mode:autofix` is no longer supported — there is no apply *mode*. If passed, ignore the token and proceed with the normal flow (default applies safe fixes via Stage 5c; `mode:agent` reports and the caller applies).
+If `$ARGUMENTS` indicates the user wants a quick, fast, or light code review — and **`mode:agent` is not active** — do not dispatch the multi-agent flow. **Announce the chosen path** before any other work (Quick review vs Multi-agent review), then read `references/quick-review.md` and follow its short-circuit sequence — run the harness's built-in code review first and stop; continue into the full multi-agent review only when no built-in review exists. `mode:agent` bypasses this short-circuit entirely.
 
 ## Severity Scale
 
@@ -224,28 +205,11 @@ Reviewers and Stage 5b validators in **`pr-remote`** mode must **not** Read/Grep
 
 **If a branch name is provided as an argument:**
 
-Substitute the provided branch name as `<branch>`. Do **not** check out `<branch>`.
-
-If `git rev-parse --abbrev-ref HEAD` equals `<branch>`, use the **standalone (current branch)** path below — same tree, explicit branch name; do not use remote-only diff.
-
-Otherwise diff the remote/local ref **without checkout**:
-
-1. Try `gh pr view <branch> --json baseRefName,url,headRefName` — if a PR exists, prefer the **PR number/URL path** above (same remote diff rules).
-2. Else resolve `<branch>` as `origin/<branch>` or `<branch>` after `git fetch --no-tags origin <branch>` when needed.
-3. Resolve default base branch (same logic as standalone). Compute `BASE=$(git merge-base <base-ref> <branch-ref>)` and `git diff -U10 $BASE <branch-ref>`.
-4. If `<branch-ref>` cannot be resolved locally, stop: "Cannot diff branch `<branch>` without checkout. Check out that branch, pass its open PR URL/number, or review the current branch with `base:`."
-
-On success for remote branch diff, set **branch-remote scope**. The working tree is **not** `<branch>`. Include `<pr-scope-mode>branch-remote</pr-scope-mode>` and `<branch-head-ref><branch-ref></branch-head-ref>` in the Stage 4 review context bundle. Reviewers and Stage 5b validators must **not** Read/Grep workspace paths for files in `FILES:`. Inspect via `git show <branch-ref>:<path>` or diff hunks only.
-
-Produce:
-
-```
-echo "BASE:$BASE" && echo "FILES:" && git diff --name-only $BASE <branch-ref> && echo "DIFF:" && git diff -U10 $BASE <branch-ref> && echo "UNTRACKED:" && git ls-files --others --exclude-standard
-```
+Read `references/scope-recipes.md` and follow its branch diff recipe — PR-exists preference, remote resolution without checkout, branch-remote scope bundle, and the diff command. Two guards regardless: do **not** check out `<branch>`, and when `git rev-parse --abbrev-ref HEAD` equals `<branch>` use the **standalone (current branch)** path below instead of a remote-only diff.
 
 **If no argument (standalone on current branch):**
 
-Apply the same base-detection logic as branch mode above, using the current branch (i.e., `gh pr view --json baseRefName,url` with no argument defaults to the current branch).
+Detect the base branch: run `gh pr view --json baseRefName,url` (with no argument this defaults to the current branch) and use the returned base branch as the default base.
 
 If no base can be resolved, **stop**. Do not fall back to `git diff HEAD` — a standalone review without the base would only show uncommitted changes and silently miss all committed work on the branch.
 
@@ -572,12 +536,12 @@ On failure before review completes, set `"status": "failed"` and `"reason": "<on
 
 Before delivering the review, verify:
 
-1. **Every finding is actionable.** Re-read each finding. If it says "consider", "might want to", or "could be improved" without a concrete fix, rewrite it with a specific action. Vague findings waste engineering time.
-2. **No false positives from skimming.** For each finding, verify the surrounding code was actually read. Check that the "bug" isn't handled elsewhere in the same function, that the "unused import" isn't used in a type annotation, that the "missing null check" isn't guarded by the caller.
+1. **Every finding is actionable.** Re-read each finding. If it says "consider", "might want to", or "could be improved" without a concrete fix, rewrite it with a specific action.
+2. **No false positives from skimming.** Each finding must survive the false-positive catalog in `references/subagent-template.md` — the reviewers already follow that catalog via their read-list contract at dispatch, so spot-check the merged set against it (handled-elsewhere, intentional code, linter nitpicks, generic advice are non-findings) instead of re-deriving it here.
 3. **Severity is calibrated.** A style nit is never P0. A SQL injection is never P3. Re-check every severity assignment.
 4. **Line numbers are accurate.** Verify each cited line number against the file content. A finding pointing to the wrong line is worse than no finding.
 5. **Protected artifacts are respected.** Discard any findings that recommend deleting or gitignoring files in `docs/brainstorms/`, `docs/plans/`, or `docs/solutions/`.
-6. **Findings don't duplicate linter output.** Don't flag things the project's linter/formatter would catch (missing semicolons, wrong indentation). Focus on semantic issues.
+6. **Findings don't duplicate linter output.** Covered by the same catalog's linter-nitpick rule — keep findings semantic.
 
 ## Language-Aware Conditionals
 
@@ -640,7 +604,12 @@ If the platform doesn't support parallel sub-agents, run reviewers sequentially.
 
 ## Included References
 
-The files below are inlined at load time. The review output template is **not** inlined — Stage 6 loads it on demand (`references/review-output-template.md`).
+Only the agent catalog below is inlined at load time. These are **not** inlined — each is loaded on demand only when its path fires:
+
+- `references/review-output-template.md` — Stage 6, before writing the report
+- `references/argument-parsing.md` — conflict-matrix edge rules (Argument Parsing)
+- `references/quick-review.md` — quick-review short-circuit sequence
+- `references/scope-recipes.md` — branch-argument Stage 1 diff recipe
 
 Selected reviewer prompt assets live under `references/agents/`. Read only the prompt files selected for the current review.
 
