@@ -3,7 +3,7 @@ title: "feat: Reduce orchestrator token usage in ts-pr-review and ts-code-review
 type: feat
 date: 2026-09-08
 issue: 113
-status: planned
+status: completed
 ---
 
 # feat: Reduce orchestrator token usage in ts-pr-review and ts-code-review (Issue #113)

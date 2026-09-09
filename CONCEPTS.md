@@ -26,6 +26,12 @@ A subagent prompt file that defines a specialist's identity, scope, and output c
 
 An agent file that conforms to the standard frontmatter schema (`name`, `description`, `tools`, `effort`) and follows one of the two heading sub-templates (implementer or reviewer). The term distinguishes conformant files from legacy agent files that lack frontmatter or use non-standard headings.
 
+## Bootstrap Dispatch
+
+The dispatch pattern where an orchestrator hands a subagent a read-list of file paths so it reads its own operating contract, role, and schema from disk, instead of embedding their contents in the spawn prompt.
+
+After reading, the subagent must acknowledge each file by path and line count; the orchestrator rejects output whose acknowledgment is missing an expected file and re-dispatches a bounded number of times before falling back to embedding the content in the prompt. Dynamic per-run values (scope mode, refs, staged paths) cannot be read from disk and stay inline in the spawn prompt.
+
 ## Plan Discovery
 
 The mechanism by which skills locate and load plan documents. Uses three-tier discovery: explicit path, PR body scanning, and branch-name keyword extraction. Implemented by `skills/load-plan/` and `scripts/locate-plan.py`.
@@ -55,3 +61,11 @@ Classification happens at a single choke point inside the per-file check functio
 ## Command-Surface Script
 
 A script invoked directly as a command, as opposed to a sourced or imported library file or a test script. Only command-surface scripts owe a `--help` branch and an executable bit; compliance means help is answered before any argument validation or side effect, not that the string `--help` appears in the file.
+
+## Anchor
+
+The confidence value a reviewer attaches to a finding, drawn from a fixed ladder of steps. Distinct from severity, which ranks impact; the anchor ranks how sure the reviewer is. Merge rules act on the anchor — agreement across reviewers promotes it one step, and low anchors are suppressed late in the merge except for the most severe findings.
+
+## Linemap
+
+The mapping of every added line in a pull-request diff to its head-side file and line number, computed before review findings are posted. An inline PR review comment is only valid at a line present in the linemap; findings that land anywhere else route to a flat PR comment instead of being dropped.
