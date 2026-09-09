@@ -89,9 +89,11 @@ Specialized skills may adapt these headings (e.g., "What You Verify" instead of 
 
 Two dispatch patterns coexist:
 
-1. **Template-wrapped** (`ts-code-review`, `ts-doc-review`): The orchestrator injects agent file content into a template via `{agent_file}` substitution. The template provides shared structure (output contract, confidence rubric, schema) and the agent file provides domain-specific identity and scope.
+1. **Bootstrap** (`ts-code-review`, `ts-doc-review`): The orchestrator sends a short read-list prompt — file paths plus dynamic slots, not inline content. The subagent reads its own operating contract, agent file, and schema from disk, then acknowledges what it read before starting. See `docs/solutions/conventions/subagent-bootstrap-dispatch.md`.
 
 2. **Direct-seed** (`ts-work`, `ts-compound`, `ts-plan`): The orchestrator seeds agent file content directly into a generic subagent prompt. The agent file carries the full context including output contract.
+
+**Deprecated fallback:** **Template-wrapped** dispatch — the orchestrator inlining agent file content into a template via `{agent_file}` substitution — survives only as the inline fallback for harnesses whose subagent primitive has no file-read tools. Do not use it as the primary pattern for new skills; new agents in bootstrap skills are dispatched via the read-list prompt.
 
 Both patterns require the agent file to be self-contained in terms of identity and scope. When adding a new agent, check which dispatch pattern the parent skill uses.
 
@@ -128,7 +130,7 @@ Never hardcode agent counts in documentation or orchestrator prompts. Rosters ch
 
 - **Updating a catalog or orchestrator prompt**: Verify that every agent referenced actually exists on disk. Replace hardcoded counts with directory-aware references. Ensure dispatch variable names match the agent file's `name` field.
 
-- **Adding agents to a new skill**: Choose the dispatch pattern (template-wrapped or direct-seed) based on whether shared structure is needed. Place agents in `skills/<new-skill>/references/agents/`. Follow the implementer or reviewer template based on the agent's role.
+- **Adding agents to a new skill**: Choose the dispatch pattern (bootstrap or direct-seed; template-wrapped inline is the deprecated fallback) based on whether shared structure is needed. Place agents in `skills/<new-skill>/references/agents/`. Follow the implementer or reviewer template based on the agent's role.
 
 ## Examples
 
