@@ -86,75 +86,64 @@ PR_TITLE=$(echo "$PR_DATA" | jq -r '.title')
 
 #### 3b. Map and verify line numbers
 
-Findings in `review.json` already carry `file` and `line` (new-file line numbers). Before posting, verify each finding's line is commentable — i.e., it appears as an added or context line in the PR diff. Save the diff once and build the verification map from it:
+Save the diff once and turn it into the linemap the payload builder partitions on:
 
 ```bash
 gh pr diff "$PR_URL" | "${CLAUDE_SKILL_DIR}/scripts/map-diff-lines.sh" > /tmp/ts-pr-review-linemap.txt
 ```
 
-This outputs `file:new-file-line` for every added line. For each finding:
-
-- Line present in the map -> post as an inline comment at that line with `side: "RIGHT"`.
-- Line NOT present in the map (finding on an unchanged line, or a file not in the diff) -> route that finding to the fallback flat section (3e) instead of dropping it.
-
-Parse the diff ONCE. Do not re-fetch or re-parse it per finding.
+The output is `file:new-file-line` for every added line. `build-review-payload.sh` (3c) reads this linemap to partition findings: a finding whose `file:line` appears in the map posts as an inline comment; findings on unchanged lines, in files outside the diff, or flagged pre-existing route to the fallback flat comment (3e) instead of being dropped.
 
 #### 3c. Build the review payload
 
-Map `ts-code-review` severities to the display scale:
+Two actions:
 
-| ts-code-review | Display severity |
-|----------------|------------------|
-| P0 | Critical |
-| P1 | High |
-| P2 | Moderate |
-| P3 | Minor |
-| `advisory` findings / `residual_risks` / `testing_gaps` | Info |
+1. **Author the assessment.** From `review.json`'s verdict and coverage, write a 2-3 sentence overall assessment to a file. This is the only payload content you author — everything else comes from the script:
 
-Create a JSON file with the review body and inline comments. The `body` field is the top-level review summary (include the `ts-code-review` verdict and run ID for traceability). Each entry in `comments` becomes its own conversation thread:
+   ```bash
+   cat > /tmp/ts-pr-review-assessment.md <<'EOF'
+   <2-3 sentence assessment of the verdict and finding coverage>
+   EOF
+   ```
 
-```json
-{
-  "body": "## Code Review — PR #N: <title>\n\n**Verdict: <APPROVE|REQUEST_CHANGES>** (<ts-code-review verdict>)\n\n<overall assessment from review.json>\n\n_Review pipeline: ts-code-review run `<run-id>`_",
-  "commit_id": "<head-sha>",
-  "event": "COMMENT",
-  "comments": [
-    {
-      "path": "relative/path/to/file.ext",
-      "line": 42,
-      "side": "RIGHT",
-      "body": "### <severity emoji> Finding 1 — <Severity> | `file.ext` line 42\n\n**Summary:** <finding title>\n\n**Description:** <why_it_matters from review.json, max 10 lines>\n\n**Reason:** <evidence from review.json>\n\n**Severity:** <Critical|High|Moderate|Minor|Info>\n\n**Proposed Fix:** <suggested_fix, max 10 lines>\n\n**AI Prompt:** <prompt for an AI agent to validate and fix>"
-    }
-  ]
-}
-```
+2. **Run the payload builder.** The severity mapping (P0-P3 and advisory-class findings -> Critical/High/Moderate/Minor/Info), the comment-body layout, the inline-vs-fallback partition, and the review event all live in the script:
 
-- `path` — file path relative to the repo root, matching the diff
-- `line` — the line number in the **new file** (right side of the diff) where the comment should appear
-- `body` — the full finding text (all fields: Summary, Description, Reason, Severity, Proposed Fix, AI Prompt)
-- `side` — required for inline comments on PR diffs; set to `"RIGHT"` to comment on added/modified lines and unchanged context lines (the right side of the diff). Use `"LEFT"` for deleted lines. The GitHub Reviews API requires this field to disambiguate which side of a diff the comment applies to.
-- `event` — use `COMMENT` for findings; use `APPROVE` if all findings are Info-only; use `REQUEST_CHANGES` if any Moderate+ findings exist
+   ```bash
+   OUT_DIR="/tmp/ts-pr-review/<run-id>"
+   "${CLAUDE_SKILL_DIR}/scripts/build-review-payload.sh" \
+     --review-json "$RUN_DIR/review.json" \
+     --linemap /tmp/ts-pr-review-linemap.txt \
+     --pr-number <pr-number> --head-sha "$HEAD_SHA" \
+     --pr-title "$PR_TITLE" --run-id <run-id> \
+     --out-dir "$OUT_DIR" \
+     --assessment-file /tmp/ts-pr-review-assessment.md
+   ```
 
-#### 3d. Severity rules for the review event
+   It writes `review-payload.json` (the `gh api` POST body) and `fallback-findings.md` (flat-comment body for findings the linemap can't place, plus residual risks and testing gaps rendered as Info entries) into `$OUT_DIR` — never the working directory — and prints `inline=<n> fallback=<n> event=<EVENT>`.
 
-- Any Moderate (P2) or higher finding -> `event: REQUEST_CHANGES`
-- Only Info findings -> `event: APPROVE`
-- Only Minor (P3) findings -> use judgment on `APPROVE` vs `REQUEST_CHANGES`
-- If GitHub rejects `REQUEST_CHANGES` on your own PR (common), fall back to `COMMENT` and note in the body that changes are requested
+The review event is deterministic, chosen by the script: any Moderate (P2) or higher finding -> `REQUEST_CHANGES`; only Minor (P3) findings -> `COMMENT` with a body note (deliberate behavior change — P3-only reviews no longer use judgment to escalate); Info-only or zero findings -> `APPROVE`.
+
+**Manual fallback:** if `build-review-payload.sh` fails, you may construct `review-payload.json` yourself per the GitHub pull request reviews API contract (`body`, `commit_id`, `event`, `comments[]` with `path`, `line`, `side: "RIGHT"`, `body`), applying the same severity mapping, event rule, and linemap partition the script encodes, then continue at 3e.
+
+#### 3d. Review event override
+
+The review event is set deterministically by `build-review-payload.sh` (3c) — do not hand-edit it. The one judgment call that remains yours: if GitHub rejects `REQUEST_CHANGES` because the PR is your own (common), change the payload's `event` to `COMMENT`, note in the body that changes are requested, and post per 3e.
 
 #### 3e. Post the review
 
-```bash
-gh api repos/{owner}/{repo}/pulls/{number}/reviews --input review.json
-```
-
-**Fallback:** If the review API fails, or some findings target non-commentable lines (per 3b), post those findings in a single flat comment with each finding as a separate section split by `---` separators:
+Post the payload as a single review:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/ts-pr-fix-findings/scripts/post-pr-comment.sh" --repo {owner}/{repo} --pr {number} --body "$FALLBACK_BODY"
+gh api repos/{owner}/{repo}/pulls/{number}/reviews --input "$OUT_DIR/review-payload.json"
 ```
 
-Inline-postable findings still go through the review API; only the un-postable remainder uses the flat comment.
+Then, only if `$OUT_DIR/fallback-findings.md` is non-empty, post it as a flat conversation comment. `post-pr-comment.sh` has no `--body-file` option — it reads the comment body from stdin when `--body` is omitted:
+
+```bash
+test -s "$OUT_DIR/fallback-findings.md" && \
+  "${CLAUDE_PLUGIN_ROOT}/skills/ts-pr-fix-findings/scripts/post-pr-comment.sh" \
+    --repo {owner}/{repo} --pr {number} < "$OUT_DIR/fallback-findings.md"
+```
 
 ### 4. Display a summary to the user
 
