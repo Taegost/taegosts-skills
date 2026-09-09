@@ -4,6 +4,8 @@ This is the dispatch-time prompt shape the ts-code-review orchestrator sends to 
 
 **Bootstrap dispatch.** The orchestrator passes file paths instead of inline content. Each reviewer reads its own operating contract (`references/subagent-template.md`), role prompt (`references/agents/<name>.md`), output schema (`references/findings-schema.json`), scope rules (`references/diff-scope.md`), and routing rubric (`references/action-class-rubric.md`) from disk. This keeps ~4.8k words of template/schema/rubric content per reviewer off the orchestrator's dispatch output and context — the orchestrator never needs it unless the fallback path below fires. Paths are skill-relative: resolve them under the ts-code-review skill directory (`${CLAUDE_PLUGIN_ROOT}/skills/ts-code-review/` when installed as a plugin).
 
+**CE-asset carve-out.** The CE local prompt assets (`learnings-researcher`, `deployment-verification-agent`) dispatch via bootstrap with a read list of their agent prompt file only — no reviewer contract or schema. They are prose-output assets, not reviewers, and are exempt from the `subagent-template.md` compact-JSON reviewer contract; their output is synthesized separately in Stage 6.
+
 ---
 
 ## Reviewer bootstrap prompt (Stage 4 — orchestrator sends this)

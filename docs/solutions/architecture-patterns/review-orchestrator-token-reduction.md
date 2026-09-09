@@ -47,7 +47,7 @@ Classify every block of orchestrator prose into one of three homes:
 
 ### ts-pr-review: build-review-payload.sh (U1-U3)
 
-`skills/ts-pr-review/scripts/build-review-payload.sh` (308 lines) scripts the former manual SKILL.md steps 3b/3c/3d. It:
+`skills/ts-pr-review/scripts/build-review-payload.sh` scripts the former manual SKILL.md steps 3b/3c/3d (behavior pinned by `tests/scripts/test-build-review-payload.sh`). It:
 
 - verifies each finding's line exists in the PR diff head-side via the linemap precomputed by `map-diff-lines.sh` (`file:new-line` for every added line);
 - maps severity P0-P3 to GitHub display severities (`P0→Critical`, `P1→High`, `P2→Moderate`, `P3→Minor`; advisory-class findings, `residual_risks`, and `testing_gaps` → `Info`);
@@ -92,7 +92,7 @@ After reading all files, emit acknowledgment: one line per file, `<path> (<N> li
 
 with ack verification and 3-attempt recovery before falling back to inline dispatch. The orchestrator keeps a small summary of what each de-inlined file governs (`SKILL.md`'s "Not inlined" note) so it never needs the bodies except on the fallback path.
 
-**U5 — merge-findings.py.** `skills/ts-code-review/scripts/merge-findings.py` (566 lines, 18 pytest tests) extracts the mechanical half of Stage 5. Rules encoded (each previously SKILL.md prose, each now test-pinned):
+**U5 — merge-findings.py.** `skills/ts-code-review/scripts/merge-findings.py` (pinned by `tests/skills/ts-code-review/test_merge_findings.py`) extracts the mechanical half of Stage 5. Rules encoded (each previously SKILL.md prose, each now test-pinned):
 
 - fingerprint dedup: `normalize(file)` + line within ±3 (direct tolerance matching with transitive chaining, not floor buckets) + `normalize(title)`;
 - merge takes **two independent maxima** — highest severity and highest anchor may come from different group members;
@@ -126,10 +126,10 @@ Measured per-invocation word counts, before → after:
 Three compounding effects beyond the 36% cut:
 
 - **Multiplier exposure.** Every verification loop, validator round, and reviewer re-dispatch replays the orchestrator context. Savings multiply by pipeline fan-out.
-- **Determinism.** The review event and the merge pipeline are now computed, not narrated — two runs on identical inputs produce identical payloads and orderings, and the 22-assertion shell suite plus 18 pytest tests pin the rules against drift.
+- **Determinism.** The review event and the merge pipeline are now computed, not narrated — two runs on identical inputs produce identical payloads and orderings, and the script test suites (`tests/scripts/test-build-review-payload.sh`, `tests/skills/ts-code-review/test_merge_findings.py`) pin the rules against drift.
 - **Consistency under fallback.** The manual fallbacks are contracts pointing at the script's encoded behavior, so a degraded run degrades to the same rules rather than to freehand reconstruction.
 
-All gates after merge: 47 shell suites pass, 119 pytest tests pass, shellcheck clean, `verify-scripts --all` 60/0.
+All gates after merge: the shell and pytest suites, shellcheck, and `verify-scripts --all` — the exact gate commands live in the repo's CI/pre-commit configuration.
 
 ## When to Apply
 

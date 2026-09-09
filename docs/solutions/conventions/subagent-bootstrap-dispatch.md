@@ -7,7 +7,7 @@ problem_type: convention
 component: documentation
 severity: medium
 applies_when:
-  - Dispatching subagents in ts-code-review, ts-doc-review, ts-plan, or ts-work
+  - Dispatching subagents in ts-code-review or ts-doc-review
   - Reducing token consumption in orchestrator dispatch
   - Adding new skills that dispatch subagents
 tags:
@@ -72,7 +72,7 @@ When a harness lacks subagent file-read tools (e.g., `Agent` tool in Claude Code
 
 - Any skill that dispatches subagents with template/agent/schema content
 - When the subagent has file-read capabilities (the platform's `Agent` or `spawn_agent` primitive)
-- For ts-code-review, ts-doc-review, ts-plan, and ts-work (the skills in scope for this pattern)
+- For ts-code-review and ts-doc-review, the skills in scope for this pattern — ts-work, ts-compound, and ts-plan use direct-seed dispatch instead (see `docs/solutions/conventions/agent-definition-convention.md`, "Dispatch Patterns")
 
 ## Examples
 
@@ -101,18 +101,6 @@ Round 1 — no prior decisions.
 
 Document content:
 [full document text]
-```
-
-### ts-work dispatch (bootstrap)
-
-```text
-Read these files IN FULL before starting:
-1. references/agents/implementer-general.md (your operating contract)
-2. The unit context below (Goal, Files, Approach, Test scenarios)
-
-After reading, emit acknowledgment.
-
-[unit context inline]
 ```
 
 ## Related
