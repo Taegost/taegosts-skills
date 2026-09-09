@@ -39,14 +39,16 @@ Output (stdout): one JSON object:
                     downstream-resolver, report_only = the rest. Both halves
                     stay in `findings`; Stage 6 and the JSON
                     `actionable_findings` field consume these lists.
-    coverage        counts for the Coverage section: malformed returns
-                    dropped (with reasons), findings dropped per-finding
-                    (with reasons), legacy routing remaps, dedup merges,
-                    promotions, demotions, suppressed count by anchor,
-                    pre-existing count, and the `conflicts` report — same
-                    fingerprint, differing severity/autofix_class/owner —
-                    naming each reviewer's position for the orchestrator's
-                    disagreement-annotation step.
+    coverage        counts for the Coverage section: malformed or unreadable
+                    returns dropped (with reasons), findings dropped
+                    per-finding (with reasons), legacy routing remaps, dedup
+                    merges, promotions (real anchor moves only — no-op
+                    agreement at 0/25/100 is not counted), demotions,
+                    suppressed count by anchor, pre-existing count, and the
+                    `conflicts` report — same fingerprint, differing
+                    severity/autofix_class/owner — naming each reviewer's
+                    position for the orchestrator's disagreement-annotation
+                    step.
 
 Encoded Stage 5 rules (canonical spec: SKILL.md history, KTD 2 of
 docs/plans/2026-09-08-002, script-extraction-standards.md):
@@ -91,10 +93,10 @@ Triage grouping and CE-artifact preservation stay orchestrator-side and are
 not implemented here.
 
 Exit codes:
-    0 - Success (merged JSON on stdout; malformed RETURNS are dropped and
-        reported inside coverage, not fatal)
+    0 - Success (merged JSON on stdout; malformed or unreadable RETURNS are
+        dropped and reported inside coverage, not fatal)
     1 - Usage or input error (missing/unreadable compact-dir, no *.json
-        files in it, unreadable file); reason on stderr
+        files in it); reason on stderr
 
 Usage:
     merge-findings.py <compact-dir>
@@ -419,7 +421,12 @@ def merge(compact_dir: Path) -> dict:
         try:
             raw = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, UnicodeDecodeError) as exc:
-            raise ValueError(f"cannot read {path}: {exc}") from exc
+            # A transient I/O or permission failure on ONE return must not
+            # discard every other reviewer's validated findings — drop it
+            # loudly in coverage, like an invalid-JSON return.
+            returns_dropped.append(
+                {"file": path.name, "reason": f"unreadable: {exc}"})
+            continue
         except json.JSONDecodeError as exc:
             returns_dropped.append(
                 {"file": path.name, "reason": f"invalid JSON: {exc}"})
@@ -459,9 +466,14 @@ def merge(compact_dir: Path) -> dict:
         coverage["dedup_merges"] += len(group) - 1
         finding = merge_group(group)
         if len({f["_reviewer"] for f in group}) >= 2:
-            finding["confidence"] = PROMOTIONS.get(
-                finding["confidence"], finding["confidence"])
-            coverage["promoted"] += 1
+            # Only a real anchor move counts as a promotion — at a
+            # saturated/stuck anchor (0/25/100) agreement changes nothing,
+            # and counting the no-op would overstate Coverage.
+            old = finding["confidence"]
+            new_conf = PROMOTIONS.get(old, old)
+            finding["confidence"] = new_conf
+            if new_conf != old:
+                coverage["promoted"] += 1
         merged.append(finding)
 
     # Step 5: disagreement report (annotation stays orchestrator-side).
