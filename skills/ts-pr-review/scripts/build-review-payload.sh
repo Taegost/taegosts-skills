@@ -255,8 +255,13 @@ if ! jq -Rn '
   | map({key: .[0].f, value: map(.l)})
   | from_entries
 ' "$LINEMAP" > "$tmpdir/linemap.json" 2> "$tmpdir/linemap.err"; then
-  err "linemap parse failed: $LINEMAP is not valid map-diff-lines.sh output" \
-    "$(head -n1 "$tmpdir/linemap.err")"
+  # The hint embeds jq's raw stderr, which quotes the offending line's
+  # content — tabs and backslashes would break err()'s quote-only
+  # scrubbing, so this object is jq-built (JSON-safe by construction).
+  jq -cn \
+    --arg error "linemap parse failed: $LINEMAP is not valid map-diff-lines.sh output" \
+    --arg hint "$(head -n1 "$tmpdir/linemap.err")" \
+    '{ok: false, error: $error, hint: $hint}' >&2
   exit 1
 fi
 

@@ -7,7 +7,7 @@ problem_type: convention
 component: documentation
 severity: medium
 applies_when:
-  - Dispatching subagents in ts-code-review or ts-doc-review
+  - Dispatching subagents in any skill
   - Reducing token consumption in orchestrator dispatch
   - Adding new skills that dispatch subagents
 tags:
@@ -72,7 +72,7 @@ When a harness lacks subagent file-read tools (e.g., `Agent` tool in Claude Code
 
 - Any skill that dispatches subagents with template/agent/schema content
 - When the subagent has file-read capabilities (the platform's `Agent` or `spawn_agent` primitive)
-- Every skill that dispatches subagents (ts-code-review, ts-doc-review, ts-work, ts-compound, ts-plan) uses this pattern (see `docs/standards/agent-standards.md`); the inline-content form survives only as the fallback for harnesses without file-read tools
+- Every skill that dispatches subagents uses this pattern (see `docs/standards/agent-standards.md`); the inline-content form survives only as the fallback for harnesses without file-read tools
 
 ## Examples
 

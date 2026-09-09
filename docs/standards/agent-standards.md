@@ -159,7 +159,7 @@ Several agents exist in near-identical form across multiple skills (e.g. `securi
 
 **Input for that future work:** investigating the current duplicate pairs found the divergence between copies is **deliberate, content-meaningful tailoring to each skill's invocation context**, not accidental drift from forgetting to sync a shared file. Every sampled pair had at least one paragraph rewritten for how that skill actually consumes the agent's output (e.g. `learnings-researcher` for `ts-code-review` converts findings into "review context: known risks against this diff"; the same agent for `ts-plan` converts findings into "planning inputs: constraints, sequencing risks"). A naive copy-paste consolidation into `agents/` would erase that tailoring — the future dedup work needs to preserve per-caller framing (e.g. via an explicit context/invocation-mode section the agent reads, similar to how `scripts/lib/input-validation.sh`'s functions take parameters rather than hardcoding one caller's behavior) rather than collapsing the copies into one undifferentiated file.
 
-Dispatch pattern unification — the other half of Issue #83 — is resolved: every skill that dispatches subagents (`ts-code-review`, `ts-doc-review`, `ts-work`, `ts-compound`, `ts-plan`) now dispatches via Bootstrap (see above); `docs/solutions/conventions/agent-definition-convention.md` carries the taxonomy.
+Dispatch pattern unification — the other half of Issue #83 — is resolved: every skill that dispatches subagents now dispatches via Bootstrap (see above); `docs/solutions/conventions/agent-definition-convention.md` carries the taxonomy.
 
 ## Conformance Checklist
 

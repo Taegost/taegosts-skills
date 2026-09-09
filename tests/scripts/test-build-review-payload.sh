@@ -464,13 +464,14 @@ fi
 #       route every finding to fallback
 d="$tmpdir/badlinemap"; mkdir -p "$d/out"
 echo '{"verdict": "Ready to merge", "findings": [], "residual_risks": [], "testing_gaps": []}' > "$d/review.json"
-printf '{"review": broken json\n' > "$d/linemap.txt"
+printf 'weird\\line with backslash\n{"review": broken json\n' > "$d/linemap.txt"
 run_build badlinemap
 if [[ $RC -eq 1 ]] \
   && echo "$OUT" | jq -e 'select(.ok == false) | .error' >/dev/null \
+  && echo "$OUT" | jq -e '.hint' >/dev/null \
   && [[ ! -e "$d/out/review-payload.json" ]] \
   && [[ ! -e "$d/out/fallback-findings.md" ]]; then
-  ok "corrupt linemap content: exit 1, JSON error, nothing written"
+  ok "corrupt linemap content: exit 1, JSON error (hint JSON-safe under backslash), nothing written"
 else
   die "corrupt linemap parse (rc=$RC, out=$OUT)"
 fi

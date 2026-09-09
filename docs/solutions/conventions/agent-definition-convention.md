@@ -87,7 +87,7 @@ Specialized skills may adapt these headings (e.g., "What You Verify" instead of 
 
 ### Dispatch Patterns
 
-**Bootstrap** is the dispatch pattern for every skill that dispatches subagents (`ts-code-review`, `ts-doc-review`, `ts-work`, `ts-compound`, `ts-plan`): the orchestrator sends a short read-list prompt — file paths plus dynamic slots, not inline content. The subagent reads its own operating contract, agent file, and schema from disk, then acknowledges what it read before starting. See `docs/solutions/conventions/subagent-bootstrap-dispatch.md` for the pattern itself and `docs/standards/agent-standards.md` for the standard.
+**Bootstrap** is the dispatch pattern for every skill that dispatches subagents: the orchestrator sends a short read-list prompt — file paths plus dynamic slots, not inline content. The subagent reads its own operating contract, agent file, and schema from disk, then acknowledges what it read before starting. See `docs/solutions/conventions/subagent-bootstrap-dispatch.md` for the pattern itself and `docs/standards/agent-standards.md` for the standard.
 
 **Deprecated fallback — inline dispatch** (formerly split into "Direct-seed" and "Template-wrapped" naming): the orchestrator seeds agent file content directly into a generic subagent prompt. It survives only as the fallback for harnesses whose subagent primitive has no file-read tools. Do not use it as the primary pattern for new skills or new agents; every dispatch goes through the read-list prompt.
 
