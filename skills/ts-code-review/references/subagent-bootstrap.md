@@ -102,4 +102,4 @@ The orchestrator checks that each expected path appears in the ack before accept
 
 ## Fallback: inline-content dispatch
 
-If all 3 attempts fail, or the harness's subagent primitive has no file-read tools at all, the orchestrator falls back to the legacy inline-content pattern: read `references/subagent-template.md` (or `references/validator-template.md`) on demand with its own Read — not pre-loaded — then dispatch that reviewer or validator by inlining the agent file, diff-scope rules, and findings-schema.json content directly into the spawn prompt, per the template's own instructions.
+If all 3 attempts fail, or the harness's subagent primitive has no file-read tools at all, the orchestrator falls back to the legacy inline-content pattern: read `references/subagent-template.md` (or `references/validator-template.md`) on demand with its own Read — not pre-loaded — then dispatch that reviewer or validator by inlining the agent file, diff-scope rules, and findings-schema.json content directly into the spawn prompt, in that order (agent identity first, then the scope rules, then the output schema).

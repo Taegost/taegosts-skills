@@ -162,6 +162,43 @@ class TestScenario1bIndependentMaxima:
         assert payload["coverage"]["suppressed_by_anchor"] == {}
 
 
+class TestScenario1cTransitiveChaining:
+    """Rule 1 pin: the +/-3 tolerance chains transitively through a group —
+    50, 53, and 56 are each adjacent within 3 lines, so all three merge
+    into one finding even though 50 and 56 are 6 lines apart."""
+
+    def test_three_step_chain_merges_into_one(self, tmp_path):
+        compact = stage_returns(tmp_path, {
+            "correctness.json": reviewer_return("correctness", [
+                finding(line=50, confidence=50),
+                finding(line=53, confidence=50),
+                finding(line=56, confidence=50),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        assert len(payload["findings"]) == 1, \
+            "50-53-56 must chain into a single finding"
+        assert payload["coverage"]["dedup_merges"] == 2
+        assert payload["findings"][0]["reviewers"] == ["correctness"]
+
+    def test_gap_of_six_without_intermediate_stays_two(self, tmp_path):
+        """Boundary control for the chain: 50 and 56 with no bridging
+        finding are 6 lines apart and must remain two findings."""
+        compact = stage_returns(tmp_path, {
+            "correctness.json": reviewer_return("correctness", [
+                finding(line=50, confidence=50),
+                finding(line=56, confidence=50),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        assert len(payload["findings"]) == 2
+        assert payload["coverage"]["dedup_merges"] == 0
+
+
 class TestScenario2ConflictReporting:
     """Same fingerprint, differing severity and autofix_class."""
 
@@ -223,6 +260,50 @@ class TestScenario3ReturnLevelMalformation:
         dropped = payload["coverage"]["returns_dropped"]
         assert len(dropped) == 1
         assert "residual_risks" in dropped[0]["reason"]
+
+
+class TestScenario3bReviewerStemMismatch:
+    """The compact filename stem is the authoritative reviewer identity. A
+    return whose reviewer field disagrees with its filename drops entirely —
+    a mis-staged return must not import another reviewer's demotion and
+    promotion exemptions."""
+
+    def test_mismatched_reviewer_field_drops_whole_return(self, tmp_path):
+        mis_staged = reviewer_return("testing", [
+            finding(title="Dodged demotion", severity="P2",
+                    confidence=50, autofix_class="advisory",
+                    owner="human"),
+        ])
+        compact = stage_returns(tmp_path, {
+            "adversarial.json": mis_staged,
+            "correctness.json": reviewer_return("correctness", [
+                finding(title="Legit finding"),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, "mismatched returns drop, they do not fail the run"
+        assert len(payload["findings"]) == 1
+        assert payload["findings"][0]["reviewers"] == ["correctness"], \
+            "the mis-staged return's finding must not survive"
+        dropped = payload["coverage"]["returns_dropped"]
+        assert len(dropped) == 1
+        assert dropped[0]["file"] == "adversarial.json"
+        assert "stem" in dropped[0]["reason"]
+
+    def test_matching_stem_passes_unchanged(self, tmp_path):
+        """Sanity control: reviewer == filename stem validates normally."""
+        compact = stage_returns(tmp_path, {
+            "testing.json": reviewer_return("testing", [
+                finding(title="Control finding"),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        assert len(payload["findings"]) == 1
+        assert payload["findings"][0]["reviewers"] == ["testing"]
+        assert payload["coverage"]["returns_dropped"] == []
 
 
 class TestScenario4FindingLevelMalformation:

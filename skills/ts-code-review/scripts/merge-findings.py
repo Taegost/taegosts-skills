@@ -224,6 +224,18 @@ def validate_return(raw, source_name: str):
     if not raw["reviewer"].strip():
         return None, "top-level field 'reviewer' must be a non-empty string"
 
+    # The orchestrator stages one compact/<reviewer>.json per reviewer, so the
+    # filename stem is the authoritative reviewer identity. A reviewer field
+    # that disagrees with the stem means mis-staged or copy-pasted content —
+    # its reviewer label (and the demotion/promotion exemptions keyed on it)
+    # cannot be trusted, so the whole return is dropped, loudly, in coverage.
+    stem = source_name[:-5] if source_name.endswith(".json") else source_name
+    if raw["reviewer"] != stem:
+        return None, (
+            f"reviewer field '{raw['reviewer']}' does not match filename "
+            f"stem '{stem}' — mis-staged return; dropping entire return"
+        )
+
     reviewer = raw["reviewer"]
     validated = []
     for i, finding in enumerate(raw["findings"]):

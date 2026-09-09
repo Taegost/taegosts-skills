@@ -68,7 +68,7 @@ When locating scripts or reviewer agents, consult `docs/ROUTING.md` first to fin
 
 ## Quick Review Short-Circuit
 
-If `$ARGUMENTS` indicates the user wants a quick, fast, or light code review — and **`mode:agent` is not active** — do not dispatch the multi-agent flow. **Announce the chosen path** before any other work (Quick review vs Multi-agent review), then read `references/quick-review.md` and follow its short-circuit sequence — run the harness's built-in code review first and stop; continue into the full multi-agent review only when no built-in review exists. `mode:agent` bypasses this short-circuit entirely.
+If `$ARGUMENTS` indicates the user wants a quick, fast, or light code review — and **`mode:agent` is not active** — do not dispatch the multi-agent flow. **Announce the chosen path** before any other work (Quick review vs Multi-agent review), then read `references/quick-review.md` and follow its short-circuit sequence. `mode:agent` bypasses this short-circuit entirely.
 
 ## Severity Scale
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Test: skills/ts-pr-review/scripts/build-review-payload.sh
-set -uo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -37,7 +37,7 @@ run_build() {
 write_finding() {
   cat <<EOF
     {"#": $1, "title": "Finding $1", "severity": "$2", "file": "$3", "line": $4,
-     "confidence": "high", "autofix_class": "manual", "owner": "human",
+     "confidence": 75, "autofix_class": "manual", "owner": "human",
      "requires_verification": false, "pre_existing": false,
      "suggested_fix": "Fix $1",
      "why_it_matters": "It matters for $1", "evidence": ["evidence for $1"]}
@@ -220,6 +220,38 @@ else
   die "chained contract (rc=$RC, out=$OUT)"
 fi
 
+# ---------------------------------------------------------------- scenario 3b
+# Given: compact reviewer returns merged by merge-findings.py (the upstream
+#        producer of review.json), with the verdict composed on top the way
+#        ts-pr-review's posting flow does
+# When: the merge output is piped straight into this script
+# Then: the payload builds with no field-shape rejection — shapes that pass
+#       merge validation must always pass payload validation (the two P1s of
+#       review run 20260908-221500 lived in exactly this seam, invisible to
+#       either suite alone)
+d="$tmpdir/mergechain"; mkdir -p "$d/out" "$d/compact"
+MERGE_SCRIPT="$REPO_ROOT/skills/ts-code-review/scripts/merge-findings.py"
+{
+  echo '{"reviewer": "correctness", "findings": ['
+  echo '  {"title": "Off-by-one bound", "severity": "P1", "file": "src/chain.py", "line": 20,'
+  echo '   "confidence": 75, "autofix_class": "gated_auto", "owner": "downstream-resolver",'
+  echo '   "requires_verification": false, "pre_existing": false,'
+  echo '   "suggested_fix": "Adjust the loop bound", "why_it_matters": "Breaks iteration", "evidence": ["diff hunk"]}'
+  echo '], "residual_risks": [], "testing_gaps": []}'
+} > "$d/compact/correctness.json"
+printf 'src/chain.py:20\n' > "$d/linemap.txt"
+python3 "$MERGE_SCRIPT" "$d/compact" | jq '. + {verdict: "Not ready"}' > "$d/review.json"
+run_build mergechain
+if [[ $RC -eq 0 ]] \
+  && [[ "$(jq -r '.comments | length' "$d/out/review-payload.json")" == "1" ]] \
+  && [[ "$(jq -r '.comments[0].path' "$d/out/review-payload.json")" == "src/chain.py" ]] \
+  && [[ "$(jq -r '.comments[0].line' "$d/out/review-payload.json")" == "20" ]] \
+  && [[ "$(jq -r '.event' "$d/out/review-payload.json")" == "REQUEST_CHANGES" ]]; then
+  ok "merge-findings.py output feeds build-review-payload.sh unchanged (seam pinned)"
+else
+  die "merge-to-payload seam (rc=$RC, out=$OUT)"
+fi
+
 # ---------------------------------------------------------------- scenario 4
 # Given: Info-only input — an advisory-class finding (raw severity P2) with a
 #        mapped line, plus a residual_risks entry
@@ -233,7 +265,7 @@ printf 'src/db.py:21\n' > "$d/linemap.txt"
   echo '  "verdict": "Ready to merge",'
   echo '  "findings": ['
   echo '    {"#": 1, "title": "Advisory note", "severity": "P2", "file": "src/db.py", "line": 21,'
-  echo '     "confidence": "high", "autofix_class": "advisory", "owner": "human",'
+  echo '     "confidence": 75, "autofix_class": "advisory", "owner": "human",'
   echo '     "requires_verification": false, "pre_existing": false,'
   echo '     "why_it_matters": "Worth knowing", "evidence": ["pattern"]}'
   echo '  ],'
@@ -376,7 +408,7 @@ printf 'src/db.py:21\n' > "$d/linemap.txt"
   echo '  "verdict": "Ready with fixes",'
   echo '  "findings": ['
   echo '    {"#": 1, "title": "Pre-existing debt", "severity": "P1", "file": "src/db.py", "line": 21,'
-  echo '     "confidence": "high", "autofix_class": "manual", "owner": "human",'
+  echo '     "confidence": 75, "autofix_class": "manual", "owner": "human",'
   echo '     "requires_verification": false, "pre_existing": true,'
   echo '     "suggested_fix": "Refactor",'
   echo '     "why_it_matters": "Old code", "evidence": ["exists on main"]}'
@@ -405,7 +437,7 @@ printf 'src/db.py:21\n' > "$d/linemap.txt"
   echo '  "verdict": "Ready to merge",'
   echo '  "findings": ['
   echo '    {"#": 1, "title": "No fix provided", "severity": "P2", "file": "src/db.py", "line": 21,'
-  echo '     "confidence": "high", "autofix_class": "manual", "owner": "human",'
+  echo '     "confidence": 75, "autofix_class": "manual", "owner": "human",'
   echo '     "requires_verification": false, "pre_existing": false,'
   echo '     "why_it_matters": "Matters", "evidence": ["ev"]}'
   echo '  ],'
@@ -446,7 +478,7 @@ printf 'src/db.py:21\n' > "$d/linemap.txt"
   echo '  "verdict": "Ready to merge",'
   echo '  "findings": ['
   echo '    {"#": 1, "title": "Long text", "severity": "P2", "file": "src/db.py", "line": 21,'
-  echo '     "confidence": "high", "autofix_class": "manual", "owner": "human",'
+  echo '     "confidence": 75, "autofix_class": "manual", "owner": "human",'
   echo '     "requires_verification": false, "pre_existing": false,'
   printf '%s\n' '     "why_it_matters": "l1\nl2\nl3\nl4\nl5\nl6\nl7\nl8\nl9\nl10\nl11\nl12",'
   echo '     "evidence": ["ev"]}'
