@@ -8,7 +8,7 @@ reviewer) and applies the scripted half of the Stage 5 steps: validation,
 dedup, cross-reviewer promotion, pre-existing separation, conflict detection,
 routing normalization, mode-aware demotion, the late confidence gate,
 actionable/report-only partition, and stable sort + numbering. Judgment steps
-(disagreement annotation, triage grouping 9b, Coverage prose, CE-artifact
+(disagreement annotation, triage grouping, Coverage prose, CE-artifact
 preservation) stay with the orchestrator, which consumes this script's
 `coverage.conflicts` report and counts.
 
@@ -87,8 +87,8 @@ docs/plans/2026-09-08-002, script-extraction-standards.md):
    (a fully-dropped return's arrays drop with it, per step 1); exact
    duplicate lines dedupe, first occurrence wins in reviewer-name order.
 
-Steps 9b (triage grouping) and 11 (CE-artifact preservation) stay
-orchestrator-side and are not implemented here.
+Triage grouping and CE-artifact preservation stay orchestrator-side and are
+not implemented here.
 
 Exit codes:
     0 - Success (merged JSON on stdout; malformed RETURNS are dropped and
