@@ -176,7 +176,9 @@ validation_jq='
       (if (.why_it_matters? == null) or (.why_it_matters | type == "string")
        then empty else "why_it_matters must be a string" end),
       (if (.suggested_fix? == null) or (.suggested_fix | type == "string")
-       then empty else "suggested_fix must be a string" end)
+       then empty else "suggested_fix must be a string" end),
+      (if (.pre_existing? == null) or (.pre_existing | type == "boolean")
+       then empty else "pre_existing must be a boolean" end)
     ] end;
   ([(if type == "object" then empty else "top-level value must be a JSON object" end),
     (if (.verdict? | type) == "string" then empty else "verdict must be a string" end),
@@ -192,7 +194,7 @@ validation_jq='
       else [] end))
 '
 if ! jq -e "$validation_jq | length == 0" "$REVIEW_JSON" >/dev/null 2>&1; then
-  echo "Error: invalid review JSON ($REVIEW_JSON): must be an object with string verdict, arrays findings/residual_risks/testing_gaps, and per-finding title, severity (P0-P3), file, numeric line (optional why_it_matters/suggested_fix must be strings when present)." >&2
+  echo "Error: invalid review JSON ($REVIEW_JSON): must be an object with string verdict, arrays findings/residual_risks/testing_gaps, and per-finding title, severity (P0-P3), file, numeric line (optional why_it_matters/suggested_fix must be strings, pre_existing must be a boolean, when present)." >&2
   problems="$(jq -r "$validation_jq | join(\"\n\")" "$REVIEW_JSON" 2>/dev/null)" || problems=""
   if [[ -n "$problems" ]]; then
     echo "$problems" >&2
@@ -282,8 +284,9 @@ jq -n \
   $review[0] as $r | $lmap[0] as $m
   | ($r.findings) as $fs
   | ([$fs | to_entries[]
+      | .key as $k
       | .value as $f
-      | {n: ($f | fnum(.key)), f: $f}]
+      | {n: ($f | fnum($k)), f: $f}]
       | map(. as $e | {
           n: $e.n,
           file: $e.f.file,

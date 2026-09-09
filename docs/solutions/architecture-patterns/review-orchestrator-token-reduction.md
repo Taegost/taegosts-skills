@@ -55,9 +55,12 @@ Classify every block of orchestrator prose into one of three homes:
 - computes the review event deterministically, so the orchestrator can never hand-edit it inconsistently;
 - builds the GitHub Reviews API payload JSON and writes `review-payload.json` + `fallback-findings.md` anchored to `--out-dir` (nothing written until all validation passes).
 
-The event rule, in the script's single-pass jq:
+The event rule, in the script's single-pass jq (rankings count non-pre-existing findings only — pre-existing findings are report-only and never drive the event):
 
 ```jq
+| ($fs | map(select(.pre_existing | not))) as $actionable
+| (if (($actionable | length) == 0) then 0
+   else ($actionable | map(disp | rank) | max) end) as $max_rank
 | (if (($fs | length) == 0) then "APPROVE"
    elif $max_rank >= 2 then "REQUEST_CHANGES"   # any Moderate (P2) or higher
    elif $max_rank == 1 then "COMMENT"           # only Minor (P3)

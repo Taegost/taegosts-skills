@@ -121,9 +121,9 @@ Two actions:
 
    It writes `review-payload.json` (the `gh api` POST body) and `fallback-findings.md` (flat-comment body for findings the linemap can't place, plus residual risks and testing gaps rendered as Info entries) into `$OUT_DIR` — never the working directory — and prints `inline=<n> fallback=<n> event=<EVENT>`.
 
-The review event is deterministic, chosen by the script: any Moderate (P2) or higher finding -> `REQUEST_CHANGES`; only Minor (P3) findings -> `COMMENT` with a body note (deliberate behavior change — P3-only reviews no longer use judgment to escalate); Info-only or zero findings -> `APPROVE`.
+The review event is deterministic, chosen by the script: any Moderate (P2) or higher finding -> `REQUEST_CHANGES`; only Minor (P3) findings -> `COMMENT` with a body note (deliberate behavior change — P3-only reviews no longer use judgment to escalate); Info-only or zero findings -> `APPROVE`. Rankings count non-pre-existing findings only — pre-existing findings are report-only (routed to the fallback comment), so a review whose only P2+ findings are all `pre_existing: true` posts `APPROVE`.
 
-**Manual fallback:** if `build-review-payload.sh` fails, you may construct `review-payload.json` yourself per the GitHub pull request reviews API contract (`body`, `commit_id`, `event`, `comments[]` with `path`, `line`, `side: "RIGHT"`, `body`), applying the same severity mapping, event rule, and linemap partition the script encodes, then continue at 3e.
+**Manual fallback:** if `build-review-payload.sh` fails, you may construct `review-payload.json` yourself per the GitHub pull request reviews API contract (`body`, `commit_id`, `event`, `comments[]` with `path`, `line`, `side: "RIGHT"`, `body`), applying the same severity mapping, event rule (including the pre-existing exclusion), and linemap partition the script encodes, then continue at 3e.
 
 #### 3d. Review event override
 

@@ -54,7 +54,9 @@ Encoded Stage 5 rules (canonical spec: SKILL.md history, KTD 2 of
 docs/plans/2026-09-08-002, script-extraction-standards.md):
 
 1. Validate returns. Missing/wrong-typed top-level field drops the ENTIRE
-   return (its findings and arrays do not survive). A finding violating a
+   return (its findings and arrays do not survive); so does a reviewer field
+   that disagrees with the compact-file filename stem (mis-staged return).
+   A finding violating a
    required field or value constraint is dropped and flagged; siblings in the
    same return survive. Legacy values are remapped before enum validation:
    autofix_class safe_auto -> gated_auto, owner review-fixer ->

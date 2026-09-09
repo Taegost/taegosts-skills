@@ -606,6 +606,70 @@ else
   die "cap (rc=$RC)"
 fi
 
+# -------------------------------------------------------------- scenario 14
+# Given: two pre-existing findings carrying no "#" (pre-existing items never
+#        get a stable number from merge-findings), so both fall back to
+#        positional numbering
+# When: build the payload
+# Then: they number 1 and 2 positionally — not both "Finding 1" (jq scoping:
+#       the positional index must come from the entries entry, not the finding)
+d="$tmpdir/numless"; mkdir -p "$d/out"
+printf 'src/db.py:21\nsrc/db.py:22\n' > "$d/linemap.txt"
+{
+  echo '{'
+  echo '  "verdict": "Ready with fixes",'
+  echo '  "findings": ['
+  echo '    {"title": "First unnumbered", "severity": "P2", "file": "src/db.py", "line": 21,'
+  echo '     "confidence": 75, "autofix_class": "manual", "owner": "human",'
+  echo '     "requires_verification": false, "pre_existing": true,'
+  echo '     "why_it_matters": "Old", "evidence": ["ev"]},'
+  echo '    {"title": "Second unnumbered", "severity": "P3", "file": "src/db.py", "line": 22,'
+  echo '     "confidence": 75, "autofix_class": "manual", "owner": "human",'
+  echo '     "requires_verification": false, "pre_existing": true,'
+  echo '     "why_it_matters": "Older", "evidence": ["ev"]}'
+  echo '  ],'
+  echo '  "residual_risks": [],'
+  echo '  "testing_gaps": []'
+  echo '}'
+} > "$d/review.json"
+run_build numless
+fb="$(cat "$d/out/fallback-findings.md" 2>/dev/null)"
+first_count=$(printf '%s' "$fb" | grep -c "### .* Finding 1 —" || true)
+second_count=$(printf '%s' "$fb" | grep -c "### .* Finding 2 —" || true)
+if [[ $RC -eq 0 ]] && [[ "$first_count" == "1" ]] && [[ "$second_count" == "1" ]]; then
+  ok "findings without # number positionally (1 and 2, not both 1)"
+else
+  die "positional numbering (rc=$RC, finding1=$first_count, finding2=$second_count)"
+fi
+
+# -------------------------------------------------------------- scenario 15
+# Given: a finding whose pre_existing is present but not a boolean
+# When: build the payload
+# Then: exit 1 naming the field — the inline and event gates read the field
+#       with different truthiness rules, so only strict booleans are accepted
+d="$tmpdir/nonbool"; mkdir -p "$d/out"
+printf 'src/db.py:21\n' > "$d/linemap.txt"
+{
+  echo '{'
+  echo '  "verdict": "Not ready",'
+  echo '  "findings": ['
+  echo '    {"#": 1, "title": "Bad flag", "severity": "P2", "file": "src/db.py", "line": 21,'
+  echo '     "confidence": 75, "autofix_class": "manual", "owner": "human",'
+  echo '     "requires_verification": false, "pre_existing": "false",'
+  echo '     "why_it_matters": "x", "evidence": ["ev"]}'
+  echo '  ],'
+  echo '  "residual_risks": [],'
+  echo '  "testing_gaps": []'
+  echo '}'
+} > "$d/review.json"
+run_build nonbool
+if [[ $RC -ne 0 ]] && [[ "$OUT" == *"pre_existing must be a boolean"* ]] \
+  && [[ ! -e "$d/out/review-payload.json" ]]; then
+  ok "non-boolean pre_existing rejected with named field"
+else
+  die "non-boolean pre_existing (rc=$RC, out=$OUT)"
+fi
+
 echo ""
 echo "Results: $pass passed, $fail failed"
 [[ $fail -eq 0 ]] && exit 0 || exit 1
