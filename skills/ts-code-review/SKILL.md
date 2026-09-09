@@ -302,7 +302,7 @@ If a plan is found, read its **Requirements** section — `## Requirements` in c
 
 ### Stage 3: Select reviewers
 
-Read the diff and file list from Stage 1. The always-on agents and CE always-on agents are automatic. For each cross-cutting and stack-specific conditional agent in the agent catalog included below, decide whether the diff warrants it. This is agent judgment, not keyword matching.
+Read the diff and file list from Stage 1. The always-on agents and CE always-on agents are automatic. For each cross-cutting and stack-specific conditional agent in the agent catalog inlined at the bottom of this file (Included References), decide whether the diff warrants it. This is agent judgment, not keyword matching.
 
 **File-type awareness for conditional selection:** Instruction-prose files (Markdown skill definitions, JSON schemas, config files) are product code but do not benefit from runtime-focused reviewers. The adversarial reviewer's techniques (race conditions, cascade failures, abuse cases) target executable code behavior. For diffs that only change instruction-prose files, skip adversarial unless the prose describes auth, payment, or data-mutation behavior. Count only executable code lines toward line-count thresholds.
 
@@ -365,16 +365,13 @@ Omit the `mode` parameter when dispatching sub-agents so the user's configured p
 
 **Bounded parallel dispatch.** Respect the current harness's active-subagent limit. Queue selected reviewers, dispatch only as many as the harness accepts, and fill freed slots as reviewers complete. Treat active-agent/thread/concurrency-limit spawn errors as backpressure, not reviewer failure: leave the reviewer queued and retry after a slot frees. Record a reviewer as failed only after a successful dispatch times out/fails, or when dispatch fails for a non-capacity reason.
 
-For each selected reviewer, read the corresponding local prompt asset from `references/agents/<reviewer-name>.md` and spawn a generic subagent using the subagent template included below. Do not use `subagent_type`, typed `Agent` names, or platform-level CE agent registration. Each agent subagent receives:
+For each selected reviewer, spawn a generic subagent using **bootstrap dispatch** per `references/subagent-bootstrap.md` — the spawn prompt lists the reviewer's files to read from disk (operating contract, role, schema, scope rules, rubric) plus the dynamic slots below. Never inline the agent file, diff-scope rules, or findings schema; do not use `subagent_type`, typed `Agent` names, or platform-level CE agent registration. Verify each reviewer's first reply acknowledges the files it read; on a missing ack, re-dispatch up to 3 attempts, then use the inline fallback. Each reviewer's spawn prompt receives the dynamic slots:
 
-1. Their agent file content (identity, failure modes, calibration, suppress conditions)
-2. Shared diff-scope rules from the diff-scope reference included below
-3. The JSON output contract from the findings schema included below
-4. PR metadata: title, body, and URL when reviewing a PR (empty string otherwise). Passed in a `<pr-context>` block so reviewers can verify code against stated intent
-5. Review context: intent summary, file list, diff, scope mode (`local-aligned` | `pr-remote` | `branch-remote`), and remote head ref (`PR_HEAD_REF` or `<branch-head-ref>`) when set
-6. Run ID and reviewer name for the artifact file path
-7. **For `project-standards` only:** the standards file path list from Stage 3b, wrapped in a `<standards-paths>` block appended to the review context
-8. **For `data-migration` only:** the resolved review base ref from Stage 1 (`BASE:` marker), wrapped in `<review-base>` inside the review context so schema drift checks never assume `main`
+1. Run ID and reviewer name for the artifact file path
+2. Review context: intent summary, file list, diff, scope mode (`local-aligned` | `pr-remote` | `branch-remote`), and remote head ref (`PR_HEAD_REF` or `<branch-head-ref>`) when set
+3. PR metadata: title, body, and URL when reviewing a PR (empty string otherwise). Passed in a `<pr-context>` block so reviewers can verify code against stated intent
+4. **For `project-standards` only:** the standards file path list from Stage 3b, wrapped in a `<standards-paths>` block appended to the review context
+5. **For `data-migration` only:** the resolved review base ref from Stage 1 (`BASE:` marker), wrapped in `<review-base>` inside the review context so schema drift checks never assume `main`
 
 Agent sub-agents are **read-only** with respect to the project: they review and return structured JSON. They do not edit project files or propose refactors. The one permitted write is saving their full analysis to the run-artifact path specified in the output contract (under `/tmp/taegosts-skills/ts-code-review/<run-id>/`).
 
@@ -406,9 +403,9 @@ Each agent sub-agent writes full JSON (all schema fields) to `/tmp/taegosts-skil
 
 The artifact file **must** carry the detail-tier fields (`why_it_matters`, `evidence`); the compact *return* omits them, but writing the compact shape to the artifact (a common reviewer slip) silently strips the detail Coverage and the keyed detail lines depend on. However review context is delivered — inlined, or staged to disk for a large diff — each reviewer still receives the full subagent-template output contract; staging context never licenses a thinner one. `suggested_fix` is optional in both tiers -- included in compact returns when present so callers can apply fixes after review. If the file write fails, the compact return still provides everything the merge needs.
 
-**CE always-on local prompt assets** (`learnings-researcher`) are dispatched as generic subagents through the same bounded parallel scheduler as the structured agents. Read their prompt files from `references/agents/`, then give them the same review context bundle the agents receive: entry mode, any PR metadata gathered in Stage 1, intent summary, review base branch name when known, `BASE:` marker, file list, diff, and `UNTRACKED:` scope notes. Do not invoke them with a generic "review this" prompt. Their output is unstructured and synthesized separately in Stage 6.
+**CE always-on local prompt assets** (`learnings-researcher`) are dispatched as generic subagents through the same bounded parallel scheduler and bootstrap dispatch — their `references/agents/` prompt file goes in the read list; the subagent reads it from disk itself. Give them the same dynamic review context the agents receive: entry mode, any PR metadata gathered in Stage 1, intent summary, review base branch name when known, `BASE:` marker, file list, diff, and `UNTRACKED:` scope notes. Do not invoke them with a generic "review this" prompt. Their output is unstructured and synthesized separately in Stage 6.
 
-**CE conditional local prompt assets** (`deployment-verification-agent` only) are dispatched as generic subagents through the same bounded parallel scheduler when the migration-artifact gate applies. Read the prompt file from `references/agents/`, then pass the same review context bundle plus the applicability reason (for example, which migration files triggered the prompt asset). Its output is unstructured and must be preserved for Stage 6 synthesis just like the CE always-on prompt assets. Schema drift is handled by the `data-migration` agent as structured findings — not here.
+**CE conditional local prompt assets** (`deployment-verification-agent` only) are dispatched the same way when the migration-artifact gate applies — the `references/agents/` prompt file goes in the read list, the subagent reads it itself — plus the same dynamic review context and the applicability reason (for example, which migration files triggered the prompt asset). Its output is unstructured and must be preserved for Stage 6 synthesis just like the CE always-on prompt assets. Schema drift is handled by the `data-migration` agent as structured findings — not here.
 
 ### Stage 5: Merge findings
 
@@ -460,7 +457,7 @@ When a finding qualifies:
 
 ### Stage 5b: Validation pass (optional quality gate)
 
-Independent verification gate. Spawn one validator sub-agent per surviving finding using `references/validator-template.md`. Findings the validator rejects are dropped; confirmed findings flow through unchanged.
+Independent verification gate. Spawn one validator sub-agent per surviving finding via **bootstrap dispatch** — the validator reads `references/validator-template.md` itself (validator prompt shape: `references/subagent-bootstrap.md`). Findings the validator rejects are dropped; confirmed findings flow through unchanged.
 
 **When this stage runs:** After Stage 5 whenever at least one finding survives — skip only when zero survive. When more than 15 survive, do **not** skip the stage; validate per the budget cap in step 2. The default method is the per-finding validator wave (steps below); a surviving **P2/P3 finding at anchor 100** may instead be validated by direct first-party verification (see below). Same rule for default and `mode:agent`.
 
@@ -468,10 +465,10 @@ Independent verification gate. Spawn one validator sub-agent per surviving findi
 
 1. **Select findings to validate.** All survivors of Stage 5.
 2. **Apply dispatch budget cap.** If the selected set exceeds 15 findings, validate the highest-severity 15 (P0 first, then P1, then P2, then P3, breaking ties by anchor descending), dropping only from the P2/P3 tail. **Never drop a P0 or P1 from validation** — if P0/P1 findings alone exceed 15, raise the cap to include all of them. Record the over-budget count (the dropped P2/P3 tail) for the Coverage section.
-3. **Spawn validators with bounded parallelism.** One sub-agent per finding, dispatched independently using the validator template and the same bounded scheduler from Stage 4. Each validator receives:
+3. **Spawn validators with bounded parallelism.** One sub-agent per finding, dispatched independently with the Stage 4 bounded scheduler and the validator bootstrap prompt in `references/subagent-bootstrap.md`. Each validator's spawn prompt receives:
    - The finding's title, severity, file, line, suggested_fix, original reviewer name, and confidence anchor
    - `why_it_matters` when available — loaded from the per-agent artifact file at `/tmp/taegosts-skills/ts-code-review/{run_id}/{reviewer_name}.json`; omit when the file is absent or the artifact write failed. The validator proceeds without it, using the diff and cited code directly.
-   - The full diff
+   - The full diff (inline, or the staged run-dir path for a large shared context — the validator template instructs reading a staged path)
    - The scope mode and remote head ref, mirroring the Stage 4 reviewer bundle: inject `<pr-scope-mode>local-aligned | pr-remote | branch-remote</pr-scope-mode>` and, when set, `<pr-head-ref>...</pr-head-ref>` or `<branch-head-ref>...</branch-head-ref>`. The validator template defaults to local-aligned workspace inspection when these are absent, so omitting them in `pr-remote`/`branch-remote` makes validators verify findings against the stale working tree — dropping valid findings or confirming false ones on the wrong tree.
    - Inspection access scoped by mode: in `local-aligned`, Read/Grep/git blame the cited code, callers, guards, framework defaults, and history; in `pr-remote`/`branch-remote`, inspect via `git show <remote-head-ref>:<path>` or the provided diff hunks only — do not Read/Grep workspace paths for files in scope.
 4. **Collect verdicts.** Each validator returns `{ "validated": true | false, "reason": "<one sentence>" }`.
@@ -678,22 +675,8 @@ The files below are inlined at load time. The review output template is **not** 
 
 Selected reviewer prompt assets live under `references/agents/`. Read only the prompt files selected for the current review.
 
+**Not inlined:** the reviewer/validator operating contracts and shared rubrics — reviewers and validators read them from disk at dispatch via `references/subagent-bootstrap.md`; the orchestrator reads them only on the bootstrap fallback.
+
 ### Agent Catalog
 
 @./references/agent-catalog.md
-
-### Subagent Template
-
-@./references/subagent-template.md
-
-### Diff Scope Rules
-
-@./references/diff-scope.md
-
-### Action class rubric
-
-@./references/action-class-rubric.md
-
-### Findings Schema
-
-@./references/findings-schema.json
