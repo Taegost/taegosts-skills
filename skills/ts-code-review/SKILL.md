@@ -409,51 +409,20 @@ The artifact file **must** carry the detail-tier fields (`why_it_matters`, `evid
 
 ### Stage 5: Merge findings
 
-Convert multiple reviewer compact JSON returns into one deduplicated, confidence-gated finding set. The compact returns contain merge-tier fields (title, severity, file, line, confidence, autofix_class, owner, requires_verification, pre_existing) plus the optional suggested_fix. Detail-tier fields (why_it_matters, evidence) are on disk in the per-agent artifact files and are not loaded at this stage.
+Convert the reviewer compact JSON returns into one deduplicated, confidence-gated finding set by running the merge script. The mechanical rules it enforces — validation constraints, fingerprint dedup (normalized file + line within +/-3 + normalized title), cross-reviewer promotion, conservative routing normalization, mode-aware demotion, the late confidence gate, the actionable/report-only partition, and severity -> anchor -> file -> line sort with stable monotonic `#` numbering — live in `skills/ts-code-review/scripts/merge-findings.py`. Do not re-derive them here or hand-merge when the script runs; read that file before changing the behavior it encodes.
 
-`confidence` is one of 5 discrete anchors (`0`, `25`, `50`, `75`, `100`) with behavioral definitions in the findings schema. Synthesis treats anchors as integers; do not coerce to floats.
-
-<!-- markdownlint-disable MD029 -->
-1. **Validate.** Check each compact return for required top-level and per-finding fields, plus value constraints. Drop malformed returns or findings. Record the drop count.
-   - **Top-level required:** reviewer (string), findings (array), residual_risks (array), testing_gaps (array). Drop the entire return if any are missing or wrong type.
-   - **Per-finding required:** title, severity, file, line, confidence, autofix_class, owner, requires_verification, pre_existing
-   - **Value constraints:**
-     - severity: P0 | P1 | P2 | P3
-     - autofix_class: gated_auto | manual | advisory
-     - owner: downstream-resolver | human | release
-     - confidence: integer in {0, 25, 50, 75, 100}
-     - line: positive integer
-     - pre_existing, requires_verification: boolean
-   - Do not validate against the full schema here -- the full schema (including why_it_matters and evidence) applies to the artifact files on disk, not the compact returns.
-2. **Deduplicate.** Compute fingerprint: `normalize(file) + line_bucket(line, +/-3) + normalize(title)`. When fingerprints match, merge: keep highest severity, keep highest anchor, note which reviewers flagged it. Dedup runs over the full validated set (including anchor 50) so cross-reviewer promotion in step 3 can lift matching anchor-50 findings into the actionable tier.
-3. **Cross-reviewer agreement.** When 2+ independent reviewers flag the same issue (same fingerprint), promote the merged finding by one anchor step: `50 -> 75`, `75 -> 100`, `100 -> 100`. Note the agreement in the Reviewer column of the output (e.g., "security, correctness").
-4. **Separate pre-existing.** Pull out findings with `pre_existing: true` into a separate list.
-5. **Resolve disagreements.** When reviewers flag the same code region but disagree on severity, autofix_class, or owner, annotate the Reviewer column with the disagreement (e.g., "security (P0), correctness (P1) -- kept P0").
-6. **Normalize routing.** For each merged finding, set the final `autofix_class`, `owner`, and `requires_verification`. If reviewers disagree, keep the more conservative route. Remap any legacy `safe_auto` or `review-fixer` to `gated_auto` / `downstream-resolver`.
-6b. **Mode-aware demotion of weak single-reviewer findings.** Some agent output is real signal but does not warrant primary-findings attention. Reroute it to the existing soft buckets so the primary findings table stays focused on actionable issues.
-
-A finding qualifies for demotion when **all** of these hold:
-   - Severity is P2 or P3 (P0 and P1 always stay in primary findings)
-   - `autofix_class` is `advisory` (concrete-fix findings stay in primary)
-   - **All** contributing reviewers are the same single reviewer, and that reviewer is not `testing` — testing-sourced findings never demote, regardless of severity or advisory status, per an earlier correction (suppressing testing-only findings hid real coverage gaps). If any other agent also flagged this finding, cross-reviewer corroboration is present and the finding stays in primary findings regardless of its severity or advisory status.
-
-When a finding qualifies:
-   - Move the demoted finding out of the primary set and append `<file:line> -- <title>` to `residual_risks`. Use title-only lines (compact return omits `why_it_matters`). Record the demotion count for Coverage.
-7. **Confidence gate.** After dedup, promotion, and demotion have shaped the primary set, suppress remaining findings below anchor 75. Exception: P0 and P1 findings at anchor 50+ survive the gate -- critical-but-uncertain issues must not be silently dropped. Record the suppressed count by anchor (so Coverage can report "N findings suppressed at anchor 50, M at anchor 25"). The gate runs late deliberately: anchor-50 findings need a chance to be promoted by step 3 (cross-reviewer corroboration) or rerouted by step 6b (mode-aware demotion to soft buckets) before any drop decision.
-8. **Partition the work.** Build two sets:
-   - actionable queue: `gated_auto` or `manual` findings whose owner is `downstream-resolver` (hand off to caller)
-   - report-only queue: `advisory` findings plus anything owned by `human` or `release`
-9. **Sort and number.** Order by severity (P0 first) -> anchor (descending) -> file path -> line number, then assign monotonically increasing `#` values across the full primary finding set in that sorted order. Do not restart numbering inside each severity table, triage group, or autofix/routing bucket. If later sections repeat a finding (for example Actionable Findings), reuse the same stable `#` so users and downstream workflows can reference findings by `#` across the report and caller handoff.
-9b. **Build thematic triage groups.** After stable `#` values exist, group related findings so the reader can triage themes instead of items. This is distinct from deduplication: dedupe answers "are these the same finding?", grouping answers "are these distinct findings that should be understood or resolved together?". Groups never merge findings into a synthetic finding and never change a finding's severity, confidence, route, owner, or stable `#`. Groups span the **full primary finding set** — both actionable and report-only findings — so they organize the whole report, not just the apply queue.
+1. **Stage compact returns.** As each reviewer returns, write its compact JSON (merge-tier fields: title, severity, file, line, confidence, autofix_class, owner, requires_verification, pre_existing, optional suggested_fix) to `<run-dir>/compact/<reviewer>.json`. The script reads ONLY these files — never the full-schema artifacts — so a failed artifact write still merges via the compact return. Detail-tier fields (`why_it_matters`, `evidence`) stay on disk in the per-agent artifact files and are not loaded at this stage.
+2. **Run the merge script:** run `${CLAUDE_SKILL_DIR}/scripts/merge-findings.py "<run-dir>/compact"`. It prints one JSON object: `findings` (the primary set, each finding carrying a stable monotonic `#`, its contributing `reviewers`, and final routing), `pre_existing` (separated, informational), `residual_risks` (unioned across reviewers, with demoted findings appended as `<file:line> -- <title>` lines), `testing_gaps` (unioned), `partition` (`actionable` and `report_only` as stable-`#` lists — Stage 6 and the `mode:agent` `actionable_findings` field consume these), and `coverage` (malformed returns dropped, per-finding validation drops, legacy routing remaps, promotions, demotions, suppressed count by anchor, and the `conflicts` report). Exit code 1 means a usage or input error (compact dir missing or contains no `*.json` returns) — fix the staging and rerun; do not fall back to hand-merging.
+3. **Annotate disagreements.** For each `coverage.conflicts` entry (same fingerprint, reviewers disagreeing on severity, `autofix_class`, or `owner`), annotate the Reviewer column of the matching finding — e.g., "security (P0), correctness (P1) -- kept P0". The script reports the disagreement and the kept resolution; writing the annotation is judgment and stays here.
+4. **Build thematic triage groups (step 9b).** After stable `#` values exist, group related findings so the reader can triage themes instead of items. This is distinct from deduplication: dedupe answers "are these the same finding?", grouping answers "are these distinct findings that should be understood or resolved together?". Groups never merge findings into a synthetic finding and never change a finding's severity, confidence, route, owner, or stable `#`. Groups span the **full primary finding set** — both actionable and report-only findings — so they organize the whole report, not just the apply queue.
    - **`grouping:off`:** skip this step.
    - **`grouping:auto` (default):** build groups when findings span distinct concerns — the trigger is distinct concerns, not item count (mirroring how plan Requirements group by capability). Skip only when all findings are genuinely about the same thing; prefer no groups over decorative single-item groups.
    - **`grouping:always`:** always build groups; use single-finding groups only when no meaningful multi-finding grouping exists.
    - **Grouping signals:** shared root cause, affected subsystem, user-facing failure mode, overlapping fix path, dependency ordering, or repeated symptoms of one design choice.
    - **Group shape:** short title, the included stable finding `#`s, one-line context, preferred resolution, and why — when one fix path resolves several findings, name it and say which finding to handle first.
    - **Ordering:** order groups by the highest-severity finding they contain, then by lowest stable `#`. A finding appears in at most one group; leave genuinely unrelated findings ungrouped.
-10. **Collect coverage data.** Union residual_risks and testing_gaps across reviewers.
-11. **Preserve CE local-prompt artifacts.** Keep the learnings and deployment-verification outputs alongside the merged finding set. Do not drop unstructured output just because it does not match the agent JSON schema. Schema drift from `data-migration` is already in the merged finding set.
-<!-- markdownlint-enable MD029 -->
+5. **Collect coverage data.** Report the script's `coverage` counts in the Coverage section — suppressed count by anchor (e.g., "N findings suppressed at anchor 50, M at anchor 25"), demotion count, malformed returns and findings dropped, promotions — alongside the unioned `residual_risks` and `testing_gaps` the script returned.
+6. **Preserve CE local-prompt artifacts.** Keep the learnings and deployment-verification outputs alongside the merged finding set. Do not drop unstructured output just because it does not match the agent JSON schema. Schema drift from `data-migration` is already in the merged finding set.
 
 ### Stage 5b: Validation pass (optional quality gate)
 
