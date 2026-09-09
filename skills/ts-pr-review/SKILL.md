@@ -58,7 +58,7 @@ test -f "$RUN_DIR/review.json" && echo "GATE PASSED" || echo "GATE FAILED"
 - **GATE FAILED:** Stop. Report to the user that `ts-code-review` did not produce its run artifact. Do not post anything to the PR. Do not reconstruct findings from memory or from the JSON response alone if it conflicts with a missing/failed run.
 - **GATE PASSED:** Read `review.json`. All findings, severities, file paths, and line numbers for step 3 come from this file — not from your own reading of the diff.
 
-If `review.json` reports zero findings, post a brief approving review (or comment) noting the clean result, then go to step 4.
+If `review.json` reports zero findings, skip the assessment boilerplate but still run steps 3b-3e — the shortcut is about prose, not about bypassing the payload builder, which is the only step that renders `residual_risks` and `testing_gaps`. `build-review-payload.sh` already emits a clean `APPROVE` event for the fully-empty case (zero findings with empty `residual_risks`/`testing_gaps` leave `fallback-findings.md` at 0 bytes, so the `test -s` flat-comment gate in 3e stays closed); when residual risks or testing gaps exist, they render as Info entries in the fallback comment instead of vanishing.
 
 ### 3. Post the review to the pull request
 
