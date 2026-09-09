@@ -273,10 +273,13 @@ jq -n \
      + (($r.testing_gaps) | to_entries
         | map(. as $e | ($e.value | info_section("Testing Gap"; $e.key + 1))))) as $fallback_sections
   | ($fallback_sections | length) as $fallback_count
-  | ("## Review Findings — Flat Comment (fallback)\n\n"
-     + "Findings that could not be posted as inline PR comments, plus advisory (Info) items.\n\n"
-     + (if $fallback_count == 0 then "_No fallback items._"
-        else ($fallback_sections | join("\n\n---\n\n")) end)) as $fallback_md
+  # Empty string (not a header + placeholder) when there are no fallback
+  # items: SKILL.md step 3e gates the flat-comment post on `test -s`, so a
+  # non-empty file would post a boilerplate comment on every clean run.
+  | (if $fallback_count == 0 then ""
+     else ("## Review Findings — Flat Comment (fallback)\n\n"
+       + "Findings that could not be posted as inline PR comments, plus advisory (Info) items.\n\n"
+       + ($fallback_sections | join("\n\n---\n\n"))) end) as $fallback_md
   | ("## Code Review — PR #" + $pr_number + ": " + $pr_title + "\n\n"
      + "**Verdict: " + $event + "** (" + $r.verdict + ")\n\n"
      + ($inline_count | tostring) + " inline comment(s), "
@@ -304,5 +307,7 @@ jq -n \
 mkdir -p "$OUT_DIR" || { echo "Error: cannot create out-dir: $OUT_DIR" >&2; exit 1; }
 
 jq '.payload' "$tmpdir/result.json" > "$OUT_DIR/review-payload.json"
-jq -r '.fallback_md' "$tmpdir/result.json" > "$OUT_DIR/fallback-findings.md"
+# -j (raw, no trailing newline): an empty fallback_md must yield a 0-byte
+# file so SKILL.md 3e's `test -s` gate correctly skips the flat comment.
+jq -j '.fallback_md' "$tmpdir/result.json" > "$OUT_DIR/fallback-findings.md"
 jq -r '"inline=\(.summary.inline) fallback=\(.summary.fallback) event=\(.summary.event)"' "$tmpdir/result.json"

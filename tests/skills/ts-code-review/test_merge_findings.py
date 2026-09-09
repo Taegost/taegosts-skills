@@ -384,6 +384,52 @@ class TestScenario10SortAndNumbering:
             "stable # values are monotonic across the full primary set"
 
 
+class TestScenario10bPreExistingSeparation:
+    """pre_existing: true findings separate into payload["pre_existing"]
+    without '#', absent from findings/partition, counted in coverage —
+    and the output sort does not KeyError on the merged rep lacking
+    reviewer context (regression: reps once had no _reviewer key)."""
+
+    def test_pre_existing_separates_without_number(self, tmp_path):
+        compact = stage_returns(tmp_path, {
+            "correctness.json": reviewer_return("correctness", [
+                finding(title="stale legacy call", pre_existing=True),
+                finding(title="new defect", severity="P2",
+                        file="app/models/other_thing.rb", line=7),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        assert [f["title"] for f in payload["findings"]] == ["new defect"]
+        assert len(payload["pre_existing"]) == 1
+        pre = payload["pre_existing"][0]
+        assert pre["title"] == "stale legacy call"
+        assert "#" not in pre, "pre-existing findings carry no stable #"
+        assert payload["coverage"]["pre_existing"] == 1
+        nums = [f["#"] for f in payload["findings"]]
+        assert payload["partition"]["actionable"] == [nums[0]]
+
+    def test_mixed_dedup_group_stays_primary(self, tmp_path):
+        """All-members rule: one pre-existing + one new member of the same
+        dedup group keeps the merged finding primary (all() is False)."""
+        compact = stage_returns(tmp_path, {
+            "correctness.json": reviewer_return("correctness", [
+                finding(title="shared defect", pre_existing=True),
+            ]),
+            "security.json": reviewer_return("security", [
+                finding(title="shared defect", pre_existing=False),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        assert payload["pre_existing"] == []
+        assert len(payload["findings"]) == 1
+        assert payload["coverage"]["pre_existing"] == 0
+        assert payload["coverage"]["dedup_merges"] == 1
+
+
 class TestScenario11AllEmpty:
     """All reviewers return empty findings: empty primary set, exit 0."""
 

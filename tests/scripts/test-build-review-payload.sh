@@ -297,10 +297,11 @@ if [[ $RC -eq 0 ]] \
   && [[ "$(jq -r '.event' "$d/out/review-payload.json")" == "APPROVE" ]] \
   && [[ "$(jq -r '.comments | length' "$d/out/review-payload.json")" == "0" ]] \
   && [[ "$(jq -r '.body' "$d/out/review-payload.json")" == *"0 inline comment(s), 0 fallback item(s)."* ]] \
-  && [[ -f "$d/out/fallback-findings.md" ]]; then
-  ok "zero findings yields minimal APPROVE payload and creates fallback file"
+  && [[ -f "$d/out/fallback-findings.md" ]] \
+  && [[ ! -s "$d/out/fallback-findings.md" ]]; then
+  ok "zero findings yields minimal APPROVE payload, fallback file 0-byte (test -s gate stays closed)"
 else
-  die "zero findings (rc=$RC, out=$OUT)"
+  die "zero findings (rc=$RC, out=$OUT, size=$(stat -c%s "$d/out/fallback-findings.md" 2>/dev/null))"
 fi
 
 # ---------------------------------------------------------------- scenario 7

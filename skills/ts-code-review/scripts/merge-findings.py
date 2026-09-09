@@ -336,6 +336,9 @@ def merge_group(group: list) -> dict:
         "reviewers": reviewers,
         # merge bookkeeping (stripped from output)
         "_group_size": len(group),
+        # reps must carry _reviewer so the pre-existing output sort's
+        # _best_sort_key (which tiebreaks on reviewer) does not KeyError
+        "_reviewer": best["_reviewer"],
         "_reviewer_positions": [
             {
                 "reviewer": f["_reviewer"],
