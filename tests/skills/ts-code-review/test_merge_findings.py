@@ -122,6 +122,46 @@ class TestScenario1DedupAndPromotion:
         assert len(payload["findings"]) == 2
 
 
+class TestScenario1bIndependentMaxima:
+    """Rule 2 pin: "keep highest severity, keep highest anchor" are two
+    independent maxima, not a pair taken from the severity-dominant member."""
+
+    def test_severity_and_anchor_maxima_come_from_different_members(self, tmp_path):
+        compact = stage_returns(tmp_path, {
+            "security.json": reviewer_return("security", [
+                finding(severity="P0", confidence=50),
+            ]),
+            "correctness.json": reviewer_return("correctness", [
+                finding(severity="P1", confidence=100),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        assert len(payload["findings"]) == 1
+        merged = payload["findings"][0]
+        assert merged["severity"] == "P0", "severity is the group max"
+        assert merged["confidence"] == 100, "anchor is the group max (100 stays 100 under promotion)"
+
+    def test_gate_outcome_uses_group_max_anchor(self, tmp_path):
+        """Single reviewer returning near-duplicates: P2@50 + P3@100 merges
+        to P2@100 and survives the late gate (P2@50 alone would suppress)."""
+        compact = stage_returns(tmp_path, {
+            "correctness.json": reviewer_return("correctness", [
+                finding(severity="P2", confidence=50),
+                finding(severity="P3", confidence=100),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        assert len(payload["findings"]) == 1
+        merged = payload["findings"][0]
+        assert merged["severity"] == "P2"
+        assert merged["confidence"] == 100
+        assert payload["coverage"]["suppressed_by_anchor"] == {}
+
+
 class TestScenario2ConflictReporting:
     """Same fingerprint, differing severity and autofix_class."""
 

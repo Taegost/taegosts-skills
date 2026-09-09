@@ -301,6 +301,12 @@ def merge_dedup(findings: list) -> list:
 def merge_group(group: list) -> dict:
     """Collapse one dedup group into a single merged finding."""
     best = min(group, key=_best_sort_key)
+    # Original Stage 5 rule 2: "keep highest severity, keep highest anchor" —
+    # two independent maxima, not a pair from one member. Severity and anchor
+    # may come from different reviewers (e.g. security P0@50 + correctness
+    # P1@100 merges to P0@100).
+    severity = min(group, key=lambda f: SEVERITY_RANK[f["severity"]])["severity"]
+    confidence = max(f["confidence"] for f in group)
     reviewers = sorted({f["_reviewer"] for f in group})
 
     auto = max((f["autofix_class"] for f in group),
@@ -318,10 +324,10 @@ def merge_group(group: list) -> dict:
 
     return {
         "title": best["title"],
-        "severity": best["severity"],
+        "severity": severity,
         "file": best["file"],
         "line": best["line"],
-        "confidence": best["confidence"],
+        "confidence": confidence,
         "autofix_class": auto,
         "owner": owner,
         "requires_verification": requires_verification,
