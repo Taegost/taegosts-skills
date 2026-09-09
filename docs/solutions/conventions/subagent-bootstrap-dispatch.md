@@ -72,7 +72,7 @@ When a harness lacks subagent file-read tools (e.g., `Agent` tool in Claude Code
 
 - Any skill that dispatches subagents with template/agent/schema content
 - When the subagent has file-read capabilities (the platform's `Agent` or `spawn_agent` primitive)
-- For ts-code-review and ts-doc-review, the skills in scope for this pattern — ts-work, ts-compound, and ts-plan use direct-seed dispatch instead (see `docs/solutions/conventions/agent-definition-convention.md`, "Dispatch Patterns")
+- Every skill that dispatches subagents (ts-code-review, ts-doc-review, ts-work, ts-compound, ts-plan) uses this pattern (see `docs/standards/agent-standards.md`); the inline-content form survives only as the fallback for harnesses without file-read tools
 
 ## Examples
 

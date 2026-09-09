@@ -23,6 +23,8 @@ Your spawn prompt carries the finding, the diff, and the scope context. It is no
 | `<pr-scope-mode>` | `local-aligned` (default when absent) \| `pr-remote` \| `branch-remote` |
 | `<pr-head-ref>` / `<branch-head-ref>` | Remote head ref; when scope is remote and a ref is set, inspect via `git show <ref>:<path>` |
 
+These slots are the validator dispatch context — a different slot set from the reviewer slot table in `subagent-template.md`.
+
 ---
 
 ## Scope discipline

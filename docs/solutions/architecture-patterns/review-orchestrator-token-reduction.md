@@ -215,7 +215,7 @@ De-inlined (read by the subagent from disk, ~4.8k words off every dispatch): `su
 ## Related
 
 - [`subagent-bootstrap-dispatch`](../conventions/subagent-bootstrap-dispatch.md) — the dispatch pattern U4 applies (this doc records the application, not the pattern)
-- [`agent-definition-convention`](../conventions/agent-definition-convention.md) — dispatch-pattern taxonomy (bootstrap vs direct-seed)
+- [`agent-definition-convention`](../conventions/agent-definition-convention.md) — dispatch-pattern taxonomy (bootstrap, plus the deprecated inline fallback)
 - [`notification-resilience-via-disk-state`](../workflow-issues/notification-resilience-via-disk-state.md) — the disk-first family these on-disk contracts belong to
 - [`claude-code-plugin-script-path-resolution`](../tooling-decisions/claude-code-plugin-script-path-resolution.md) — the `${CLAUDE_SKILL_DIR}`/`${CLAUDE_PLUGIN_ROOT}` resolution constraint the extracted scripts honor (open guard-mechanism question: issue #117)
 - Issue #113 (this work), #103 (sibling token-reduction precedent that produced the bootstrap-dispatch convention), #94 / #82 (script-extraction precedents)

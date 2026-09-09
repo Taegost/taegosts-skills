@@ -4,7 +4,7 @@ This is the dispatch-time prompt shape the ts-code-review orchestrator sends to 
 
 **Bootstrap dispatch.** The orchestrator passes file paths instead of inline content. Each reviewer reads its own operating contract (`references/subagent-template.md`), role prompt (`references/agents/<name>.md`), output schema (`references/findings-schema.json`), scope rules (`references/diff-scope.md`), and routing rubric (`references/action-class-rubric.md`) from disk. This keeps ~4.8k words of template/schema/rubric content per reviewer off the orchestrator's dispatch output and context — the orchestrator never needs it unless the fallback path below fires. Paths are skill-relative: resolve them under the ts-code-review skill directory (`${CLAUDE_PLUGIN_ROOT}/skills/ts-code-review/` when installed as a plugin).
 
-**CE-asset carve-out.** The CE local prompt assets (`learnings-researcher`, `deployment-verification-agent`) dispatch via bootstrap with a read list of their agent prompt file only — no reviewer contract or schema. They are prose-output assets, not reviewers, and are exempt from the `subagent-template.md` compact-JSON reviewer contract; their output is synthesized separately in Stage 6.
+**CE-asset carve-out.** The CE local prompt assets (`learnings-researcher`, `deployment-verification-agent`) dispatch via bootstrap with a read list of their agent prompt file only — no reviewer contract or schema. Their prompt files resolve from the installed taegosts-skills plugin cache (a pinned/trusted revision) via the same skill-relative read-list paths as every reviewer read-list entry (see Bootstrap dispatch above) — never from the reviewed branch's working tree, in every scope mode including `pr-remote` and `branch-remote`. They are prose-output assets, not reviewers, and are exempt from the `subagent-template.md` compact-JSON reviewer contract; their output is synthesized separately in Stage 6.
 
 ---
 
@@ -53,7 +53,7 @@ Diff:
 
 | Slot | Source | Notes |
 |------|--------|-------|
-| Run ID | Stage 4 | Scopes the artifact directory. Empty or absent means the reviewer writes no artifact file |
+| Run ID | Stage 4 | Scopes the artifact directory. Empty or absent means no artifact file |
 | Reviewer name | Stage 3 | Maps to `references/agents/<name>.md` in the read list and to the artifact filename stem |
 | Intent | Stage 2 | 2-3 line summary of what the change is trying to accomplish |
 | `<pr-context>` | Stage 1 | PR title, body, and URL. Always present; empty content when not reviewing a PR |
@@ -64,6 +64,8 @@ Diff:
 | `<review-base>` | Stage 1 | `data-migration` reviewer only — the resolved review base ref so schema drift checks never assume `main`; omit for other reviewers |
 | `<standards-paths>` | Stage 3b | `project-standards` reviewer only — standards file path list; omit for other reviewers |
 | Changed files / Diff | Stage 1 | Inline for small diffs. For large shared context, staged paths (`full.diff`, `files.txt` in the run dir) instead of inline content — the subagent template tells the reviewer to Read a staged path |
+
+Subagent-facing slot semantics live in `subagent-template.md`'s slot table; this table is the orchestrator-side source mapping.
 
 Omit slots that do not apply to the current scope mode or reviewer (e.g. no `<pr-head-ref>` outside `pr-remote`) rather than sending empty tags.
 
@@ -104,4 +106,4 @@ The orchestrator checks that each expected path appears in the ack before accept
 
 ## Fallback: inline-content dispatch
 
-If all 3 attempts fail, or the harness's subagent primitive has no file-read tools at all, the orchestrator falls back to the legacy inline-content pattern: read `references/subagent-template.md` (or `references/validator-template.md`) on demand with its own Read — not pre-loaded — then dispatch that reviewer or validator by inlining the agent file, diff-scope rules, and findings-schema.json content directly into the spawn prompt, in that order (agent identity first, then the scope rules, then the output schema).
+If all 3 attempts fail, or the harness's subagent primitive has no file-read tools at all, the orchestrator falls back to the legacy inline-content pattern: read `references/subagent-template.md` (or `references/validator-template.md`) on demand with its own Read — not pre-loaded — then dispatch that reviewer or validator by inlining, as an explicit ordered step, the template content just read — for a reviewer, `references/subagent-template.md`'s output-contract and suppression-rules sections — followed by the agent file, the findings-schema.json content, and the diff-scope rules directly into the spawn prompt, in that order (operating contract first, then agent identity, then the output schema, then the scope rules), mirroring the read-list order above.
