@@ -13,7 +13,7 @@ The central implementation loop. Runs ts-work and ts-verify-implementation in cy
 
 ```bash
 /ts-do-work-loop <plan-doc-path>
-/ts-do-work-loop docs/plans/2026-06-25-001-feat-script-extraction-pass-plan.md
+/ts-do-work-loop docs/plans/2026-09-08-002-feat-review-pipeline-token-reduction-plan.md
 ```
 
 ## Process

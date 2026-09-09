@@ -14,6 +14,7 @@ If a script exists and was changed, it needs a corresponding test file. No line 
 - Every script file (`.sh`, `.py`, `.js`, `.ts`, `.rb`, `.go`, etc.) in `scripts/` should have a corresponding test in `tests/scripts/`.
 - Test files follow the naming convention: `test-<script-name>.sh` (shell scripts) or `test_<script_name>.py` (Python scripts).
 - Bash test suites (`.sh`) use `ok()`/`die()` helpers for pass/fail reporting.
+- Bash test suites (`.sh`) guard every `cd` with `|| exit 1` so a failed `cd` cannot continue from the wrong directory.
 - Bash test suites (`.sh`) use `tmpdir` with `trap 'rm -rf "$tmpdir"' EXIT` for cleanup.
 - Test files assert exit codes, not just output content.
 
@@ -91,4 +92,3 @@ A Python test suite (`.py`) is conformant when:
 - `.github/workflows/ci.yml` — runs the full battery (pytest, runner, shellcheck, gates) on push/PR to `main`
 - `skills/ts-work/SKILL.md` — auto-dispatch logic
 - `skills/ts-verify-implementation/SKILL.md` — coverage-gap verification dimension
-- `docs/plans/2026-07-02-002-fix-test-suite-hardening-plan.md` — canonical test patterns

@@ -134,5 +134,5 @@ for ktd in ktds:
 - [Behavioral KTD Verification](../behavioral-ktd-verification.md) — Companion document defining behavioral KTD verification criteria
 - [KTD Normalization Policy](../ktd-normalization-policy.md) — Literal KTD normalization rules
 - [Script Security Standards](../../standards/script-security-standards.md) — Shell script security standards
-- [Plan: Fix review skills plan validation](../../plans/2026-07-02-004-fix-review-skills-plan-validation-plan.md) — Parent plan that produced this fix
-- [Prior hardening plan](../../plans/2026-07-02-003-fix-pr-work-script-hardening-plan.md) — Plan whose incomplete execution demonstrated the drift problem
+- Plan: Fix review skills plan validation (removed from `docs/plans/` in ad3b560; git history) — parent plan that produced this fix
+- Prior hardening plan (removed from `docs/plans/` in ad3b560; git history) — plan whose incomplete execution demonstrated the drift problem
