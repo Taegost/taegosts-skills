@@ -6,10 +6,13 @@ cross-reviewer promotion, pre-existing separation, conflict reporting,
 conservative routing and legacy remaps, mode-aware demotion (testing
 exemption, corroboration exemption), the late confidence gate with the
 P0/P1-at-50+ exception, actionable/report-only partition, sort and stable
-numbering, and the CLI contract (--help exit 0, bad input exit 1).
+numbering, true-promotion counting, the requires_verification OR-merge,
+unreadable-return drop-and-continue, and the CLI contract (--help exit 0,
+bad input exit 1).
 """
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -393,8 +396,9 @@ class TestScenario7CorroborationExemption:
             "cross-reviewer corroboration prevents demotion"
         assert payload["coverage"]["demoted"] == 0
         # Corroboration also promotes the anchor: 50 -> 75 keeps it past
-        # the gate too.
+        # the gate too, and counts as exactly one true promotion.
         assert payload["findings"][0]["confidence"] == 75
+        assert payload["coverage"]["promoted"] == 1
 
 
 class TestScenario8ConfidenceGate:
@@ -540,6 +544,123 @@ class TestScenario12Help:
         )
         assert result.returncode == 0
         assert "Usage:" in result.stdout
+
+
+class TestScenario13TruePromotionCount:
+    """Coverage pin: `promoted` counts only real anchor moves (50 -> 75,
+    75 -> 100). Agreement at an anchor the promotion table cannot move
+    (0/25/100) changes nothing and must not increment the count."""
+
+    def test_saturated_agreement_not_counted_and_anchor_stays(self, tmp_path):
+        """100 is already the ceiling: agreement must leave both the anchor
+        and the promoted count untouched."""
+        compact = stage_returns(tmp_path, {
+            "security.json": reviewer_return("security", [
+                finding(title="Pinned defect", confidence=100),
+            ]),
+            "correctness.json": reviewer_return("correctness", [
+                finding(title="Pinned defect", confidence=100),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        assert len(payload["findings"]) == 1
+        assert payload["findings"][0]["confidence"] == 100, \
+            "the ceiling anchor must not move"
+        assert payload["coverage"]["promoted"] == 0, \
+            "100 -> 100 is a no-op, not a promotion"
+
+    @pytest.mark.parametrize("anchor", [0, 25])
+    def test_stuck_low_anchor_agreement_not_counted(self, tmp_path, anchor):
+        """0/25 stay put under the promotion table: corroborated or not,
+        no anchor move means no promotion counted."""
+        compact = stage_returns(tmp_path, {
+            "security.json": reviewer_return("security", [
+                finding(title="Low anchor defect", confidence=anchor),
+            ]),
+            "correctness.json": reviewer_return("correctness", [
+                finding(title="Low anchor defect", confidence=anchor),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        assert payload["coverage"]["promoted"] == 0
+
+
+class TestScenario14RequiresVerificationOrMerge:
+    """Conservative-routing pin: requires_verification ORs across a dedup
+    group (true wins) — one corroborating reviewer flagging it keeps the
+    verification requirement on the merged finding."""
+
+    def test_one_true_member_makes_merged_true(self, tmp_path):
+        compact = stage_returns(tmp_path, {
+            "security.json": reviewer_return("security", [
+                finding(requires_verification=True, confidence=50),
+            ]),
+            "correctness.json": reviewer_return("correctness", [
+                finding(requires_verification=False, confidence=50),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        assert len(payload["findings"]) == 1
+        assert payload["findings"][0]["requires_verification"] is True, \
+            "OR-merge: any true member makes the merged flag true"
+
+    def test_all_false_members_merge_false(self, tmp_path):
+        """Control for the OR: with no true member the merged flag stays
+        false (the OR does not unconditionally set it)."""
+        compact = stage_returns(tmp_path, {
+            "security.json": reviewer_return("security", [
+                finding(title="Control defect"),
+            ]),
+            "correctness.json": reviewer_return("correctness", [
+                finding(title="Control defect"),
+            ]),
+        })
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, stderr
+        assert len(payload["findings"]) == 1
+        assert payload["findings"][0]["requires_verification"] is False
+
+
+class TestScenario15UnreadableReturnDrop:
+    """A return that cannot be READ (permissions, transient I/O) drops with
+    a coverage reason like an invalid-JSON return — one unreadable file
+    must not abort the merge and discard every other reviewer's validated
+    findings. Uses chmod 000 because return_paths filters on is_file(), so
+    an unreadable path can only be a file (a directory never reaches the
+    read)."""
+
+    @pytest.mark.skipif(
+        hasattr(os, "geteuid") and os.geteuid() == 0,
+        reason="chmod 000 does not block root from reading",
+    )
+    def test_unreadable_file_dropped_valid_returns_survive(self, tmp_path):
+        compact = stage_returns(tmp_path, {
+            "correctness.json": reviewer_return("correctness", [
+                finding(title="Surviving finding"),
+            ]),
+        })
+        bogus = compact / "bogus.json"
+        bogus.write_text("{}", encoding="utf-8")
+        bogus.chmod(0o000)
+
+        payload, stderr, rc = run_merge(compact)
+
+        assert rc == 0, f"one unreadable return must not fail the run: {stderr}"
+        assert [f["title"] for f in payload["findings"]] == \
+            ["Surviving finding"], "valid findings must survive"
+        dropped = payload["coverage"]["returns_dropped"]
+        assert len(dropped) == 1
+        assert dropped[0]["file"] == "bogus.json"
+        assert dropped[0]["reason"].startswith("unreadable"), \
+            f"got: {dropped[0]['reason']}"
+        assert payload["coverage"]["returns_total"] == 2
 
 
 class TestCliContract:
