@@ -398,10 +398,11 @@ else
 fi
 
 # ---------------------------------------------------------------- scenario 9
-# Given: a pre-existing finding whose line IS in the linemap
+# Given: a pre-existing finding whose line IS in the linemap, plus a testing gap
 # When: build the payload
 # Then: it routes to the fallback list (report-only), not an inline comment,
-#       and being report-only it does not drive the event (APPROVE)
+#       being report-only it does not drive the event (APPROVE), and the
+#       testing_gaps entry renders through the same Info path as residual risks
 d="$tmpdir/preexisting"; mkdir -p "$d/out"
 printf 'src/db.py:21\n' > "$d/linemap.txt"
 {
@@ -415,15 +416,16 @@ printf 'src/db.py:21\n' > "$d/linemap.txt"
   echo '     "why_it_matters": "Old code", "evidence": ["exists on main"]}'
   echo '  ],'
   echo '  "residual_risks": [],'
-  echo '  "testing_gaps": []'
+  echo '  "testing_gaps": ["Chained merge path lacks a dedicated scenario"]'
   echo '}'
 } > "$d/review.json"
 run_build preexisting
 if [[ $RC -eq 0 ]] \
   && [[ "$(jq -r '.comments | length' "$d/out/review-payload.json")" == "0" ]] \
   && [[ "$(jq -r '.event' "$d/out/review-payload.json")" == "APPROVE" ]] \
-  && grep -q "Pre-existing debt" "$d/out/fallback-findings.md"; then
-  ok "pre-existing finding routed to fallback, not inline, and does not drive event"
+  && grep -q "Pre-existing debt" "$d/out/fallback-findings.md" \
+  && grep -q "Testing Gap 1" "$d/out/fallback-findings.md"; then
+  ok "pre-existing finding routed to fallback, not inline, does not drive event; testing gap rendered"
 else
   die "pre-existing routing (rc=$RC, out=$OUT)"
 fi
