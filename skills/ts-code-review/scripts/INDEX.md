@@ -4,7 +4,7 @@ description: "Index of scripts in skills/ts-code-review/scripts/."
 status: active
 version: "1.0"
 created: 2026-07-08
-last-updated: 2026-09-07
+last-updated: 2026-09-08
 owner: wave-2-dispatch-index-automation
 dependencies: []
 tags: [index, scripts]
@@ -18,4 +18,5 @@ Paths below are relative to this index's directory. On Claude Code marketplace i
 
 | Link | Description |
 |------|-------------|
+| [merge-findings.py](./merge-findings.py) | Merge reviewer compact returns into one finding set. |
 | [select-reviewers.sh](./select-reviewers.sh) | Determine which code-review agents apply based on changed files |
