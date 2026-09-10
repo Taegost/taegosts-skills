@@ -82,12 +82,14 @@ Section at the end of this plan. Append-only governs row creation only: rows are
 - **Severity (conformance):** S1 violates a MUST rule · S2 violates a SHOULD rule or current convention · S3 minor deviation · S4 cosmetic
 - **Severity (hygiene):** S4 by default; S2 when the issue blocks a tool or gate
 - **Trust:** `verified-external <source URL + direct quote of cited passage>` — missing either field downgrades the row to `model-only` · `user-confirmed <source>` · `potential-human <sha-or-url>` · `model-only` — attribution per KTD 8; `user-confirmed` only ever set at ratification
-- **Disposition:** `fixed-in-U<n>` · `deferred-issue-#<n>` (out-of-charter gaps and non-noise conformance/hygiene rows — issue filed at U10, issue number recorded in the row before merge) · `recorded-only` (S4 noise only) · `wont-fix-churn` · `kept-valid` · `externally-corroborated` (kept externally-backed claim, KTD 9) · `needs-ratification`
+- **Disposition:** `fixed-in-U<n>` · `deferred-issue-#<n>` (out-of-charter gaps and non-noise conformance/hygiene rows — issue filed at U10, issue number recorded in the row before merge) · `recorded-only` (S4 noise only) · `wont-fix-churn` · `kept-valid` · `externally-corroborated` (kept externally-backed claim, KTD 9) · `needs-ratification` · `rejected-finding` (user overrules an auditor verdict; row keeps its original severity, Trust becomes `user-confirmed` — preserves the audit trail that a finding was raised and by whom overruled) · `ratified-keep` (user ratified a `needs-ratification` row as-is; Trust `user-confirmed`)
 - **Fixed-in:** filled only when the row's disposition is not `fixed-in-U<n>`; otherwise `—` (the disposition already names the unit)
 
 `kept-valid` rows carry evidence too — task 1 of the issue demands proof of validation, not just a list of problems.
 
 Acceptance bar (checked at U10): zero unaddressed S1/S2 findings — every S1/S2 row carries a terminal disposition; every S3 finding has a row with a legal disposition; S4 rows are recorded but never block.
+
+**Ratification decision ingestion (user-directed, 2026-09-10).** The user reviews all ledger rows offline via `ratification-decisions.csv` (repo root, untracked, `.git/info/exclude`d) — one row per ledger row with columns ID, Surface, Location, Claim, Evidence, Severity, Trust, Disposition, Decision, Note. Blank `Decision` = accept the auditor's proposed disposition as-is. Filled values map: `keep` → `ratified-keep` + Trust `user-confirmed`; `drop`/`rewrite` → `fixed-in-U5` (Note should say what); `defer` → `deferred-issue-#<n>`; `reject-finding` → `rejected-finding` (original Severity retained, Trust `user-confirmed`); `promote` → `needs-ratification` for discussion. Ingestion validates every ID and Decision value against the ledger, applies Disposition/Trust/Fixed-in flips in place, and appends user Notes as a decisions log under the ledger section. Per the one-gate rule (2026-09-10): a completed CSV is approval and go in one step — approved fixes apply immediately, no second confirmation.
 
 ---
 
