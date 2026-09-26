@@ -96,7 +96,7 @@ Validates findings from a PR review, fixes valid issues, and updates the PR with
 /ts-pr-fix-findings 1
 ```
 
-If no argument is provided, lists open PRs and prompts you to pick one. Uses `/ts-debug` (now included in this repo).
+If no argument is provided, lists open PRs and prompts you to pick one. Uses `/ts-debug`.
 
 **What to expect:** The skill reviews all open conversations on the PR, validates each finding, presents proposed actions (fix / decline / needs input) for your approval, then uses `/ts-debug` to implement fixes. When a feature plan is available, it also runs `/ts-verify-implementation` to catch regressions and scope creep. It ends with a summary table and verdict.
 
