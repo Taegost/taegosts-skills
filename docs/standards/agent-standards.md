@@ -125,7 +125,7 @@ The orchestrator seeds agent file content directly into a generic subagent promp
 
 ## Script and Target Resolution
 
-Two rules govern how skills locate what they need, independent of the dispatch pattern used. (Carried over from the now-removed `dispatch-standards.md` — its other rules, DS-001 bootstrap-only and DS-002/DS-003, are either already covered above or were intentionally dropped; these two were an oversight.)
+Two rules govern how skills locate what they need, independent of the dispatch pattern used.
 
 ### Script lookup via INDEX.md
 
