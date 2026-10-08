@@ -115,23 +115,21 @@ Reviewer agents in layered conditionals, plus CE local prompt assets. Quick rost
 - `adversarial-reviewer` — >=50 changed code lines, or auth / payments / data mutations / external APIs
 - `previous-comments-reviewer` — PR with existing review comments (PR-only, comment-gated)
 
-**Stack-specific conditional (per diff):** `julik-frontend-races-reviewer` (Stimulus/Turbo, DOM events, async UI) and `swift-ios-reviewer` (Swift/SwiftUI/UIKit, entitlements, Core Data, `.pbxproj`).
-
 **CE conditional (migration-specific):** local prompt asset `deployment-verification-agent` — deployment checklist + rollback when the migration gate applies and the change is risky.
 
 ## Review Scope
 
-Every review spawns generic subagents for all always-on agents plus the CE always-on local prompt assets, then adds whichever cross-cutting and stack-specific conditionals fit the diff.
+Every review spawns generic subagents for all always-on agents plus the CE always-on local prompt assets, then adds whichever cross-cutting conditionals fit the diff.
 
 ## Protected Artifacts
 
-The following paths are taegosts-skills pipeline artifacts and must never be flagged for deletion, removal, or gitignore by any reviewer:
+Everything under `docs/` is a taegosts-skills pipeline artifact and must never be flagged for deletion, removal, or gitignore by any reviewer. The pipeline-owned subdirectories include:
 
 - `docs/brainstorms/*` -- requirements documents created by ts-brainstorm
 - `docs/plans/*.md` -- plan files created by ts-plan (decision artifacts; execution progress is derived from git, not stored in plan bodies)
 - `docs/solutions/*.md` -- solution documents created during the pipeline
 
-If a reviewer flags any file in these directories for cleanup or removal, discard that finding during synthesis.
+If a reviewer flags any file under `docs/` for cleanup or removal, discard that finding during synthesis.
 
 ## How to Run
 
@@ -267,7 +265,7 @@ If a plan is found, read its **Requirements** section — `## Requirements` in c
 
 ### Stage 3: Select reviewers
 
-Read the diff and file list from Stage 1. The always-on agents and CE always-on agents are automatic. For each cross-cutting and stack-specific conditional agent in the agent catalog inlined at the bottom of this file (Included References), decide whether the diff warrants it. This is agent judgment, not keyword matching.
+Read the diff and file list from Stage 1. The always-on agents and CE always-on agents are automatic. For each cross-cutting conditional agent in the agent catalog inlined at the bottom of this file (Included References), decide whether the diff warrants it. This is agent judgment, not keyword matching.
 
 **File-type awareness for conditional selection:** Instruction-prose files (Markdown skill definitions, JSON schemas, config files) are product code but do not benefit from runtime-focused reviewers. The adversarial reviewer's techniques (race conditions, cascade failures, abuse cases) target executable code behavior. For diffs that only change instruction-prose files, skip adversarial unless the prose describes auth, payment, or data-mutation behavior. Count only executable code lines toward line-count thresholds.
 
@@ -278,7 +276,7 @@ Read the diff and file list from Stage 1. The always-on agents and CE always-on 
 
 Skip it for standalone branch reviews with no associated PR, and skip it for PRs with no prior feedback yet -- there is nothing for the agent to verify, and a spawned subagent that returns empty findings still costs the full subagent startup overhead (agent spec, diff, schema, plus its own gh calls).
 
-Stack-specific agents are additive when runtime behavior warrants them. A Hotwire UI change may warrant `julik-frontend-races`; a TypeScript API diff may warrant `api-contract` and `reliability`.
+Cross-cutting conditional agents are additive when runtime behavior warrants them; a TypeScript API diff may warrant `api-contract` and `reliability`.
 
 **`data-migration` spawn gate.** Select `data-migration-reviewer` only when the diff includes at least one migration or schema artifact: `db/migrate/*`, `db/schema.rb`, `db/structure.sql`, Alembic/Flyway/Liquibase migration paths, or explicit backfill/data-transform scripts (rake tasks, one-off data migration classes). **Do not spawn** for model-only changes, query-only refactors, serializers/controllers that reference columns without a migration or schema dump in the diff, or migration tests alone.
 
@@ -294,7 +292,6 @@ Review team:
 - project-standards (always)
 - learnings-researcher (always)
 - security -- new endpoint in routes.rb accepts user-provided redirect URL
-- julik-frontend-races -- Stimulus controller with async DOM updates
 - data-migration -- adds migration 20260303_add_index_to_orders
 - deployment-verification-agent -- destructive migration with backfill
 ```
@@ -374,7 +371,7 @@ The artifact file **must** carry the detail-tier fields (`why_it_matters`, `evid
 
 ### Stage 5: Merge findings
 
-Convert the reviewer compact JSON returns into one deduplicated, confidence-gated finding set by running the merge script. The mechanical rules it enforces — validation constraints, fingerprint dedup (normalized file + line within +/-3 + normalized title), cross-reviewer promotion, conservative routing normalization, mode-aware demotion, the late confidence gate, the actionable/report-only partition, and severity -> anchor -> file -> line sort with stable monotonic `#` numbering — live in `skills/ts-code-review/scripts/merge-findings.py`. Do not re-derive them here or hand-merge when the script runs; read that file before changing the behavior it encodes.
+Convert the reviewer compact JSON returns into one deduplicated, confidence-gated finding set by running the [merge script](skills/ts-code-review/scripts/merge-findings.py). The mechanical rules it enforces — validation constraints, fingerprint dedup (normalized file + line within +/-3 + normalized title), cross-reviewer promotion, conservative routing normalization, mode-aware demotion, the late confidence gate, the actionable/report-only partition, and severity -> anchor -> file -> line sort with stable monotonic `#` numbering — live in the merge script. Do not re-derive them here or hand-merge when the script runs; read that file before changing the behavior it encodes.
 
 1. **Stage compact returns.** As each reviewer returns, write its compact JSON (merge-tier fields: title, severity, file, line, confidence, autofix_class, owner, requires_verification, pre_existing, optional suggested_fix) to `<run-dir>/compact/<reviewer>.json`. The script reads ONLY these files — never the full-schema artifacts — so a failed artifact write still merges via the compact return. Detail-tier fields (`why_it_matters`, `evidence`) stay on disk in the per-agent artifact files and are not loaded at this stage.
 2. **Run the merge script:** run `${CLAUDE_SKILL_DIR}/scripts/merge-findings.py "<run-dir>/compact"`. It prints one JSON object: `findings` (the primary set, each finding carrying a stable monotonic `#`, its contributing `reviewers`, and final routing), `pre_existing` (separated, informational — append them back into the composed `findings` array with `pre_existing: true` intact when serializing the `mode:agent` JSON; see JSON output format), `residual_risks` (unioned across reviewers, with demoted findings appended as `<file:line> -- <title>` lines), `testing_gaps` (unioned), `partition` (`actionable` and `report_only` as stable-`#` lists — Stage 6 and the `mode:agent` `actionable_findings` field consume these), and `coverage` (malformed returns dropped, per-finding validation drops, legacy routing remaps, promotions, demotions, suppressed count by anchor, and the `conflicts` report). Exit code 1 means a usage or input error (compact dir missing or contains no `*.json` returns) — fix the staging and rerun; do not fall back to hand-merging.
@@ -543,12 +540,12 @@ Before delivering the review, verify:
 2. **No false positives from skimming.** Each finding must survive the false-positive catalog in `references/subagent-template.md` — the reviewers already follow that catalog via their read-list contract at dispatch, so spot-check the merged set against it (handled-elsewhere, intentional code, linter nitpicks, generic advice are non-findings) instead of re-deriving it here.
 3. **Severity is calibrated.** A style nit is never P0. A SQL injection is never P3. Re-check every severity assignment.
 4. **Line numbers are accurate.** Verify each cited line number against the file content. A finding pointing to the wrong line is worse than no finding.
-5. **Protected artifacts are respected.** Discard any findings that recommend deleting or gitignoring files in `docs/brainstorms/`, `docs/plans/`, or `docs/solutions/`.
+5. **Protected artifacts are respected.** Discard any findings that recommend deleting or gitignoring files under `docs/`.
 6. **Findings don't duplicate linter output.** Covered by the same catalog's linter-nitpick rule — keep findings semantic.
 
 ## Language-Aware Conditionals
 
-Stack-specific reviewers fire only when the diff touches runtime behavior they specialize in (async UI races, iOS/Swift lifecycle) — never mechanically from file extensions alone; the trigger is meaningful changed behavior in that stack's runtime domain. Structural quality (complexity deletion, 1k-line regressions, type-boundary leaks) lives in the always-on `maintainability-reviewer`; do not spawn extra reviewers for language conventions, philosophy, or "strict bar" passes.
+Conditional reviewers fire only when the diff touches runtime behavior they specialize in — never mechanically from file extensions alone; the trigger is meaningful changed behavior in the reviewer's runtime domain. Structural quality (complexity deletion, 1k-line regressions, type-boundary leaks) lives in the always-on `maintainability-reviewer`; do not spawn extra reviewers for language conventions, philosophy, or "strict bar" passes.
 
 ## After Review
 
