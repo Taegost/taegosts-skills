@@ -27,7 +27,7 @@ Find root causes, then fix them. This skill investigates bugs systematically —
 | 3 | Fix | Only if user chose to fix. Test-first fix with workspace safety checks |
 | 4 | Handoff | Structured summary, then prompt the user for the next action |
 
-Beyond the trivial-bug fast-path in Phase 0, no further phase skipping — complex bugs simply spend more time in each phase naturally. No further complexity tiers.
+Beyond the trivial-bug fast-path in Phase 0, no further phase skipping unless explicitly advised to by instructions later in this skill — complex bugs simply spend more time in each phase naturally. No further complexity tiers.
 
 ---
 
@@ -96,7 +96,7 @@ As you trace:
 - Check recent changes in files you are reading: `git log --oneline -10 -- [file]`
 - If the bug looks like a regression ("it worked before"), use `git bisect` (see `references/investigation-techniques.md`)
 - Check the project's observability tools for additional evidence:
-  - Error trackers (Sentry, AppSignal, Datadog, BetterStack, Bugsnag)
+  - Error trackers (such as Sentry, AppSignal, Datadog, BetterStack, Bugsnag, etc)
   - Application logs
   - Browser console output
   - Database state
@@ -194,7 +194,7 @@ If the user chose "Diagnosis only" at the end of Phase 2, skip this phase and go
 3. Implement the minimal fix — address the root cause and nothing else. Do not bundle drive-by refactors, formatting, or unrelated cleanup into a bug-fix change; those belong in separate commits.
 4. Verify the test passes
 5. Run the broader test suite for regressions
-6. Self-review the diff before declaring the fix done: read every changed line and check for style violations, missed edge cases, regressions in adjacent behavior, and missing test coverage for the fix. For non-trivial fixes (multiple files, risky surface area), also run the harness's lightweight review tool (e.g., `/review` in Claude Code; the equivalent in other harnesses) — not the full `ts-code-review` multi-agent flow, which is PR-tier and over-sized for a single bug fix.
+6. Self-review the diff before declaring the fix done: read every changed line and check for style violations, missed edge cases, regressions in adjacent behavior, and missing test coverage for the fix. For non-trivial fixes (multiple files, risky surface area), also run the harness's lightweight review tool (e.g., `/review` in Claude Code; the equivalent in other harnesses) — not the full `ts-code-review` multi-agent flow, which is the wrong tool for the job on a single bug fix.
 
 **On a failed fix:** return to Phase 2 and *explicitly invalidate the current hypothesis* before forming a new one. State out loud what evidence ruled out the prior hypothesis, then form a new one with its own grounding observation and prediction. Do not retry variants of the same theory ("maybe it was the other branch", "let me also catch this case") — that is the rationalization spiral, not iteration.
 
@@ -241,7 +241,7 @@ Options:
 2. **Commit the fix (`/ts-commit`)** — local commit only
 3. **Stop here** — user takes it from there
 
-#### After a PR is open (either path): consider offering learning capture
+#### Consider offering learning capture whether or not a PR was opened
 
 Most bugs are localized mechanical fixes (typo, missed null check, missing import) where the only "lesson" is the bug itself. Compounding those clutters `docs/solutions/` without adding value. Decide which path applies:
 
@@ -249,4 +249,4 @@ Most bugs are localized mechanical fixes (typo, missed null check, missing impor
 - **Offer neutrally** when the lesson can be stated in one sentence — e.g., "X.foo() returns T | undefined when Y, not just T", or "the diagnostic path was non-obvious and worth recording." If you cannot articulate the lesson, skip rather than offer.
 - **Lean into the offer** when the pattern appears in 3+ locations OR the root cause reveals a wrong assumption about a shared dependency, framework, or convention that other code is likely to repeat.
 
-When offering, use the blocking question tool described above. If the user accepts, run `/ts-compound`, then commit the resulting learning doc to the same branch and push so the open PR picks up the new commit.
+When offering, use the blocking question tool described above. If the user accepts, run `/ts-compound`, then commit the resulting learning doc to the current branch and push so any open PR picks up the new commit.
