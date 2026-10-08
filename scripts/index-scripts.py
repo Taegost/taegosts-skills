@@ -166,7 +166,7 @@ def scan_scripts(directory: Path) -> list[dict]:
         # NOT recursed into. scripts/lib/ is the shared library tier
         # (sourced/imported by other scripts, never invoked as commands);
         # see the scripts/lib/ exemption in
-        # docs/standards/script-extraction-standards.md
+        # docs/standards/script-standards.md
         if filepath.is_dir():
             if filepath.name == "lib":
                 for libfile in sorted(filepath.iterdir()):

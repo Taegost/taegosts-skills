@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # verify-script-refs.sh -- Detect unguarded runtime script invocations in skill markdown
 #
-# Enforces docs/standards/script-extraction-standards.md, section "Script path
+# Enforces docs/standards/script-standards.md, section "Script path
 # resolution": runtime script invocations in SKILL.md and references/*.md must
 # resolve against the plugin installation, never against the current working
 # directory (Issue #115).
@@ -68,7 +68,7 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
 Usage: verify-script-refs.sh [skills-dir]
 
 Detect unguarded runtime script invocations in skill markdown (SKILL.md and
-references/*.md). Enforces docs/standards/script-extraction-standards.md,
+references/*.md). Enforces docs/standards/script-standards.md,
 section "Script path resolution": invocations must be prefixed with
 ${CLAUDE_PLUGIN_ROOT} (plugin-shared tier), ${CLAUDE_SKILL_DIR} (skill-local
 tier), or $SCRIPT_DIR.
@@ -222,7 +222,7 @@ classify_occurrence() {
   local token="${line:start:end-start}"
   local prev="${line:0:start}"
 
-  # Accepted guard prefixes (docs/standards/script-extraction-standards.md):
+  # Accepted guard prefixes (docs/standards/script-standards.md):
   # ${CLAUDE_PLUGIN_ROOT}/..., ${CLAUDE_SKILL_DIR}/..., $SCRIPT_DIR/...
   case "$token" in
     '${CLAUDE_PLUGIN_ROOT}/'* | '${CLAUDE_SKILL_DIR}/'* | '$SCRIPT_DIR/'*) return 0 ;;

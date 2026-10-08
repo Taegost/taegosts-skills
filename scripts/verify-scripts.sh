@@ -8,7 +8,7 @@
 #   verify-scripts.sh --all           # verify scripts/ and skills/*/scripts/
 #   verify-scripts.sh --help
 #
-# Scope (docs/standards/script-extraction-standards.md, "Gate scope") is
+# Scope (docs/standards/script-standards.md, "Gate scope") is
 # classified from the file's repo-relative path at check time, so it applies
 # identically in all three modes:
 #   tests/        out of scope -- skipped, not counted as passed

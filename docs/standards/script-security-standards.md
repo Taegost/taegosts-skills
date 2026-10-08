@@ -189,7 +189,7 @@ Each command script must have:
 - A `--help` flag that prints usage information
 - Exit codes documented in the help text
 
-**Scope:** these rules apply to command scripts only. Files under `scripts/lib/` are exempt — they are sourced/imported libraries (`docs/standards/script-extraction-standards.md`, "The `scripts/lib/` shared-library tier") and are never invoked as commands, so they have no `--help` surface. `scripts/verify-scripts.sh` enforces this split: the full check set for command scripts, syntax and control-character checks only for `scripts/lib/`.
+**Scope:** these rules apply to command scripts only. Files under `scripts/lib/` are exempt — they are sourced/imported libraries (`docs/standards/script-standards.md`, "The `scripts/lib/` shared-library tier") and are never invoked as commands, so they have no `--help` surface. `scripts/verify-scripts.sh` enforces this split: the full check set for command scripts, syntax and control-character checks only for `scripts/lib/`.
 
 ## 11. Shellcheck Configuration
 
