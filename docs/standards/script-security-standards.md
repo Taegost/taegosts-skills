@@ -158,7 +158,7 @@ Two execution patterns are explicitly permitted and exempt from the eval prohibi
   trap 'rm -rf "$tmpdir"' EXIT
   ```
 
-- **curl-pipe-shell** — installing a tool by piping its installer script into `bash` (as CI does for shellcheck) is an allowed pattern.
+- **curl-pipe-shell** — installing a tool by piping its installer script into `bash` is an allowed pattern. CI itself installs shellcheck more strictly: it downloads the release tarball to a file, verifies its SHA-256 checksum, and only then extracts it.
 
 ## 8. Unknown Argument Rejection
 
