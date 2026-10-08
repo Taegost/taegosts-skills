@@ -1,6 +1,6 @@
 ---
 title: "Claude Code plugin repository structure"
-date: 2026-06-22
+date: 2026-10-08
 category: tooling-decisions
 module: claude-code-plugins
 problem_type: tooling_decision
@@ -143,5 +143,5 @@ skills/
 
 ## Related
 
-- Compound Engineering plugin (reference implementation): `compound-engineering-plugin/.claude-plugin/marketplace.json`
-- caveman plugin (reference implementation): `caveman/.claude-plugin/marketplace.json`
+- Compound Engineering plugin (reference implementation): `~/.claude/plugins/cache/compound-engineering-plugin/.claude-plugin/marketplace.json`
+- caveman plugin (reference implementation): `~/.claude/plugins/cache/caveman/.claude-plugin/marketplace.json`
