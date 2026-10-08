@@ -1,7 +1,7 @@
 ---
 name: ts-compound
 description: "USE THIS after solving a non-trivial problem, fixing a tricky bug, or making an architectural decision. Captures the solution as a durable doc in docs/solutions/. NOT for plans (use ts-plan) or brainstorming (use ts-brainstorm)."
-argument-hint: "[optional: brief context] [mode:headless] "
+argument-hint: "[optional: brief context] [mode:headless]"
 ---
 
 # /ts-compound
@@ -61,7 +61,7 @@ These files are the durable contract for the workflow. Read them on-demand at th
 (If `references/agents/session-historian.md` is not present, session-history context is unavailable — skip this step.)
 - `references/agents/session-historian.md` — skill-local synthesis prompt for optional session-history compounding context (read only when the user opts into session history)
 - `assets/resolution-template.md` — section structure for new docs (read when assembling)
-- `scripts/session-history/` — session discovery and extraction scripts copied into this skill so session-history support does not depend on the deleted `ce-sessions` public skill
+- `scripts/session-history/` — session discovery and extraction scripts copied into this skill so session-history support is self-contained
 - `scripts/validate-frontmatter.py` — frontmatter parser-safety validator (run in Phase 2 step 8 via `${CLAUDE_PLUGIN_ROOT}/scripts/run-bundled-validator.sh`, the repo-level wrapper that resolves `${CLAUDE_SKILL_DIR}` and falls back to a manual checklist elsewhere)
 
 This skill uses the **Bootstrap dispatch pattern** — subagents receive file paths, not inline content. Each subagent reads its own operating contract, role prompt, and schema from disk. This reduces orchestrator dispatch output and decouples agent identity from the orchestrator's context window.
@@ -93,7 +93,7 @@ for relevant knowledge to help the Compound process? This adds
 time and token usage.
 ```
 
-If the user says yes, run the internal session-history step in Phase 1 (see step 4). If no, skip it. Do not ask this in lightweight mode or headless mode. There is no standalone `ce-sessions` product surface; this support exists only inside the compounding workflow.
+If the user says yes, run the internal session-history step in Phase 1 (see step 4). If no, skip it. Do not ask this in lightweight mode or headless mode. This support exists only inside the compounding workflow.
 
 ---
 
@@ -333,7 +333,7 @@ The orchestrating agent (main conversation) performs these steps:
 
 0. **Verify bootstrap acknowledgments.** For each Phase 1 subagent, verify its bootstrap-ack contains all expected file paths:
    - Context Analyzer: `references/agents/context-analyzer.md`, `references/schema.yaml`, `references/yaml-schema.md`
-   - Solution Extractor: `references/agents/solution-extractor.md`, `references/schema.yaml`, `references/yaml-schema.md`, `references/yaml-schema.md`
+   - Solution Extractor: `references/agents/solution-extractor.md`, `references/schema.yaml`, `references/yaml-schema.md`
    - Related Docs Finder: `references/agents/related-docs-finder.md`
 
    If any expected path is missing from the ack, re-dispatch that subagent with an admonition to read all files (up to 3 attempts). If all 3 attempts fail, abort the agent (inline-content fallback is removed per the Bootstrap-only dispatch contract).
@@ -503,7 +503,7 @@ Based on problem type, optionally dispatch generic subagents using Bootstrap dis
 - **performance_issue** → `references/agents/performance-oracle.md`
 - **security_issue** → `references/agents/security-sentinel.md`
 - **database_issue** → `references/agents/data-integrity-guardian.md`
-- Any code-heavy issue → preserve code simplification as a **read-only documentation review**. Inspect the solution draft's code examples and explanatory claims inline, or dispatch a generic subagent seeded with a local prompt only to return suggestions. Do **not** invoke `ce-simplify-code` from this phase and do not mutate product code unless the user explicitly asks for a separate code-simplification pass. Do not use the deleted `code-simplicity-reviewer`.
+- Any code-heavy issue → preserve code simplification as a **read-only documentation review**. Inspect the solution draft's code examples and explanatory claims inline, or dispatch a generic subagent seeded with a local prompt only to return suggestions.
   Example: review the solution draft's examples for speculative abstractions, redundant wrappers, dead branches, and just-in-case parameters. Apply edits only to the documentation/examples being written by `ts-compound`; leave any branch code changes untouched.
 
 </parallel_tasks>
@@ -588,26 +588,7 @@ In lightweight mode, the overlap check is skipped (no Related Docs Finder subage
 
 **Categories auto-detected from problem:**
 
-Bug track:
-- build-errors/
-- test-failures/
-- runtime-errors/
-- performance-issues/
-- database-issues/
-- security-issues/
-- ui-bugs/
-- integration-issues/
-- logic-errors/
-
-Knowledge track:
-- architecture-patterns/ — architectural or structural patterns (agent/skill/pipeline/workflow shape decisions)
-- design-patterns/ — reusable non-architectural design approaches (content generation, interaction patterns, prompt shapes)
-- tooling-decisions/ — language, library, or tool choices with durable rationale
-- conventions/ — team-agreed way of doing something, captured so it survives turnover
-- workflow-issues/
-- developer-experience/
-- documentation-gaps/
-- best-practices/ — fallback only, use when no narrower knowledge-track value applies
+The full mapping from problem type (bug track vs knowledge track) to category directory lives in the "Category Mapping" section of `references/yaml-schema.md`.
 
 ## Common Mistakes to Avoid
 
