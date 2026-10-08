@@ -1,6 +1,7 @@
 ---
 name: load-plan
 description: "Load a plan document for skill execution. Auto-discovers plans from branch names, PR bodies, or explicit paths."
+argument-hint: "[optional: plan:<path> to load an explicit plan; --non-interactive to return errors instead of prompting]"
 user_invocable: true
 ---
 
@@ -134,6 +135,8 @@ If `locate-plan.py` returns multiple matches:
 ```bash
 /load-plan plan:docs/plans/2026-09-08-002-feat-review-pipeline-token-reduction-plan.md
 ```
+
+> Note: the plan path above is just an example and may not actually exist — old plans are periodically deleted.
 
 ### Auto-discovery (interactive)
 
