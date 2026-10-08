@@ -5,6 +5,9 @@ index-scripts.py -- Generate INDEX.md files for script directories.
 Scans scripts/ and skills/*/scripts/ for .sh and .py files, extracts R3
 frontmatter descriptions, and generates INDEX.md files in R8 format.
 
+The INDEX.md format and placement rules these files follow are defined
+in docs/standards/index-standards.md.
+
 R3 frontmatter formats:
   Shell (.sh): line 2 is "# script-name -- description"
   Python (.py): first line of module docstring (after shebang)
