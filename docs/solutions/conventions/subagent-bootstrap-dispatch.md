@@ -46,6 +46,7 @@ After reading all files, emit a brief acknowledgment listing files read (paths +
 Dynamic slots stay inline (they cannot be read from disk):
 - `document_type`, `origin_path` — session state
 - `decision_primer` — prior-round decisions
+- `supplementary_context` — reviewer-specific evidence gathered before dispatch (e.g. convention excerpts, security-scan findings); empty for reviewers it does not target
 - `document_content` — the document under review
 
 ### Bootstrap-ack requirement
