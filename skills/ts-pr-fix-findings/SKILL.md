@@ -35,7 +35,7 @@ Before any work, determine which repository the PR lives in. **Do NOT guess or l
 
 Store the resolved `owner/repo` for all subsequent `gh` commands using `-R {owner}/{repo}`.
 
-After resolving, persist the owner/repo to session memory so future invocations can use it as a fallback. Use `honcho_conclude` or equivalent.
+After resolving, persist the owner/repo to session memory so future invocations can use it as a fallback. Use `create_conclusion` or equivalent.
 
 ### 0a. Load the feature plan (if available)
 
@@ -124,7 +124,7 @@ Add a "Plan Divergence" column to the remediation plan noting any conflict betwe
 After planning fixes, group the findings for parallel dispatch:
 
 - **File proximity:** Findings targeting the same file go in the same group. Findings targeting files in the same directory are candidates for merging if they share a concern type.
-- **Concern type:** Map to `autofix_class` categories — findings with the same `autofix_class` (e.g., both `safe_auto` or both `gated_auto`) and touching related code paths can share a group.
+- **Concern type:** Map to `autofix_class` categories — findings with the same `autofix_class` (e.g., both `advisory` or both `gated_auto`) and touching related code paths can share a group.
 - **Independence:** Each group must be independently fixable — no group depends on another group's fix landing first. If a finding depends on another finding's fix, merge them into the same group.
 - Record the group assignments in the remediation plan
 
