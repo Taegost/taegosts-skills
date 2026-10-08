@@ -1,8 +1,21 @@
 # taegosts-skills
 
-A Claude Code plugin containing custom skills for PR review, PR fix, and implementation verification.
+A Claude Code plugin providing custom skills for planning, brainstorming, implementation, debugging, code and document review, PR review and remediation, commits, and solution documentation.
 
 ## Installation
+
+### Install from within Claude Code
+
+In a Claude Code session, add the marketplace and install the plugin:
+
+```text
+/plugin marketplace add Taegost/taegosts-skills
+/plugin install taegosts-skills@taegosts-skills
+```
+
+Pick an install scope when prompted: user (you, in every project), project (everyone working in this repository), or local (you, in this repository only). The same steps work from a shell without a session: `claude plugin marketplace add Taegost/taegosts-skills`, then `claude plugin install taegosts-skills@taegosts-skills`.
+
+### Install via settings files
 
 Add this repository to your Claude Code settings under `extraKnownMarketplaces`:
 
@@ -35,14 +48,21 @@ Then enable the plugin in `enabledPlugins`:
 | Skill | Description | Dependencies |
 |-------|-------------|-------------|
 | `/load-plan` | Loads a plan document for skill execution. Auto-discovers plans from branch names, PR bodies, or explicit paths. | None (self-contained) |
-| `/ts-pr-review` | Reviews a pull request and posts inline findings | `code-review` plugin (claude-plugins-official) |
+| `/ts-pr-review` | Reviews a pull request and posts inline findings | `/ts-code-review` (in-repo) |
 | `/ts-pr-fix-findings` | Fixes findings from a PR review and updates the PR | `/ts-debug` (included), `/load-plan`, `/ts-verify-implementation` |
 | `/ts-verify-implementation` | Verifies a feature branch against its plan | None (self-contained) |
 | `/ts-coding-workflow` | Mandatory workflow for all coding tasks — plan, review, doc-review, work | `/ts-plan`, `/ts-doc-review`, `/ts-do-work-loop` |
 | `/ts-do-work-loop` | Run ts-work and ts-verify-implementation in a loop until the plan is fully satisfied | `/ts-work`, `/ts-verify-implementation`, `/ts-compound` |
-
-
-The central implementation loop. Runs ts-work and ts-verify-implementation in cycles until verification passes. Most plans require multiple passes — a single ts-work run typically misses things.
+| `/ts-compound-refresh` | Refresh docs/solutions learnings against the current codebase | None (self-contained) |
+| `/ts-work` | Plan execution and implementation | None (self-contained) |
+| `/ts-plan` | Planning and architecture | None (self-contained) |
+| `/ts-doc-review` | Document review with persona lenses | None (self-contained) |
+| `/ts-code-review` | Code review with dynamic personas | None (self-contained) |
+| `/ts-compound` | Solution documentation capture | None (standalone) |
+| `/ts-debug` | Debugging workflow | None (self-contained) |
+| `/ts-brainstorm` | Requirements brainstorming | None (self-contained) |
+| `/ts-commit` | Commit workflow | None (self-contained) |
+| `/ts-commit-push-pr` | Commit + PR creation | None (self-contained) |
 
 ```bash
 /ts-do-work-loop docs/plans/my-plan.md
@@ -52,17 +72,17 @@ The central implementation loop. Runs ts-work and ts-verify-implementation in cy
 
 These 9 skills were extracted from [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) for customization. See [docs/solutions/tooling-decisions/ce-skills-extraction.md](docs/solutions/tooling-decisions/ce-skills-extraction.md) for full context.
 
-| Skill | Description | Dependencies |
-|-------|-------------|-------------|
-| `/ts-work` | Plan execution and implementation | ts-plan, ts-debug |
-| `/ts-plan` | Planning and architecture | ts-brainstorm |
-| `/ts-doc-review` | Document review with persona lenses | None |
-| `/ts-code-review` | Code review with dynamic personas | None |
-| `/ts-compound` | Solution documentation capture | None (standalone) |
-| `/ts-debug` | Debugging workflow | None |
-| `/ts-brainstorm` | Requirements brainstorming | None |
-| `/ts-commit` | Commit workflow | None |
-| `/ts-commit-push-pr` | Commit + PR creation | None |
+| Skill | Old Skill |
+|-------|-----------|
+| `/ts-work` | `/ce-work` |
+| `/ts-plan` | `/ce-plan` |
+| `/ts-doc-review` | `/ce-doc-review` |
+| `/ts-code-review` | `/ce-code-review` |
+| `/ts-compound` | `/ce-compound` |
+| `/ts-debug` | `/ce-debug` |
+| `/ts-brainstorm` | `/ce-brainstorm` |
+| `/ts-commit` | `/ce-commit` |
+| `/ts-commit-push-pr` | `/ce-commit-push-pr` |
 
 ### Documented Solutions
 
@@ -82,9 +102,9 @@ Reviews a pull request, posts inline findings as threaded comments, and reports 
 /ts-pr-review 1
 ```
 
-If no argument is provided, lists open PRs and prompts you to pick one. Requires the `code-review` plugin to be installed.
+If no argument is provided, lists open PRs and prompts you to pick one.
 
-**What to expect:** The skill gathers the PR state, runs `/code-review`, and posts findings as individual inline review comments grouped by severity. It ends with a summary table and verdict (APPROVE or REQUEST_CHANGES).
+**What to expect:** The skill gathers the PR state, runs `/ts-code-review`, and posts findings as individual inline review comments grouped by severity. It ends with a summary table and verdict (APPROVE or REQUEST_CHANGES).
 
 ### `/ts-pr-fix-findings`
 
@@ -102,7 +122,7 @@ If no argument is provided, lists open PRs and prompts you to pick one. Uses `/t
 
 ### `/ts-verify-implementation`
 
-Verifies a feature branch against its plan by launching 4 parallel review subagents: correctness, completeness, scope, and standards.
+Verifies a feature branch against its plan by launching parallel review subagents: correctness, completeness, scope, and standards.
 
 ```bash
 /ts-verify-implementation <plan-filename>
@@ -112,14 +132,14 @@ Verifies a feature branch against its plan by launching 4 parallel review subage
 
 If no argument is provided, lists available plans in `docs/plans/` and prompts you to pick one. No external plugin dependencies.
 
-**What to expect:** The skill reads the plan, diffs the feature branch against the base branch, and launches 4 subagents in parallel to review for correctness, completeness, scope creep, and standards compliance. It ends with a consolidated summary table and verdict (PASS / PARTIAL / FAIL).
+**What to expect:** The skill reads the plan, diffs the feature branch against the base branch, and launches subagents in parallel to review for correctness, completeness, scope creep, and standards compliance. It ends with a consolidated summary table and verdict (PASS / PARTIAL / FAIL).
 
 ## Dependencies
 
 Some skills depend on other Claude Code plugins:
 
 - **Taegost's Skills skills** — `/ts-pr-fix-findings` uses `/ts-debug`, which is now included in this repo (extracted from EveryInc).
-- **code-review plugin** — required by `/ts-pr-review` (provides `/code-review`). Install from claude-plugins-official marketplace.
+- **ts-code-review** — `/ts-pr-review` dispatches it as the review engine; it is an in-repo skill, not an external plugin.
 - **ts-verify-implementation** — `/ts-pr-fix-findings` invokes it as a sub-skill when a feature plan is available, to catch regressions and scope creep after individual finding fixes.
 
 `/ts-verify-implementation` has no external plugin dependencies.
@@ -191,46 +211,55 @@ Pinned tool versions are the same ones CI runs; `.github/workflows/ci.yml` is th
 ```
 taegosts-skills/
 ├── .claude-plugin/
-│   └── marketplace.json      # Plugin manifest
-├── skills/
-│   ├── ts-pr-review/
-│   │   └── SKILL.md
-│   ├── ts-pr-fix-findings/
-│   │   └── SKILL.md
-│   ├── ts-verify-implementation/
-│   │   └── SKILL.md
-│   ├── ts-work/
-│   │   └── SKILL.md          # Plan execution
-│   ├── ts-do-work-loop/
-│   │   └── SKILL.md          # Work loop
-│   ├── ts-coding-workflow/
-│   │   └── SKILL.md          # Coding workflow
-│   ├── ts-plan/
-│   │   └── SKILL.md          # Planning and architecture
-│   ├── ts-doc-review/
-│   │   └── SKILL.md          # Document review
-│   ├── ts-code-review/
-│   │   └── SKILL.md          # Code review
-│   ├── ts-compound/
-│   │   └── SKILL.md          # Solution capture
-│   ├── ts-debug/
-│   │   └── SKILL.md          # Debugging workflow
-│   ├── ts-brainstorm/
-│   │   └── SKILL.md          # Requirements brainstorming
-│   ├── ts-commit/
-│   │   └── SKILL.md          # Commit workflow
-│   └── ts-commit-push-pr/
-│       └── SKILL.md          # Commit + PR creation
+│   └── marketplace.json       # Marketplace manifest
+├── .github/
+│   └── workflows/
+│       └── ci.yml             # CI: shellcheck + test suites
 ├── docs/
 │   ├── brainstorms/           # Requirements and idea exploration
 │   ├── plans/                 # Implementation plans with status tracking
-│   └── solutions/
-│       └── tooling-decisions/ # Captured learnings and technical decisions
+│   ├── pull_requests/         # PR review artifacts and fix plans
+│   ├── standards/             # Enforced standards (agents, scripts, indexes, links, testing)
+│   ├── solutions/             # Documented solutions by category
+│   │   ├── conventions/
+│   │   ├── documentation-gaps/
+│   │   ├── tooling-decisions/
+│   │   ├── workflow-issues/
+│   │   ├── behavioral-ktd-verification.md
+│   │   ├── ktd-normalization-policy.md
+│   │   └── INDEX.md
+│   ├── INDEX.md
+│   └── ROUTING.md             # Central documentation navigation hub
+├── resources/                 # Documentation-review working files
+├── scripts/                   # 30+ repo-level scripts + shared lib/ (see scripts/INDEX.md)
+├── skills/                    # One directory per skill, each holding a SKILL.md
+│   ├── load-plan/
+│   ├── ts-brainstorm/
+│   ├── ts-code-review/
+│   ├── ts-coding-workflow/
+│   ├── ts-commit/
+│   ├── ts-commit-push-pr/
+│   ├── ts-compound/
+│   ├── ts-compound-refresh/
+│   ├── ts-debug/
+│   ├── ts-doc-review/
+│   ├── ts-do-work-loop/
+│   ├── ts-plan/
+│   ├── ts-pr-fix-findings/
+│   ├── ts-pr-review/
+│   ├── ts-verify-implementation/
+│   └── ts-work/
+├── tests/                     # pytest + bats suites (baselines/, scripts/, skills/)
+├── .gitignore
+├── .pre-commit-config.yaml    # Pre-commit hook configuration
+├── .shellcheckrc              # ShellCheck project configuration
+├── CLAUDE.md                  # Repository instructions for Claude Code
+├── CONCEPTS.md                # Shared domain vocabulary
+├── LICENSE
 ├── README.md
-├── STRATEGY.md
-└── LICENSE
+└── STRATEGY.md
 ```
 
-- **`.claude-plugin/marketplace.json`** — The plugin manifest. Claude Code reads this to discover skills in the repo.
+- **`.claude-plugin/marketplace.json`** — The marketplace manifest. It registers this repository as a marketplace and lists the plugin (`taegosts-skills`, `source: "./"`). Claude Code discovers skills from the plugin root's `skills/` directory, not from this file's contents.
 - **`skills/<name>/SKILL.md`** — Each skill is a directory containing a `SKILL.md` with frontmatter (`name`, `description`, `user_invocable: true`) and the skill instructions.
-- **`docs/`** — Planning and knowledge capture. Not consumed by Claude Code at runtime.
+- **`docs/`** — Planning and knowledge capture. Claude Code doesn't consume these files itself at runtime, but skills may read them (e.g., `/ts-verify-implementation` reads `docs/solutions/behavioral-ktd-verification.md`; `scripts/solutions-search.sh` queries `docs/solutions/`).
