@@ -28,5 +28,5 @@ New convention docs from `ts-compound` belong here. A new *enforced rule* the re
 | Link | Description |
 |------|-------------|
 | [automatic-test-dispatch.md](./automatic-test-dispatch.md) | When `ts-work` implemented a plan that changed scripts, no tests were created or updated. The `implementer-general` agent explicitly refused to touch tests. The `implementer-tests` agent only wrote... |
-| [skill-namespace-prefix-convention.md](./skill-namespace-prefix-convention.md) | A Claude Code plugin repository originally shipped 13 skills with the `ce-` prefix (inherited from the Compound Engineering plugin). When multiple plugins in the same `.claude/plugins/cache/` direc... |
+| [skill-namespace-prefix-convention.md](./skill-namespace-prefix-convention.md) | This Claude Code plugin repository originally shipped multiple skills with the `ce-` prefix (inherited from the Compound Engineering plugin). When multiple plugins in the same `.claude/plugins/cach... |
 | [subagent-bootstrap-dispatch.md](./subagent-bootstrap-dispatch.md) | When an orchestrator skill dispatches subagents, it must provide the subagent with its operating contract (template/agent file), output schema, and target document. The original pattern (inline-con... |
