@@ -24,7 +24,7 @@ This command takes a work document (plan or specification) or a bare prompt desc
 
 Determine how to proceed based on what was provided in `<input_document>`.
 
-**Plan document** (input is a file path to an existing plan or specification): read the plan's metadata first — YAML frontmatter for a markdown plan, or the visible header text for an HTML plan (both formats carry the same fields). If it carries `execution: knowledge-work`, this is a **non-code plan** — read `references/non-code-execution.md` and follow that carve-out instead of the rest of this workflow. Otherwise (the field is absent or `execution: code`) → skip to Phase 1 and run the normal code lifecycle. (The marker check lives here, inside plan-document handling, because detecting the marker requires already having a file; "Bare prompt" below is unaffected.)
+**Plan document** (input is a file path to an existing plan or specification): read the plan's metadata first — YAML frontmatter. If it carries `execution: knowledge-work`, this is a **non-code plan** — read `references/non-code-execution.md` and follow that carve-out instead of the rest of this workflow. Otherwise (the field is absent or `execution: code`) → skip to Phase 1 and run the normal code lifecycle. (The marker check lives here, inside plan-document handling, because detecting the marker requires already having a file; "Bare prompt" below is unaffected.)
 
 **Bare prompt** (input is a description of work, not a file path):
 
@@ -48,8 +48,8 @@ Determine how to proceed based on what was provided in `<input_document>`.
 
 1. **Read Plan and Clarify** _(skip if arriving from Phase 0 with a bare prompt)_
 
-   - Read the work document completely. Plans may be markdown (`.md`) or HTML (`.html`) — both formats are read as text linearly. HTML plans carry the same section names and IDs as markdown plans, just wrapped in semantic HTML elements (`<section>`, `<article>`, etc.); section-finding works the same way (substring match on section names, ignoring HTML wrapper noise).
-   - When auto-detecting the latest plan (blank invocation), glob `docs/plans/*.md` AND `docs/plans/*.html` and pick the most recent regardless of extension.
+   - Read the work document completely. Plans are markdown (`.md`) documents, read as text linearly.
+   - When auto-detecting the latest plan (blank invocation), glob `docs/plans/*.md` and pick the most recent.
    - Treat the plan as a decision artifact, not an execution script
    - If the plan includes sections such as `Implementation Units`, `Work Breakdown`, `Requirements` (or legacy `Requirements Trace`), `Files`, `Test Scenarios`, or `Verification`, use those as the primary source material for execution
    - Check for `Execution note` on each implementation unit — these carry the plan's execution posture signal for that unit (for example, test-first or characterization-first). Note them when creating tasks.
@@ -64,7 +64,7 @@ Determine how to proceed based on what was provided in `<input_document>`.
 
    - **Extract KTD specifications.** After reading the plan, extract the Key Technical Decisions section:
      ```bash
-     python3 "${CLAUDE_PLUGIN_ROOT}/scripts/extract-ktds.py" "docs/plans/$ARGUMENTS"
+     python3 "${CLAUDE_PLUGIN_ROOT}/scripts/extract-ktds.py" "$ARGUMENTS"
      ```
      This returns a JSON object with `plan`, `ktds`, and `count` fields. The `ktds` field contains an array of KTDs with their type markers (`[literal]` or `[behavioral]`). For each KTD:
      - **Literal KTDs** (`[literal]`): Present as a "verification constraint" with the exact spec text. The implementer must confirm the implementation matches the spec exactly. These are carried forward as checklist items.
@@ -120,9 +120,9 @@ Determine how to proceed based on what was provided in `<input_document>`.
 
    **Option B: Use a worktree (recommended for parallel development)**
    ```bash
-   skill: ce-worktree
-   # Ensures isolation: detects an existing worktree, prefers the harness's
-   # native worktree tool, else creates one from the default branch
+   # <branch-name>: meaningful name based on the work (see Option A)
+   git worktree add ".claude/worktrees/<branch-name>" -b <branch-name> "$default_branch"
+   cd ".claude/worktrees/<branch-name>"
    ```
 
    **Option C: Continue on the default branch**
@@ -342,8 +342,6 @@ Determine how to proceed based on what was provided in `<input_document>`.
    After completing a cluster of related implementation units (or every 2-3 units), review recently changed files for simplification opportunities — consolidate duplicated patterns, extract shared helpers, and improve code reuse and efficiency. This is especially valuable when using subagents, since each agent works with isolated context and can't see patterns emerging across units.
 
    Don't simplify after every single unit — early patterns may look duplicated but diverge intentionally in later units. Wait for a natural phase boundary or when you notice accumulated complexity.
-
-   If **`ce-simplify-code`** is available, invoke it at phase boundaries (especially before Phase 3 when the diff is >=30 lines). Otherwise, review the changed files yourself for reuse and consolidation opportunities.
 
 6. **Frontend Design Guidance** (if applicable)
 
