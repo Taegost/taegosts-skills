@@ -2,7 +2,7 @@
 title: "Skills lacked plan KTD specification validation"
 date: 2026-07-03
 category: docs/solutions/tooling-decisions
-module: skills/ts-verify-implementation, skills/ts-work, skills/load-plan
+module: skills/ts-verify-implementation, skills/ts-work, skills/load-plan, skills/ts-pr-fix-findings
 problem_type: tooling_decision
 component: development_workflow
 severity: medium
@@ -40,7 +40,7 @@ A new `load-plan` skill with three-tier discovery: explicit path, PR body scanni
 # Agent mode
 /load-plan --non-interactive
 
-# Explicit path
+# Explicit path (Example only. Actual path may not exist)
 /load-plan plan:docs/plans/2026-07-02-004-fix-plan.md
 ```
 
@@ -125,7 +125,7 @@ for ktd in ktds:
 # Agent mode (non-interactive)
 /load-plan --non-interactive
 
-# With explicit path
+# With explicit path (Example only. Actual path may not exist)
 /load-plan plan:docs/plans/2026-07-02-004-fix-plan.md
 ```
 
