@@ -43,7 +43,7 @@ The repository already contained a partial version of the fix, which is what mad
 
 ## Guidance
 
-Reference bundled scripts through the official Claude Code string substitutions, resolved at skill-load time and independent of CWD. The canonical rule lives in `docs/standards/script-extraction-standards.md` ("Script path resolution") — conventions belong in `docs/standards/`, never in `CLAUDE.md`.
+Reference bundled scripts through the official Claude Code string substitutions, resolved at skill-load time and independent of CWD. The canonical rule lives in `docs/standards/script-extraction-standards.md` ("Script path resolution").
 
 ### Resolution tiers
 
@@ -169,7 +169,7 @@ New gate `scripts/verify-script-refs.sh` makes the convention mechanically enfor
 - **Command position** is decided by a denylist: every preceding word defaults to a command position (so `sudo`, `xargs`, `time`, `nohup`, `find -exec`, and other launchers are caught), and the only exemptions are non-execution shapes — line-initial prose, markdown list markers, flag/option argument position (`cp -r scripts/foo.sh dst`, `[ -f scripts/foo.sh ]`), and quote-stripped separators. Leading `VAR=value` assignment words are consumed before classification, so `MODE=test scripts/foo.sh` is caught.
 - **Reports** backtick-quoted script references as advisories (`file:line` + token) instead of silently passing them: the gate exits 0, and the model running it judges each advisory line as mention-only or invocation. The `!`-prefilled exec form is a real invocation and stays on the violation path.
 - **Whitelists** exactly the three intentional exceptions above: `--script` wrapper arguments of actual `run-bundled-validator.sh` invocations (separator-free, double-dash only), the ts-compound `git rev-parse --show-toplevel` lines, and `$SCRIPT_DIR`-prefixed references.
-- **Wired into** `.pre-commit-config.yaml` (`always_run`, alongside `update-indexes` and `shellcheck`) and covered by 24 R4 tests in `tests/scripts/test-verify-script-refs.sh`, which exercise violation shapes, guarded shapes, each whitelist, advisories, and the error paths.
+- **Wired into** `.pre-commit-config.yaml` (`always_run`, alongside `update-indexes` and `shellcheck`) and covered by tests in `tests/scripts/test-verify-script-refs.sh`, which exercise violation shapes, guarded shapes, each whitelist, advisories, and the error paths.
 
 ## Secondary learning: idempotent index regeneration
 
