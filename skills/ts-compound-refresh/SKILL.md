@@ -16,7 +16,7 @@ These files are the durable contract for the workflow. Read them on-demand at th
 - `references/yaml-schema.md` — category mapping from problem_type to directory (read when classifying; synced copy of `ts-compound`'s canonical version)
 - `references/concepts-vocabulary.md` — `CONCEPTS.md` format and inclusion rules (read in Phase 4.5 when domain terms surface, or during the repo-wide bootstrap path; synced copy of `ts-compound`'s canonical version)
 - `references/per-action-flows.md` — per-action execution steps for Keep/Update/Consolidate/Replace/Delete (read in Phase 4 at the step matching the confirmed classification)
-- `references/document-set-analysis.md` — the five document-set checks (read at Phase 1.75)
+- `references/document-set-analysis.md` — the document-set checks (read at Phase 1.75)
 - `references/decision-questions.md` — question style and per-scope presentation shapes (read at Phase 3, interactive mode only — headless mode never needs this file)
 - `references/agents/learning-investigator.md` — Bootstrap agent definition for read-only doc investigation (read by Investigation subagents)
 - `references/agents/learning-replacer.md` — Bootstrap agent definition for successor-doc writing (read by Replacement subagents)
@@ -123,9 +123,8 @@ Start by discovering learnings and pattern docs under `docs/solutions/`.
 Exclude:
 
 - `INDEX.md` (this repo's navigation-index convention, not a learning — see `docs/standards/index-standards.md`)
-- `docs/solutions/_archived/` (legacy — if this directory exists, flag it for cleanup in the report)
 
-Find all `.md` files under `docs/solutions/`, excluding `INDEX.md` files (at any depth — several category subdirectories carry their own) and anything under `_archived/`. If an `_archived/` directory exists, note it in the report as a legacy artifact that should be cleaned up (files either restored or deleted).
+Find all `.md` files under `docs/solutions/`, excluding `INDEX.md` files (at any depth — several category subdirectories carry their own).
 
 If `$ARGUMENTS` is provided, use it to narrow scope before proceeding. Try these matching strategies in order, stopping at the first that produces results:
 
@@ -234,7 +233,7 @@ A pattern doc with no clear supporting learnings is a stale signal — investiga
 
 ## Phase 1.75: Document-Set Analysis
 
-After investigating individual docs, step back and evaluate the document set as a whole. **Read `references/document-set-analysis.md` now** for the five checks (Overlap Detection, Supersession Signals, Canonical Doc Identification, Retrieval-Value Test, Cross-Doc Conflict Check) — the goal is to catch problems that only become visible when comparing docs to each other, not just to reality, and Phase 2's Consolidate classification depends on this phase's findings.
+After investigating individual docs, step back and evaluate the document set as a whole. **Read `references/document-set-analysis.md` now** for the checks (Overlap Detection, Supersession Signals, Canonical Doc Identification, Retrieval-Value Test, Cross-Doc Conflict Check, etc) — the goal is to catch problems that only become visible when comparing docs to each other, not just to reality, and Phase 2's Consolidate classification depends on this phase's findings.
 
 ## Subagent Strategy
 
