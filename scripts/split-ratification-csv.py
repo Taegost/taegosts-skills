@@ -95,7 +95,12 @@ def clear_stale_csvs(date_dir: Path) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     """Split the source CSV; returns the process exit code."""
-    args = parse_args(argv if argv is not None else sys.argv[1:])
+    args_provided = sys.argv[1:] if argv is None else argv
+    if "--help" in args_provided or "-h" in args_provided:
+        print(__doc__.strip())
+        return 0
+
+    args = parse_args(args_provided)
 
     date_name = resolve_date_folder(args.date)
 
