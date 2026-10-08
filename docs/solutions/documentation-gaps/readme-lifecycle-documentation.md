@@ -35,7 +35,7 @@ When a repository is small enough that separate files would create navigation ov
 
 ### Section 1: Usage — per-skill subsections with consistent structure
 
-Each skill gets a subsection containing:
+Each skill gets a subsection containing the parts below. The example that follows is illustrative only; the actual skill list and names may differ.
 - A one-line description of what it does
 - A bash code block showing exact invocation syntax
 - A "What to expect" paragraph describing runtime behavior
@@ -68,7 +68,7 @@ Requires the Compound Engineering plugin.
 
 ### Section 2: Contributing — explicit workflows with concrete steps
 
-Provide two named workflows, one for each common contribution type, with numbered steps. Include the exact file path to edit, the reload command, and the commit message convention.
+Provide two named workflows, one for each common contribution type, with numbered steps. Include the exact file path to edit, the reload command, and the commit message convention. The workflow below is an example only; it may differ from the actual README.
 
 ```markdown
 ## Contributing
@@ -91,7 +91,7 @@ Provide two named workflows, one for each common contribution type, with numbere
 
 ### Section 3: Repository Structure — annotated directory tree
 
-Show the full layout with one-line annotations explaining each path's purpose.
+Show the full layout with one-line annotations explaining each path's purpose. The tree below is an example only; the actual repository tree may differ.
 
 ```markdown
 ## Repository Structure
@@ -201,5 +201,3 @@ docs/                             # Plans and solutions
 ## Related
 
 - `docs/solutions/tooling-decisions/claude-code-plugin-repository-structure.md` — covers the manifest format decision (marketplace.json vs plugin.json) and directory layout. This doc complements it by covering how to document the structure and usage for contributors.
-- Implementation plan for the README documentation (removed from `docs/plans/` in ad3b560; git history).
-- Research on plugin caching for the fix-cycle walkthrough, U3 of the documentation plan (removed from `docs/plans/` in ad3b560; git history; U3 was still blocked when the research was removed).
