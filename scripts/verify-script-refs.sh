@@ -41,7 +41,9 @@
 # collected into an advisory list reported at the end; advisories never
 # affect the exit code, and the model reading the gate output judges every
 # advisory line (mention-only vs invocation). The !`...` exec form is a real
-# invocation and stays on the violation path.
+# invocation and stays on the violation path. Markdown link targets
+# ([text](path)) get the same advisory treatment: the "(" before the path is
+# link syntax, not a subshell opener.
 #
 # Whitelisted exceptions (explicit):
 #   1. --script <path> argument values of run-bundled-validator.sh
@@ -75,9 +77,9 @@ tier), or $SCRIPT_DIR.
 
 Command position is denylist-based: a reference is flagged unless the word
 before it is a known non-execution shape (flag/option argument position).
-Backtick-quoted references (prose code spans, "Support Files" bullets) are
-reported as advisories and do not affect the exit code — the reading model
-judges each advisory line.
+Backtick-quoted references (prose code spans, "Support Files" bullets) and
+markdown link targets ([text](path)) are reported as advisories and do not
+affect the exit code — the reading model judges each advisory line.
 
 Scans: <skills-dir>/*/SKILL.md and <skills-dir>/*/references/**/*.md
        (INDEX.md files are generator-owned listings and are skipped)
@@ -241,6 +243,17 @@ classify_occurrence() {
       advisories+=("$file:$lineno: backtick-quoted script reference '$token' — judge whether mention-only or invocation")
       return 0
     fi
+  fi
+
+  # Markdown link targets ([text](path), ![alt](path)) are navigation for the
+  # reader, never commands: the "(" directly before the path is link syntax,
+  # not a subshell opener ("[text](" cannot introduce execution). Same
+  # treatment as backtick-quoted spans — advisories the reading model judges;
+  # the exit code is unaffected. A "(" not preceded by "]" keeps the subshell
+  # reading and stays on the violation path.
+  if (( start >= 2 )) && [[ "${line:start-2:1}" == ']' && "${line:start-1:1}" == '(' ]]; then
+    advisories+=("$file:$lineno: markdown-link script reference '$token' — judge whether mention-only or invocation")
+    return 0
   fi
 
   # Whitelist 1: run-bundled-validator.sh --script <path> — the wrapper resolves
