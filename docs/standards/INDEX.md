@@ -4,7 +4,7 @@ description: "Index of documentation in docs/standards/."
 status: active
 version: "1.0"
 created: 2026-07-08
-last-updated: 2026-09-07
+last-updated: 2026-10-08
 owner: wave-2-dispatch-index-automation
 dependencies: []
 tags: [index]
@@ -33,4 +33,5 @@ When adding a new document, ask: is this a rule the repo enforces (→ `docs/sta
 | [script-extraction-standards.md](./script-extraction-standards.md) | Canonical reference for when inline bash blocks in skills should be extracted to standalone scripts. |
 | [script-frontmatter-convention.md](./script-frontmatter-convention.md) | Canonical reference for the description comment format used in all shell scripts across the repository. |
 | [script-security-standards.md](./script-security-standards.md) | This document defines the security and quality standards for all bash scripts in this repository. |
+| [script-standards.md](./script-standards.md) | General standards for standalone scripts in this repository: script requirements, runtime script path resolution, the `scripts/lib/` shared-library tier, and the `scripts/verify-scripts.sh` gate sc... |
 | [testing-standards.md](./testing-standards.md) | If a script exists and was changed, it needs a corresponding test file. No line threshold. |

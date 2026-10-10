@@ -414,6 +414,44 @@ else
   sed -n '1,20p' "$tmpdir/mixed.out"
 fi
 
+# (g4) a markdown link target ([text](path)) is a mention, never an
+# invocation: advisory like the backtick form, exit 0, no violation. The
+# paren before the path must not classify as a subshell opener.
+mkdir -p "$tmpdir/mdlink/skills/test-skill/scripts"
+cat > "$tmpdir/mdlink/skills/test-skill/SKILL.md" <<'MD'
+## Stage 5
+
+Run the [merge script](skills/test-skill/scripts/merge-findings.py) on the returns.
+
+![diagram](skills/test-skill/scripts/flow.py)
+MD
+run_gate "$tmpdir/mdlink/skills" "$tmpdir/mdlink.out"
+violations=$(grep -c 'unguarded script reference' "$tmpdir/mdlink.out" || true)
+advisories=$(grep -c 'ADVISORY' "$tmpdir/mdlink.out" || true)
+if [[ $rc -eq 0 ]] && [[ "$violations" -eq 0 ]] && [[ "$advisories" -eq 2 ]] \
+   && grep -q 'test-skill/SKILL\.md:3.*markdown-link script reference .skills/test-skill/scripts/merge-findings\.py.' "$tmpdir/mdlink.out"; then
+  ok "markdown link target reported as advisory (exit 0, SKILL.md:3 + token)"
+else
+  die "markdown link misclassified (rc=$rc, violations=$violations, advisories=$advisories)"
+  sed -n '1,20p' "$tmpdir/mdlink.out"
+fi
+
+# (g5) a real subshell opener — ( directly before the reference without ] in
+# front — stays command position, so the g4 carve-out does not mask it
+mkdir -p "$tmpdir/subshell/skills/test-skill"
+cat > "$tmpdir/subshell/skills/test-skill/SKILL.md" <<'MD'
+```bash
+( scripts/subshell.sh )
+```
+MD
+run_gate "$tmpdir/subshell/skills" "$tmpdir/subshell.out"
+if [[ $rc -eq 1 ]] && grep -q 'SKILL\.md:2: unguarded script reference .scripts/subshell\.sh.' "$tmpdir/subshell.out"; then
+  ok "subshell-opened reference still a violation"
+else
+  die "subshell case lost (rc=$rc)"
+  sed -n '1,20p' "$tmpdir/subshell.out"
+fi
+
 # unknown flag errors (expected failure: guard so set -e does not abort)
 rc=0
 out="$("$SCRIPT" --bogus 2>&1)" || rc=$?

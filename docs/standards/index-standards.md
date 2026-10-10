@@ -52,10 +52,14 @@ Only `docs/ROUTING.md` may reference files outside its parent folder. No INDEX.m
 
 INDEX.md files MUST use a markdown table with these columns:
 
+**Example:**
+
+```markdown
 | Link | Description |
 |------|-------------|
 | [file1.md](./file1.md) | One-line description of file1 |
 | [file2.md](./file2.md) | One-line description of file2 |
+```
 
 **Column requirements:**
 - **Link**: Markdown link with the filename as display text and a relative path from INDEX.md location (e.g. `[file.md](./file.md)`). Generators (index-scripts.py, update-indexes.py) produce this format.
@@ -77,6 +81,8 @@ INDEX.md files MUST use a markdown table with these columns:
 
 **Validation script behavior:**
 
+The repository's validator is `scripts/validate-index-standards.py`. It checks link format, INDEX.md frontmatter, table structure, scoping, placement, root-directory, and duplicate-coverage rules. It does not verify that link targets exist on disk; check link existence with the filesystem directly. The validator is exercised in CI by `tests/test_validate_index_standards.py` (CI runs `pytest tests/`) and is cross-referenced from `docs/standards/link-convention.md`.
+
 ```bash
 # Correct validation
 test -f "$path" && echo "VALID" || echo "BROKEN"
@@ -97,34 +103,20 @@ test -f "$path" && echo "VALID" || echo "BROKEN"
 - Directories where all files are already referenced in another INDEX.md
 - The root `docs/` folder. That is the provenance of ROUTING.md
 
-**Placement decision framework:**
-
-```bash
-# Should this directory have an INDEX.md?
-count=$(ls -1 "$dir"/*.{md,py,sh} 2>/dev/null | wc -l)
-has_grouping=$(check_if_files_are_related "$dir")
-
-if [[ $count -ge 2 ]] && [[ "$has_grouping" == "true" ]]; then
-  echo "Create INDEX.md"
-else
-  echo "Skip INDEX.md"
-fi
-```
-
 **Examples of good placement:**
-- `scripts/INDEX.md` -- Lists all utility scripts (20+ files)
-- `docs/plans/INDEX.md` -- Lists all plan documents (10+ files)
-- `skills/ts-commit/scripts/INDEX.md` -- Lists skill-specific scripts (5+ files)
+- `scripts/INDEX.md` -- Lists all utility scripts
+- `docs/plans/INDEX.md` -- Lists all plan documents
+- `skills/ts-commit/scripts/INDEX.md` -- Lists skill-specific scripts
 
 **Examples of bad placement:**
-- `notes/INDEX.md` -- Single unrelated note file
-- `archive/INDEX.md` -- Archive directory, not for active navigation
-- `skills/ts-work/INDEX.md` -- Skill with no scripts/ subdirectory (skip scripts index)
+- `notes/INDEX.md` -- Path doesn't exist
+- `INDEX.md` in the repository root -- Root directory, not for active navigation (use ROUTING.md)
+- `skills/ts-brainstorm/INDEX.md` -- Skill with no scripts/ subdirectory (skip scripts index)
 
 ## Script Automation Requirements
 
 `scripts/update-indexes.py` and `scripts/index-scripts.py` MUST:
-1. Read standards from `standards/index-standards.md`
+1. Read standards from `docs/standards/index-standards.md`
 2. Generate compliant frontmatter
 3. Generate tables with Path and Description columns
 4. Validate existing INDEX.md files against standards
@@ -148,11 +140,11 @@ tags: [index, dispatch, standards]
 
 # Dispatch Standards Index
 
-| Path | Description |
+| Link | Description |
 |------|-------------|
-| bootstrap-dispatch-standard.md | Core bootstrap dispatch pattern specification |
-| subagent-classifiertype-standard.md | Subagent type definitions and use cases |
-| model-selection-hierarchy.md | Model selection rules (fable/sonnet/opus) |
+| [bootstrap-dispatch-standard.md](./bootstrap-dispatch-standard.md) | Core bootstrap dispatch pattern specification |
+| [subagent-classifiertype-standard.md](./subagent-classifiertype-standard.md) | Subagent type definitions and use cases |
+| [model-selection-hierarchy.md](./model-selection-hierarchy.md) | Model selection rules (fable/sonnet/opus) |
 ```
 
 **Bad example (violations marked):**
@@ -172,7 +164,7 @@ tags: index  # ❌ Should be array
 
 | File | Info |  # ❌ Wrong column names
 |------|------|
-| ./bootstrap-dispatch-standard.md | Docs  # ❌ Leading ./, vague description
+| ./bootstrap-dispatch-standard.md | Docs  # ❌ Vague description
 | subagent-standard.md |  # ❌ Missing description
 ```
 

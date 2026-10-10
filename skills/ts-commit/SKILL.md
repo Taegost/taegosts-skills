@@ -1,6 +1,6 @@
 ---
 name: ts-commit
-description: "USE THIS when changes need to be committed. Creates a clear commit message. Use ts-commit-push-pr if also pushing and opening a PR."
+description: "USE THIS when changes need to be committed. Creates a clear commit message. To push and open a PR, use ts-commit-push-pr instead."
 ---
 
 # Git Commit

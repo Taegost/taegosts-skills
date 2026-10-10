@@ -22,7 +22,7 @@ tags:
 
 ## Context
 
-Background agent completions are lost ~40-50% of the time when the orchestrator is mid-generation. The harness-level notification (`<task-notification>`) is unreliable — it can be missed when the orchestrator is busy, the context window is full, or the session is between turns. This makes multi-agent workflows fragile: the orchestrator dispatches agents but may never learn they finished.
+Background agent completions were lost ~40-50% of the time when the orchestrator is mid-generation. The harness-level notification (`<task-notification>`) is unreliable — it can be missed when the orchestrator is busy, the context window is full, or the session is between turns. This makes multi-agent workflows fragile: the orchestrator dispatches agents but may never learn they finished.
 
 ## Guidance
 

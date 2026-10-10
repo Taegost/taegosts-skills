@@ -28,7 +28,7 @@ effort: <low | medium | high | xhigh | max>
 |-------|----------|-------------|
 | `name` | Yes | Short kebab-case identifier derived from the filename (without `.md`). Used for dispatch references and logging. |
 | `description` | Yes | One-line description of when to activate this agent. The orchestrator uses this to decide which agents to dispatch for a given task. |
-| `model` | Yes | The Claude Code model level to use. Defaults to "haiku" |
+| `model` | Yes | The Claude Code model level to use. When no model is specified, use "haiku" as the value |
 | `tools` | Yes | Comma-separated list of tools the agent may use. Common values: `Read, Grep, Glob` (read-only analysis), `Read, Grep, Glob, WebSearch, WebFetch` (research agents), `Read, Edit, Write, Bash, Grep, Glob` (implementers). |
 | `effort` | Yes | Reasoning effort tier. `low` for mechanical tasks, `medium` for standard analysis, `high` for complex reasoning, `xhigh`/`max` for adversarial review or deep research. |
 | `disallowedTools` | No | Comma-separated list of tools the agent must NOT use. Used when an agent should be explicitly prevented from certain actions (e.g., `Write, Edit` for read-only reviewers). |
@@ -38,7 +38,8 @@ effort: <low | medium | high | xhigh | max>
 ```yaml
 ---
 name: security-reviewer
-description: Reviews code changes for security vulnerabilities, injection risks, and authentication gaps.
+description: Reviews code for security vulnerabilities by thinking like an attacker looking for exploitable paths.
+model: haiku
 tools: Read, Grep, Glob
 effort: high
 ---
@@ -125,11 +126,11 @@ The orchestrator seeds agent file content directly into a generic subagent promp
 
 ## Script and Target Resolution
 
-Two rules govern how skills locate what they need, independent of the dispatch pattern used. (Carried over from the now-removed `dispatch-standards.md` — its other rules, DS-001 bootstrap-only and DS-002/DS-003, are either already covered above or were intentionally dropped; these two were an oversight.)
+Two rules govern how skills locate what they need, independent of the dispatch pattern used.
 
-### Script lookup via INDEX.md
+### Script path resolution
 
-Skills MUST locate scripts via `scripts/INDEX.md` (repo-level) or a skill-local `skills/<skill>/scripts/INDEX.md`, not by hardcoding paths. The INDEX.md is the canonical script registry — script paths change over time, and INDEX.md provides a stable lookup layer that prevents broken references when scripts are reorganized.
+Runtime script invocations inside skills must resolve against the plugin installation, never against the current working directory. Invoke plugin-shared scripts as `${CLAUDE_PLUGIN_ROOT}/scripts/<script>`, another skill's scripts as `${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>/scripts/<script>`, and the loaded skill's own scripts as `${CLAUDE_SKILL_DIR}/scripts/<script>`. These are Claude Code string substitutions resolved at skill-load time; bare CWD-relative paths are forbidden. The canonical rule, including behavior when the variables are unset, lives in `docs/standards/script-standards.md`, and `scripts/verify-script-refs.sh` catches unprefixed runtime references at commit time. The generated `INDEX.md` files (repo-level `scripts/INDEX.md` and skill-local `skills/<skill>/scripts/INDEX.md`) remain the script registries for discovery.
 
 ### Routing-first target resolution
 
@@ -139,7 +140,7 @@ When resolving targets (file paths, plan paths, PR URLs), consult `docs/ROUTING.
 
 A skill additionally conforms to resolution rules when:
 
-- [ ] References scripts via INDEX.md, not hardcoded paths
+- [ ] Resolves runtime script invocations via `${CLAUDE_PLUGIN_ROOT}`/`${CLAUDE_SKILL_DIR}` substitutions, never bare CWD-relative paths
 - [ ] Consults ROUTING.md for target resolution when applicable
 
 ## File Placement

@@ -24,17 +24,15 @@ A subagent prompt file that defines a specialist's identity, scope, and output c
 
 ## Agent Profile
 
-An agent file that conforms to the standard frontmatter schema (`name`, `description`, `tools`, `effort`) and follows one of the two heading sub-templates (implementer or reviewer). The term distinguishes conformant files from legacy agent files that lack frontmatter or use non-standard headings.
+An agent file that conforms to the standard frontmatter schema (`name`, `description`, `tools`, `effort`) and follows one of the heading sub-templates (such as implementer or reviewer). The term distinguishes conformant files from legacy agent files that lack frontmatter or use non-standard headings.
 
 ## Bootstrap Dispatch
 
 The dispatch pattern where an orchestrator hands a subagent a read-list of file paths so it reads its own operating contract, role, and schema from disk, instead of embedding their contents in the spawn prompt.
 
-After reading, the subagent must acknowledge each file by path and line count; the orchestrator rejects output whose acknowledgment is missing an expected file and re-dispatches a bounded number of times before falling back to embedding the content in the prompt. Dynamic per-run values (scope mode, refs, staged paths) cannot be read from disk and stay inline in the spawn prompt.
-
 ## Plan Discovery
 
-The mechanism by which skills locate and load plan documents. Uses three-tier discovery: explicit path, PR body scanning, and branch-name keyword extraction. Implemented by `skills/load-plan/` and `scripts/locate-plan.py`.
+The mechanism by which skills locate and load plan documents. Implemented by `skills/load-plan/` and `scripts/locate-plan.py`.
 
 ## Plugin Cache
 
@@ -56,7 +54,7 @@ The property that re-running an index generator on unchanged content leaves the 
 
 The scope tier a compliance gate assigns to a file based on its repo-relative path, determining which checks run against it. Three tiers: full (all checks), lib (syntax and control-character checks only), skip (out of scope entirely).
 
-Classification happens at a single choke point inside the per-file check function, never in each scan mode's file-list builder, so every invocation mode applies the same policy. Skipped files are counted in a skip summary and never counted as passed; library-tier files keep the cheap checks because a syntax-broken library breaks every importer.
+Classification happens at a single choke point inside the per-file check function, never in each scan mode's file-list builder, so every invocation mode applies the same policy. Skipped files are counted in a skip summary and never counted as passed.
 
 ## Command-Surface Script
 

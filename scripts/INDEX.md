@@ -4,7 +4,7 @@ description: "Index of all scripts in scripts/."
 status: active
 version: "1.0"
 created: 2026-07-08
-last-updated: 2026-09-09
+last-updated: 2026-10-05
 owner: wave-2-dispatch-index-automation
 dependencies: []
 tags: [index, scripts]
@@ -41,6 +41,7 @@ Paths below are relative to this index's directory. On Claude Code marketplace i
 | [run-shellcheck.sh](./run-shellcheck.sh) | Run shellcheck on all shell scripts in the repository |
 | [run-test-suites.sh](./run-test-suites.sh) | Run every bash test suite and bats file, aggregating failures |
 | [solutions-search.sh](./solutions-search.sh) | Search docs/solutions/ for matching conventions |
+| [split-ratification-csv.py](./split-ratification-csv.py) | Split ratification-decisions.csv into per-prefix files for offline review. |
 | [sync-taegosts-skills.sh](./sync-taegosts-skills.sh) | Maintain a persistent clone and sync taegosts-skills |
 | [to-json.sh](./to-json.sh) | Safe JSON output for bash scripts |
 | [update-indexes.py](./update-indexes.py) | Generate INDEX.md files for documentation directories. |

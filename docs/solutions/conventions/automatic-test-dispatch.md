@@ -20,7 +20,7 @@ tags:
 
 ## Context
 
-When `ts-work` implements a plan that changes scripts, no tests are created or updated. The `implementer-general` agent explicitly refuses to touch tests. The `implementer-tests` agent only writes tests for scenarios already documented in the plan's `Files:` list. There is no mechanism to detect that a changed script should have tests when the plan didn't list them.
+When `ts-work` implemented a plan that changed scripts, no tests were created or updated. The `implementer-general` agent explicitly refused to touch tests. The `implementer-tests` agent only wrote tests for scenarios already documented in the plan's `Files:` list. There was no mechanism to detect that a changed script should have tests when the plan didn't list them.
 
 ## Guidance
 
@@ -28,9 +28,9 @@ When `ts-work` implements a plan that changes scripts, no tests are created or u
 
 Auto-dispatch fires when any of these conditions are met:
 
-1. **Code changed by implementer-general** — Run `scripts/detect-changed-code-files.sh` which diffs the agent's worktree against the base branch and returns a list of modified code-bearing files (`.sh`, `.py`, `.js`, `.ts`, etc.), filtering out test files and non-script files. If non-empty AND the unit has a `Test Scenarios:` section with non-manual-only tests, dispatch `implementer-tests`.
+1. **Code changed by implementer-general** — Run `scripts/detect-changed-code-files.sh` which diffs the agent's worktree against the base branch and returns a list of modified code-bearing files (`.sh`, `.py`, `.js`, `.ts`, etc.), filtering out test files and non-script files. If non-empty, dispatch `implementer-tests`.
 
-2. **Test scenarios defined** — Does the unit have a `Test Scenarios:` section with non-manual-only tests? If yes AND code was changed, dispatch `implementer-tests`.
+2. **Test scenarios defined** — Does the unit have a `Test Scenarios:` section with non-manual-only tests? If yes, dispatch `implementer-tests`.
 
 3. **ts-work modifies code-bearing files** — When `ts-work` (via `implementer-general`) modifies any code-bearing files in a unit that has test scenarios, dispatch `implementer-tests` regardless of whether the plan explicitly listed test files.
 
@@ -40,18 +40,7 @@ The existing trigger (unit's `Files:` list contains test files → `implementer-
 
 ### Test conventions
 
-New test files created by auto-dispatch follow established patterns. For bash suites (`.sh`):
-
-- `ok()`/`die()` helpers for pass/fail reporting
-- `tmpdir` with `trap 'rm -rf "$tmpdir"' EXIT` for cleanup
-- Exit-code assertions (not just output content)
-- Negative verification technique (test error paths)
-
-For Python suites (`.py`): pytest test functions in a `test_<name>.py` file, collected by bare `pytest tests/` (see [testing standards](../../standards/testing-standards.md)).
-
-### Failure handling
-
-If auto-dispatch fails, the orchestrator logs the failure and continues. Auto-dispatch is non-blocking — a failure doesn't prevent the unit from being marked complete.
+New test files created by auto-dispatch follow established patterns. See [testing standards](../../standards/testing-standards.md) for the bash and Python suite conventions these tests follow.
 
 ## Why This Matters
 

@@ -6,7 +6,7 @@ user_invocable: true
 
 # Verify Implementation Skill
 
-Reviews a feature branch against its plan by delegating to 4 parallel review agents via bootstrap dispatch (file paths, not inline content): correctness, completeness, scope, and standards.
+Reviews a feature branch against its plan by delegating to parallel review agents via bootstrap dispatch (file paths, not inline content): correctness, completeness, scope, and standards.
 
 ## Usage
 
@@ -15,6 +15,8 @@ Reviews a feature branch against its plan by delegating to 4 parallel review age
 /ts-verify-implementation 2026-06-18-003-feat-migration-to-knap-dir-plan.md
 /ts-verify-implementation
 ```
+
+The plan filename in the second example is just an example — the specified file may not exist in this repository.
 
 If no argument is provided, list available plans and prompt the user to specify one.
 
@@ -103,7 +105,7 @@ For each KTD extracted in Step 2:
 KTD-N [type]: <spec text> | <files it applies to>
 ```
 
-Launch all 4 verifiers in parallel. For each verifier, read the corresponding agent file from `references/agents/` and spawn a generic subagent using the subagent template at `references/subagent-template.md`.
+Launch all verifiers in parallel. For each verifier, read the corresponding agent file from `references/agents/` and spawn a generic subagent using the subagent template at `references/subagent-template.md`.
 
 | Verifier | Agent file | Focus |
 |----------|-----------|-------|

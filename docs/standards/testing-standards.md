@@ -11,7 +11,7 @@ If a script exists and was changed, it needs a corresponding test file. No line 
 
 ## Coverage expectations
 
-- Every script file (`.sh`, `.py`, `.js`, `.ts`, `.rb`, `.go`, etc.) in `scripts/` should have a corresponding test in `tests/scripts/`.
+- Every script file (`.sh`, `.py`, `.js`, `.ts`, `.rb`, `.go`, etc.) in `scripts/` should have a corresponding test in `tests/`.
 - Test files follow the naming convention: `test-<script-name>.sh` (shell scripts) or `test_<script_name>.py` (Python scripts).
 - Bash test suites (`.sh`) use `ok()`/`die()` helpers for pass/fail reporting.
 - Bash test suites (`.sh`) guard every `cd` with `|| exit 1` so a failed `cd` cannot continue from the wrong directory.
@@ -32,15 +32,15 @@ If any gate passes, `implementer-tests` is dispatched to create or update corres
 
 `scripts/detect-coverage-gaps.sh` is a post-implementation backstop that runs during `ts-verify-implementation`. It:
 
-1. Discovers changed files autonomously via `git diff --name-only <base_branch>` and `git ls-files --others --exclude-standard`
+1. Discovers changed files autonomously via `git diff --name-only <base_branch>`, `git diff --name-only --cached`, and `git ls-files --others --exclude-standard`, excluding `.claude/worktrees/` paths
 2. For any changed script file, checks whether a corresponding test file exists in `tests/`
-3. Reports gaps as findings (severity: Major)
+3. Reports gaps as findings (severity: Critical)
 
-The detector does not require plans to pre-list test files. It catches gaps regardless of plan quality.
+The detector does not require plans to pre-list test files. It catches gaps regardless of plan quality. Do not add test-file pre-listing as a plan step: a pre-list that drifts from the actual change produces false positives and wastes tokens.
 
 ## Test runner
 
-`scripts/run-test-suites.sh` runs every bash and bats suite in one command and exits non-zero if any suite fails. Its scope:
+`scripts/run-test-suites.sh` runs every bash and bats suite in one command and exits non-zero if any suite fails. If `.bats` files are discovered but `bats` is not installed, the run aborts with exit code 2 rather than silently skipping them; CI installs `bats`, so this can fire only in local runs. Its scope:
 
 - `tests/scripts/test-*.sh`
 - `tests/skills/*/test-*.sh`

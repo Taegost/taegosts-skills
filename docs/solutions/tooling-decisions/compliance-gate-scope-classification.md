@@ -165,7 +165,7 @@ for suite in "${suites[@]}"; do
 done
 ```
 
-- **CI (full battery):** a first-ever GitHub Actions workflow runs pytest, the aggregate runner, shellcheck, the reference gate, and the compliance gate as separate steps — one job per step keeps failure location legible in the Actions log.
+- **CI (full battery):** a first-ever GitHub Actions workflow runs pytest, the aggregate runner, shellcheck, the reference gate, and the compliance gate as separate steps in a single `battery` job — each step reports its own log section, keeping failure location legible in the Actions log.
 
 Two design rules inside this topology:
 
@@ -187,7 +187,7 @@ The workflow file becomes the canonical record of tool versions; the README refe
 
 ### Gate greps; suites assert behavior
 
-`verify-scripts.sh` only greps file contents for the string `--help`. A comment mentioning `--help` satisfies it. Compliance therefore means the early-argument-check pattern — an actual `--help` branch answering **before** any argument validation or side effect (the `scripts/to-json.sh` exemplar):
+`verify-scripts.sh` only greps file contents for the string `--help`. A comment mentioning `--help` satisfies it. Compliance therefore means the early-argument-check pattern — an actual `--help` branch answering **before** any argument validation or side effect, for example:
 
 ```bash
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then

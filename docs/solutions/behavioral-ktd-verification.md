@@ -97,7 +97,7 @@ When intent preservation is debatable:
 
 1. **Check the KTD's evidence.** If the KTD cites a specific pattern or precedent, the implementation must follow that pattern. If it doesn't cite one, the implementer has more freedom.
 2. **Check the KTD's constraints.** Constraints are hard boundaries. If the implementation satisfies all constraints but the intent is arguable, it's a match.
-3. **When still ambiguous:** Flag as a finding at the advisory confidence level defined in the subagent template's confidence rubric. Describe the ambiguity and let the operator decide.
+3. **When still ambiguous:** Flag as a finding at the appropriate confidence anchor defined in your agent file. Describe the ambiguity and let the operator decide.
 
 When a *constraint* is ambiguous — the statement is extractable but its meaning is unclear ("handles errors appropriately") — that is a plan defect, not a verification judgment call. Flag it as an advisory finding against the plan, and verify the implementation against the most conservative plausible reading.
 
@@ -111,7 +111,7 @@ For each `[behavioral]` KTD:
 1. Find the implementation code referenced by the KTD
 2. Check intent preservation — reading only the code, does it evidence the behavior the KTD describes?
 3. Check for omissions — behavior the KTD requires with no corresponding code path
-4. Report: PASS (KTD is addressed and nothing required is missing), FAIL (KTD unaddressed, or required behavior omitted), or ADVISORY (ambiguous intent, per the ambiguity rules)
+4. Report: PASS (KTD is addressed and nothing required is missing), FAIL (KTD unaddressed, or required behavior omitted), or PARTIAL (required behavior is present in part, or its presence is ambiguous, per the ambiguity rules)
 
 Completeness does not verify constraint satisfaction — confirming the prompt path *exists* is Completeness; confirming it fires in the right cases is Correctness.
 
@@ -121,15 +121,6 @@ For each `[behavioral]` KTD:
 1. Extract the constraints per the definition above (semantic extraction, markers as heuristic)
 2. Verify each constraint per its type: reachable path for "must", traced branches for "never", enumerated entry points for "always"
 3. Verify the implementation's interface matches the KTD's described contract
-4. Report: PASS, FAIL with the specific violated constraint and the code path that violates it, or ADVISORY (ambiguous constraint, flagged as plan defect)
+4. Report: PASS, FAIL with the specific violated constraint and the code path that violates it, or PARTIAL (some constraints are satisfied but others are violated or ambiguous — report each violated or ambiguous constraint with its code path, and flag ambiguous constraints as plan defects)
 
-Correctness does not re-check presence — a KTD with no implementation at all is Completeness's finding, and Correctness skips it as N/A.
-
-### ts-work — Implementer
-
-For each `[behavioral]` KTD:
-1. Extract the constraints (same semantic definition the verifiers use) and treat them as a pre-implementation checklist
-2. After implementation, confirm each constraint is satisfied, citing the code path that satisfies it
-3. Self-check scope before handoff: any new persistence, external side effects, user-facing surface, or files not described by the plan must be either removed or explicitly surfaced to the operator as intentional additions
-
-The implementer self-check does not replace verification — it exists to catch violations before they cost a verification round.
+Correctness does not re-check presence — a KTD with no implementation at all is Completeness's finding.

@@ -6,6 +6,9 @@ Recursively scans docs/ subdirectories and creates/updates INDEX.md files
 following R8 format. Each INDEX.md lists markdown files in its directory
 with title (from first # heading) and description (from first paragraph).
 
+The INDEX.md format and placement rules these files follow are defined
+in docs/standards/index-standards.md.
+
 Delegates to scripts/index-scripts.py for script directory indexing.
 
 Regeneration is content-idempotent: an existing INDEX.md keeps its

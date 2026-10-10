@@ -34,29 +34,17 @@ Every `.sh` file in `scripts/` and `skills/*/scripts/` must include a descriptio
 set -euo pipefail
 ```
 
-## Test Scripts (Excluded)
+## Test Scripts
 
-Scripts under `tests/` use a different convention and are **not** covered by this standard:
-
-```bash
-#!/usr/bin/env bash
-# Test: <description of what the test validates>
-```
+Scripts under `tests/` are covered by this standard and must carry the same line-2 description comment as all other shell scripts.
 
 ## Scope
 
 This convention applies to:
 
-- All `.sh` files in `scripts/`
-- All `.sh` files in `skills/*/scripts/`
+- All `.sh` files in `scripts/`, including those in subdirectories (e.g., `scripts/lib/`)
+- All `.sh` files in `skills/*/scripts/`, including those in subdirectories (e.g., `skills/ts-compound/scripts/session-history/`)
 
 It does **not** apply to:
 
-- Test scripts under `tests/`
 - Non-shell scripts (`.py`, `.js`, etc.)
-
-## Migration Notes
-
-- Scripts previously prefixed with `# U<id>:` have been normalized to this format. The U-number was a plan-specific artifact and does not belong in the standard format.
-- Scripts using em-dash (`—`) separators have been normalized to ` -- `.
-- Scripts with no frontmatter have had the description comment added on line 2.

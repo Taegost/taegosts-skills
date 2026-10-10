@@ -3,7 +3,7 @@ tags: [index, routing, map-of-content]
 description: Central navigation hub for taegosts-skills repository documentation, scripts, plans, and standards.
 ---
 
-# Repo Map of Content
+# Map of Content
 
 This Map of Content provides a single entry point for navigating the repository's documentation, scripts, plans, and standards. Use this index to find what you need quickly.
 
@@ -61,14 +61,13 @@ Implementation plans with status tracking. Plans follow a dated naming conventio
 
 | Link | Description |
 |------|-------------|
-| [plans/](plans/) | All implementation plans |
+| [plans/INDEX.md](plans/INDEX.md) | All implementation plans |
+| [brainstorms/INDEX.md](brainstorms/INDEX.md) | Requirements and idea exploration |
 
 ## Other Resources
 
 | Link | Description |
 |------|-------------|
-| [../README.md](../README.md) | Repository overview, installation, and skill documentation |
-| [../STRATEGY.md](../STRATEGY.md) | Repository strategy and goals |
+| [../README.md](../README.md) | Repository overview, installation, and skill documentation for end users |
 | [../CONCEPTS.md](../CONCEPTS.md) | Shared domain vocabulary and named processes |
-| [brainstorms/](brainstorms/) | Requirements and idea exploration |
-| [pull_requests/](pull_requests/) | PR review artifacts and fix plans |
+| [pull_requests/INDEX.md](pull_requests/INDEX.md) | PR review artifacts and fix plans |

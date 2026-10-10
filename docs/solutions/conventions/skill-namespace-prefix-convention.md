@@ -6,6 +6,11 @@ component: tooling
 severity: low
 related_components:
   - documentation
+applies_when:
+  - Renaming skill prefixes when forking or extending another plugin
+  - Renaming skill prefixes when a plugin's ownership or branding changes
+  - Migrating skills between plugin namespaces (e.g. `ce-` to `ts-`)
+  - Bulk-renaming identifiers across a codebase with word-boundary sed
 tags:
   - namespace
   - prefix
@@ -19,7 +24,7 @@ tags:
 
 ## Context
 
-A Claude Code plugin repository originally shipped 13 skills with the `ce-` prefix (inherited from the Compound Engineering plugin). When multiple plugins in the same `.claude/plugins/cache/` directory use the same prefix, Claude Code cannot disambiguate which plugin owns a skill. This causes collisions where a user invokes `/ce-some-skill` and gets the wrong implementation.
+This Claude Code plugin repository originally shipped multiple skills with the `ce-` prefix (inherited from the Compound Engineering plugin). When multiple plugins in the same `.claude/plugins/cache/` directory use the same prefix, Claude Code cannot disambiguate which plugin owns a skill. This causes collisions where a user invokes `/ce-some-skill` and gets the wrong implementation.
 
 The fix was to rename all skills from `ce-` to `ts-` (Taegost's Skills), which is unique to this plugin. The rename touched directory names, frontmatter fields, cross-skill references, runtime artifact paths, config directory references, brand strings, test paths, and script docstrings across the entire plugin tree.
 

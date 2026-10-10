@@ -28,7 +28,7 @@ set -euo pipefail
 
 All user-supplied inputs must be validated against shell metacharacters before use.
 
-**Important:** Bash `[[ =~ ]]` does not interpret `\n` or `\t` as escape sequences — they match literal two-character sequences. Use ANSI-C quoting (`$'...'`) for the regex variable to properly match control characters.
+**Important:** Bash `[[ =~ ]]` regexes do not interpret `\n` or `\t` as control characters — the backslash just escapes the letter, so `\n` in a regex matches a literal `n`, and a regex written with `\n` never matches a real newline or tab. Use ANSI-C quoting (`$'...'`) for the regex variable to properly match control characters.
 
 ### Non-path inputs (repo names, slugs, numbers)
 
@@ -147,6 +147,19 @@ gh api "repos/${repo}/issues/${number}/comments"
 eval "gh api repos/${repo}/issues/${number}/comments"
 ```
 
+### Temporary files and curl-pipe-shell
+
+Two execution patterns are explicitly permitted and exempt from the eval prohibition above:
+
+- **Temporary-file creation** — create scratch directories with `mktemp -d` and clean them up with an `EXIT` trap:
+
+  ```bash
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf "$tmpdir"' EXIT
+  ```
+
+- **curl-pipe-shell** — installing a tool by piping its installer script into `bash` is an allowed pattern. CI itself installs shellcheck more strictly: it downloads the release tarball to a file, verifies its SHA-256 checksum, and only then extracts it.
+
 ## 8. Unknown Argument Rejection
 
 Argument parsers must reject unknown flags:
@@ -176,7 +189,7 @@ Each command script must have:
 - A `--help` flag that prints usage information
 - Exit codes documented in the help text
 
-**Scope:** these rules apply to command scripts only. Files under `scripts/lib/` are exempt — they are sourced/imported libraries (`docs/standards/script-extraction-standards.md`, "The `scripts/lib/` shared-library tier") and are never invoked as commands, so they have no `--help` surface. `scripts/verify-scripts.sh` enforces this split: the full check set for command scripts, syntax and control-character checks only for `scripts/lib/`.
+**Scope:** these rules apply to command scripts only. Files under `scripts/lib/` are exempt — they are sourced/imported libraries (`docs/standards/script-standards.md`, "The `scripts/lib/` shared-library tier") and are never invoked as commands, so they have no `--help` surface. `scripts/verify-scripts.sh` enforces this split: the full check set for command scripts, syntax and control-character checks only for `scripts/lib/`.
 
 ## 11. Shellcheck Configuration
 
@@ -195,6 +208,10 @@ This scans `tests/`, `scripts/`, and `skills/*/scripts/` directories. The `.shel
 ### Pre-commit enforcement
 
 A `shellcheck` hook in `.pre-commit-config.yaml` runs `scripts/run-shellcheck.sh` on every commit that touches a `.sh` file and blocks the commit if any script has a finding. This requires `shellcheck` installed locally (see install instructions in `scripts/run-shellcheck.sh --help`) — the hook fails closed (blocks the commit) rather than silently skipping when `shellcheck` is missing.
+
+### CI enforcement
+
+The same gates also run in CI on every push to, and pull request against, `main` (`.github/workflows/ci.yml`, job `battery`). CI installs shellcheck 0.10.0 from the official release tarball and asserts the installed version, then runs `scripts/run-shellcheck.sh` over the corpus and `scripts/verify-scripts.sh --all` against the script gate. Any finding fails the workflow.
 
 ### Disabled checks
 

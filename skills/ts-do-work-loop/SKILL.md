@@ -16,6 +16,8 @@ The central implementation loop. Runs ts-work and ts-verify-implementation in cy
 /ts-do-work-loop docs/plans/2026-09-08-002-feat-review-pipeline-token-reduction-plan.md
 ```
 
+The second invocation is only an example — the named plan file may not exist in your repository.
+
 ## Process
 
 ### 1. Run ts-work
@@ -26,7 +28,7 @@ Invoke `/ts-work $ARGUMENTS`. This reads the plan, creates the task list, and im
 
 ### 2. Run ts-verify-implementation
 
-Invoke `/ts-verify-implementation $ARGUMENTS` (pass the same plan path). This launches 4 parallel review subagents to check correctness, completeness, scope, and standards.
+Invoke `/ts-verify-implementation $ARGUMENTS` (pass the same plan path). This launches parallel review subagents to check correctness, completeness, scope, standards, etc.
 
 ### 3. Evaluate verdict
 
@@ -38,7 +40,7 @@ Invoke `/ts-verify-implementation $ARGUMENTS` (pass the same plan path). This la
 ### 4. Post-completion (when verification passes)
 
 1. Update the plan file's frontmatter `status` field from `pending` (or `active`) to `completed`
-2. Run `/ts-compound Full, No Session History` to document what was learned
+2. Run `/ts-compound mode:headless` to document what was learned
 3. Commit and push
 4. Summarize what was done
 
