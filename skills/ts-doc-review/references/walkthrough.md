@@ -12,7 +12,12 @@ After `safe_auto` fixes apply and synthesis produces the remaining finding set, 
 
 Use the platform's blocking question tool (see SKILL.md — Interactive mode rules for the per-platform tool list, pre-load step, and fallback conditions). Rendering the routing question as narrative text without the numbered-list fallback is a bug.
 
-**Stem:** `What should the agent do with the remaining N findings?`
+**Question text (carries the finding set):** the question is the authoritative carrier of the finding set — the Phase 4 report printed before it is only a transcript duplicate (same rule as "Per-finding presentation" below). Plain text, in this order:
+
+1. Count line: `There are a total of {N} findings:` — the colon is present only when the findings list follows (over-cap variant ends the line at "findings").
+2. Findings list — only when N ≤ 4: one line per finding in the compressed one-line format from `references/bulk-preview.md` ("Per-finding line format"), with the plain-English severity word in place of the `[P0]` tag (`must fix` / `should fix` / `consider fixing` / `worth noting` — same mapping as the per-finding substitutions below): `{severity word} {section} — {one-line summary}`, lines near 80 columns.
+3. Above 4 findings, drop the list — the count line is followed by `A summary is too long to print here — how do you want to handle this?` and that line is the question stem. Option A (one-by-one review) is the natural default for working through a set too large to print.
+4. Stem when the list is shown: `What should the agent do with these findings?`
 
 **Options (fixed order; no option is labeled `(recommended)` — the routing choice is user-intent):**
 

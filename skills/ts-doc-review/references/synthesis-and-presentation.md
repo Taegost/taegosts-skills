@@ -354,7 +354,10 @@ These are pipeline artifacts and must not be flagged for removal.
 
 **Interactive mode:** fire the terminal question using the platform's blocking question tool (see SKILL.md — Interactive mode rules for the per-platform tool list, pre-load step, and fallback conditions). This question is distinct from the mid-flow routing question (`references/walkthrough.md`) — the routing question chooses *how* to engage with findings, this one chooses *what to do next* once engagement is complete. Do not merge them.
 
-**Stem:** `Apply decisions and what next?`
+**Question text (carries the completion summary):** the unified completion report printed before this question is only a transcript duplicate — the question text carries the counts the decision needs (same rule as `references/walkthrough.md` "Per-finding presentation"). Plain text, in this order:
+
+1. Completion line: `Review complete — {A} applied, {D} deferred, {S} skipped.` Omit zero-count buckets; append `{K} acknowledged` when non-zero (same bucket rule as the completion report). When every bucket is zero, the line is plain `Review complete.`
+2. Stem: `Apply decisions and what next?` — in the zero-actionable case `What next?`, matching the label adaptation below. Next-stage framing rides on the option labels via the `<next stage>` substitution below.
 
 **Options (three by default; two in the zero-actionable case):**
 

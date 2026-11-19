@@ -82,11 +82,22 @@ When no `why_it_matters` is available for a finding (rare — only if agent outp
 
 After the preview body is rendered, ask the user using the platform's blocking question tool (see SKILL.md — Interactive mode rules for the per-platform tool list, pre-load step, and fallback conditions).
 
-Stem (adapted to the path):
+**Question text (carries the execution summary):** the preview body printed before the question is only a transcript duplicate — the question text is the authoritative carrier (same rule as `walkthrough.md` "Per-finding presentation"). Open with a plain-text execution summary mirroring the plan's non-empty buckets, each line carrying its count plus the sections it touches:
 
-- For routing B: `The agent is about to apply the plan above. Proceed?`
-- For routing C: `The agent is about to append the findings above to the doc's Open Questions section. Proceed?`
-- For walk-through `Auto-resolve with best judgment on the rest`: `The agent is about to resolve the remaining findings above. Proceed?`
+```
+Execution summary:
+Applying {N} — {section}, {section}, {section}
+Appending to Open Questions {N} — {section}, {section}
+Skipping {N} — {section}, {section}
+```
+
+Bucket lines appear only for non-empty buckets (same omission rule as the preview body). Name at most 4 sections per bucket, comma-separated; above that, the first 4 followed by `and {K} more sections`. Multiple findings in one section name the section once. "Open Questions" needs no inline explanation here — every path that reaches this question has already explained it in the visible conversation.
+
+Stem (adapted to the path; counts inline, zero-count buckets drop their clause):
+
+- For routing B: `The agent is about to apply {A} fixes, append {D} Open Questions entries, and skip {S} findings. Proceed?`
+- For routing C: `The agent is about to append all {N} findings to the doc's Open Questions section. Proceed?`
+- For walk-through `Auto-resolve with best judgment on the rest`: `The agent is about to resolve the remaining {N} findings — apply {A}, append {D}, skip {S}. Proceed?`
 
 Options (exactly two, in all three cases):
 
