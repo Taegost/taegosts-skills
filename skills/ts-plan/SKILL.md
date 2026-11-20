@@ -20,6 +20,18 @@ When asking the user a question, use the platform's blocking question tool: `Ask
 
 Ask one question at a time. Prefer a concise single-select choice when natural options exist.
 
+## Conversational Output
+
+These rules govern the three moments `ts-plan` speaks to the user: asking clarifying questions (Phase 2 and the Phase 0 gates), presenting a plan or revision for approval (the scoping synthesis gates and the post-generation menu), and summarizing an applied edit (resume/edit sessions). The conversation carries the same failures as the documents — bare IDs, unnumbered question piles, walls of text, buried completions — so the same mechanisms apply.
+
+1. **Gloss every ID in chat.** Every plan-item ID mentioned in a chat message carries its meaning in place — `U3 (payment retry loop)`. A bare ID in chat costs the same document round-trip it costs on the page.
+2. **Questions are numbered, listed together, blocking first.** When a turn genuinely needs multiple questions despite the one-at-a-time default above, number them and list them one after another, the blocking question first. No cap on count — many clear questions beat few crammed ones; interleaved prose buries the actual ask.
+3. **Open every turn with a one-line state recap.** In an ongoing session, each turn opens with one line stating where the work is and what is pending. The reader re-enters the conversation cold; the recap replaces the scrolling they would otherwise do.
+4. **Present the delta, not the artifact.** Presenting a plan or revision for approval shows a summary of what changed since the user's last look, then the ask — never the full document. On first presentation the summary covers the whole plan; it is still a summary. A re-read costs a round-trip the reader will not make; the delta is what they need to judge.
+5. **Confirm applied edits in one line.** After an edit is applied, one line stating what changed and where, before any next question. Buried completions do not register as done.
+
+**Scope:** these rules govern messages a human reads directly. Pipeline/headless and subagent output is exempt — machine consumers need parseability — except that a headless summary destined for the user passes through complete, never summarized away.
+
 ## Feature Description
 
 <feature_description> #$ARGUMENTS </feature_description>
