@@ -357,7 +357,7 @@ These are pipeline artifacts and must not be flagged for removal.
 **Question text (carries the completion summary):** the unified completion report printed before this question is only a transcript duplicate — the question text carries the counts the decision needs (same rule as `references/walkthrough.md` "Per-finding presentation"). Plain text, in this order:
 
 1. Completion line: `Review complete — {A} applied, {D} deferred, {S} skipped.` Omit zero-count buckets; append `{K} acknowledged` when non-zero (same bucket rule as the completion report). When every bucket is zero, the line is plain `Review complete.`
-2. Stem: `Apply decisions and what next?` — in the zero-actionable case `What next?`, matching the label adaptation below. Next-stage framing rides on the option labels via the `<next stage>` substitution below.
+2. Stem: `Apply decisions and what next?` — in the zero-actionable case `What next?`, matching the label adaptation below. Next-stage framing rides on the option labels via the `<next stage>` substitution below — standalone runs only; nested runs adapt the labels instead (see Label adaptation below).
 
 **Options (three by default; two in the zero-actionable case):**
 
@@ -381,7 +381,11 @@ The `<next stage>` substitution uses the document type from Phase 1:
 - Requirements document → `ts-plan`
 - Plan document → `ts-work`
 
-**Label adaptation:** when no decisions are queued to apply, the primary option drops the `Apply decisions and` prefix — the label should match what the system is doing. `Apply decisions and proceed` when fixes are queued; `Proceed` when nothing is queued.
+**Label adaptation:** option labels adapt along two dimensions so each label names what the system actually does.
+
+*Queued-decisions dimension:* when no decisions are queued to apply, the primary option drops the `Apply decisions and` prefix. `Apply decisions and proceed` when fixes are queued; `Proceed` when nothing is queued.
+
+*Caller-context dimension:* when ts-doc-review runs inside another skill's flow (nested run), the primary option labels name the actual action — `Apply decisions and return to the caller` when decisions are queued, `Return to the caller` in the zero-actionable case — instead of proceeding to the next stage, because control returns to the calling skill's menu, not to `ts-plan` or `ts-work`. Standalone runs keep the `<next stage>` substitution (`proceed to ts-plan` / `proceed to ts-work`).
 
 **Caller-context handling (implicit):** the terminal question's "Proceed to <next stage>" option is interpreted contextually by the agent from the visible conversation state. When ts-doc-review is invoked from inside another skill's flow (e.g., ts-brainstorm Phase 4 re-review, ts-plan phase 5.3.8), the agent does not fire a nested `/ts-plan` or `/ts-work` dispatch — it returns control to the caller's flow which continues its own logic. When invoked standalone, "Proceed" dispatches the appropriate next skill. No explicit caller-hint argument is required; if this implicit handling proves unreliable in practice, an explicit `nested:true` flag can be added as a follow-up.
 

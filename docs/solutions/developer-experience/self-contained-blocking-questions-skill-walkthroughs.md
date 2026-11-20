@@ -36,7 +36,7 @@ Observable friction:
 - Bulk-preview Proceed/Cancel and the Phase 5 terminal question both reference a report printed just before them, which the collapse makes unreadable.
 - Every question in the flow repeats the same failure because they all share one design assumption, so fixing one site leaves the others broken.
 
-Two earlier approaches failed and are worth recording:
+Three earlier approaches failed or were rejected, and are worth recording:
 
 1. **The original skill design's "Never merge the two" rule.** The spec deliberately separated the terminal block (explanation) from the question (decision), on the assumption that pre-question text stays visible while the dialog is open. That rule was the bug's anchor: the separation is correct only when both halves are readable, and Claude Code's collapse behavior breaks that condition. The fix had to remove the assumption, not reword the question stem.
 2. **A forbidden-words list for question text.** A plan-review round proposed banning internal enum/tier names (e.g. `gated_auto`) from question text via a new forbidden-words list. Rejected: the repo's existing vocabulary rule already bans internal enums from user-facing output, and a second overlapping ban added confusion without new coverage.
@@ -56,7 +56,7 @@ Rules that make question text survive the blocking-question tool's renderer:
 
 Apply the same self-containment at every decision site:
 
-- **Routing question** always carries the finding set: `There are a total of {N} findings:`, then at most 4 findings inline in a compressed one-line format (`{severity word} {section} — {one-line summary}`). Above 4, no list — the count line is followed by `A summary is too long to print here — how do you want to handle this?` as the stem.
+- **Routing question** always carries the finding set: `There are {N} findings awaiting your decision:`, then at most 4 findings inline in the compressed one-line format (`{severity word} {section} — {one-line summary}`). Above 4, a one-line severity-and-sections summary (severity counts with zero tiers omitted, up to 4 section names, `and {K} more` beyond) precedes the same `A summary is too long to print here — how do you want to handle this?` handback stem. The 4-item cap applies to question text only — the full findings list stays in the Phase 4 report (standard response).
 - **Bulk-preview Proceed/Cancel** carries the execution summary in the question text (counts plus the sections each bucket touches, at most 4 section names per bucket before `and {K} more sections`), with counts inline in the stem.
 - **Phase 5 terminal question** carries the completion summary: `Review complete — {A} applied, {D} deferred, {S} skipped.` (zero-count buckets omitted, `{K} acknowledged` appended when non-zero).
 - **Terminal markdown blocks remain**, shrunk to duplicates: they repeat the question's content rendered in markdown for transcript readability, and add, drop, and rewrite nothing.
@@ -94,7 +94,7 @@ Option set with one-clause effect descriptions:
 
 ```
 A. Apply the proposed fix  (recommended) — stages the fix; the document is edited in the end-of-walk-through batch
-B. Defer — adds the finding to the doc's Open Questions section; changes nothing now
+B. Defer — appends the finding to the doc's Open Questions section now; no fix is applied
 C. Skip — leaves the document unchanged and records no follow-up
 D. Auto-resolve with best judgment on the rest — routes this and every remaining finding through the bulk preview for one approval
 ```

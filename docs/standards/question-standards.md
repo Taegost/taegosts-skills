@@ -20,13 +20,13 @@ Applies to every skill in this repo that fires blocking questions. It fires on *
 1. **The question text is the single authoritative carrier of decision information.** Anything printed before the question is at most a transcript duplicate — it may repeat the question's content, never hold the only copy of it.
 2. **Decision-relevant context lives in the question text:** what is being decided, why a decision is needed, and what each option does.
 3. **Question text renders as plain text:** labeled lines (`What's wrong:`, `Proposed fix:`), not markdown emphasis — the blocking-question tool renders plain text.
-4. **Option descriptions state the effect each action has** (e.g., `Defer — appends the finding to the document's Open Questions section; changes nothing now`), not just a label.
-5. **Unexplained terms get a short inline explanation** at first use in the question text. A term the visible conversation has already explained needs no re-explanation.
-6. **Length discipline:** each section of the question is 1–3 sentences and each option description is one clause, so questions stay renderable. When a set is too long to print (e.g., a list above 4 items), the question says so and asks how to handle the set instead of printing it.
+4. **Option descriptions state the effect each action has** (e.g., `Defer — appends the finding to the document's Open Questions section now; no fix is applied`), not just a label.
+5. **Unexplained terms get a short inline explanation** at first use in the question text. Only an explanation that appeared inside an earlier question's own text counts as already explained — anything printed outside a question is unreadable at decision time.
+6. **Length discipline:** each section of the question is 1–3 sentences and each option description is one clause, so questions stay renderable. When a set is too long to print (e.g., a list above 4 items), the question says so and asks how to handle the set instead of printing it. The cap applies to question text only — the full set belongs in a standard response (the transcript duplicate), printed uncapped.
 
 ## Reference implementation
 
-`skills/ts-doc-review/` implements this standard for its interactive walk-through — the per-finding questions, cascade confirmation, no-fix sub-question, routing question, bulk-preview Proceed/Cancel, and Phase 5 terminal question. See `references/walkthrough.md`, `references/bulk-preview.md`, and `references/synthesis-and-presentation.md`.
+`skills/ts-doc-review/` implements this standard for its interactive walk-through — the per-finding questions, cascade confirmation, no-fix sub-question, routing question, bulk-preview Proceed/Cancel, Phase 5 terminal question, and Phase-4 write-access gate. See `references/walkthrough.md`, `references/bulk-preview.md`, and `references/synthesis-and-presentation.md`.
 
 ## Conformance checklist
 
@@ -36,8 +36,8 @@ A blocking question site is conformant when:
 - [ ] No decision-relevant information exists only in pre-question output
 - [ ] Question text is plain text (labeled lines, no markdown emphasis)
 - [ ] Each option description states its effect on the document or workflow
-- [ ] Terms not already explained in the visible conversation get a short inline explanation
-- [ ] Sections stay 1–3 sentences; a set too long to print is summarized and handed back as a question, not printed
+- [ ] Terms get a short inline explanation at first use in question text; only explanations inside earlier question text count
+- [ ] Sections stay 1–3 sentences; sets too long for question text are capped in the question and printed in full in the accompanying standard response
 
 ## Related
 

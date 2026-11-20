@@ -14,9 +14,9 @@ Use the platform's blocking question tool (see SKILL.md — Interactive mode rul
 
 **Question text (carries the finding set):** the question is the authoritative carrier of the finding set — the Phase 4 report printed before it is only a transcript duplicate (same rule as "Per-finding presentation" below). Plain text, in this order:
 
-1. Count line: `There are a total of {N} findings:` — the colon is present only when the findings list follows (over-cap variant ends the line at "findings").
+1. Count line: `There are {N} findings awaiting your decision:` — the colon is present only when the findings list follows (over-cap variant ends the line at "decision"). N=1 renders `There is 1 finding awaiting your decision:`.
 2. Findings list — only when N ≤ 4: one line per finding in the compressed one-line format from `references/bulk-preview.md` ("Per-finding line format"), with the plain-English severity word in place of the `[P0]` tag (`must fix` / `should fix` / `consider fixing` / `worth noting` — same mapping as the per-finding substitutions below): `{severity word} {section} — {one-line summary}`, lines near 80 columns.
-3. Above 4 findings, drop the list — the count line is followed by `A summary is too long to print here — how do you want to handle this?` and that line is the question stem. Option A (one-by-one review) is the natural default for working through a set too large to print.
+3. Above 4 findings, drop the list — the count line is followed by one plain-text summary line, then the stem `A summary is too long to print here — how do you want to handle this?` (that line remains the question stem). The summary line carries severity counts using the plain-English severity words (zero-count tiers omitted) plus up to 4 section names; above 4 sections, the first 4 followed by `and {K} more`. Example: `2 must fix, 4 should fix, 3 consider fixing — sections: Requirements Trace, Scope Boundaries, Key Technical Decisions, Risks, and 4 more.` The full per-finding list stays in the Phase 4 report (the standard response) and in option A's one-by-one path.
 4. Stem when the list is shown: `What should the agent do with these findings?`
 
 **Options (fixed order; no option is labeled `(recommended)` — the routing choice is user-intent):**
@@ -24,7 +24,7 @@ Use the platform's blocking question tool (see SKILL.md — Interactive mode rul
 ```
 A. Review each finding one by one — accept the recommendation or choose another action
 B. Auto-resolve with best judgment — apply per-finding edits the agent can defend, surface the rest
-C. Append findings to the doc's Open Questions section and proceed
+C. Append findings to the doc's Open Questions section — unresolved items recorded in the document for a later pass — and proceed
 D. Report only — take no further action
 ```
 
@@ -32,7 +32,7 @@ The per-finding `(recommended)` labeling lives inside the walk-through (option A
 
 If all remaining findings are FYI-subsection-only (no `gated_auto` or `manual` findings at confidence anchor `75` or `100`), skip the routing question entirely and flow to the Phase 5 terminal question.
 
-**Append-availability adaptation.** When `references/open-questions-defer.md` has cached `append_available: false` at Phase 4 start (e.g., read-only document, unwritable filesystem), option C is suppressed from the routing question because every per-finding Defer would fail into the open-questions failure path. The menu shows three options (A / B / D) and the stem appends one line explaining why (e.g., `Append to Open Questions unavailable — document is read-only in this environment.`). This mirrors the per-finding option B suppression described under "Adaptations" below — both routing-level and per-finding Defer paths share the same availability signal so the user never sees Defer surfaced at one level and omitted at the other.
+**Write-access gate.** At Phase 4 start, before the routing question fires, the orchestrator checks the document is writable — the append mechanic from `references/open-questions-defer.md` and the end-of-walk-through Apply batch both need write access. On failure, fire a self-contained blocking question before anything else: stem `Write check failed — the document is read-only, so the review cannot record decisions: both Apply fixes and Defer appends need write access. Retry the write check, or exit?` with exactly two options — `A. Retry the write check — re-checks now; pick this after restoring write access` and `B. Exit — ends the review report-only; nothing recorded in the document`. A read-only document is a failure to fix, not a mode to adapt around: no review proceeds past a failed gate, and once the gate passes, the routing question always shows all four options with no suppressions.
 
 **Dispatch by selection:**
 
@@ -59,7 +59,7 @@ Each finding's recommended action has already been normalized by synthesis step 
 
 **Cascading root decisions.** When the user picks Skip or Defer on a finding with `dependents`:
 
-1. Fire the platform's blocking question tool with a self-contained confirmation — the question text carries the whole decision (the root decision just made, the dependents it would cascade onto, and what each option does), same rule as "Per-finding presentation" below. A one-line terminal echo of the same summary may precede it as a transcript duplicate. Plain text, labeled lines:
+1. Fire the platform's blocking question tool with a self-contained confirmation — the question text carries the whole decision (the root decision just made, the dependents it would cascade onto, and what each option does), same rule as "Per-finding presentation" below. A terminal echo precedes it as a transcript duplicate — the echo prints the full dependent list (every `{dependent title} — {one-line summary}` line, uncapped) as the standard response, while the question text carries the capped version (capped at 4, per the template below). Plain text, labeled lines:
 
    ```
    {Skip}/{Defer} chosen for Finding {N} of {M} — {plain-English title}.
@@ -71,6 +71,8 @@ Each finding's recommended action has already been normalized by synthesis step 
    Cascading applies the same {action} to all {D} and closes their individual questions; deciding individually answers each dependent separately.
    Cascade this {action} to all {D} dependents?
    ```
+
+   The question text lists at most 4 dependent lines; above 4, list the first 4 followed by `and {K} more dependents`. The `{D} dependent finding(s)` count line keeps carrying the true total — the cap bounds only the per-dependent lines.
 
 2. Options (two; each description states its effect):
    - `Cascade — apply same action to all dependents` (recommended) — applies the same action to every dependent now; no further questions about them
@@ -120,7 +122,7 @@ Length budgets: each labeled section is 1–3 sentences and each option descript
     - Bad: `Change "autofix_class: [auto, gated_auto, advisory, present]" to "autofix_class: [safe_auto, gated_auto, manual]" in findings-schema.json on line 48.` — too syntax-focused for a decision loop
   - **Quoted-span budget** — question text renders plain, so quote identifiers with double quotes instead of backticks: at most 2 short quoted spans per sentence, each a single identifier, flag, or short phrase (e.g., "safe_auto", "<work-context>").
 - **`Why it works:`** — grounded reasoning that, where possible, references a similar pattern already used in the document or codebase. One to three sentences.
-- **Plain language** — any term the visible conversation has not already explained gets a short inline explanation at its first use in question text (e.g., "the doc's Open Questions section — unresolved items recorded in the document for a later pass"). Terms already explained in the visible conversation need no re-explanation.
+- **Plain language** — any term without an explanation inside this or an earlier question's text gets a short inline explanation at its first use in question text (e.g., "the doc's Open Questions section — unresolved items recorded in the document for a later pass"). Only an explanation that appeared inside an earlier question's own text counts — anything printed outside a question is unreadable at decision time.
 
 ### Terminal output block (transcript duplicate)
 
@@ -138,7 +140,7 @@ Each option pairs its label with a one-clause description of the effect on the d
 
 ```
 A. Apply the proposed fix  (recommended) — stages the fix; the document is edited in the end-of-walk-through batch
-B. Defer — adds the finding to the doc's Open Questions section; changes nothing now
+B. Defer — appends the finding to the doc's Open Questions section now; no fix is applied
 C. Skip — leaves the document unchanged and records no follow-up
 D. Auto-resolve with best judgment on the rest — routes this and every remaining finding through the bulk preview for one approval
 ```
@@ -151,10 +153,6 @@ When reviewers disagreed or evidence cuts against the default, still mark one op
 
 - **N=1 (exactly one pending finding):** the question's heading line omits `Finding N of M`, becoming `{severity word} — {plain-English title}` (the terminal duplicate's heading follows suit). Option D (`Auto-resolve with best judgment on the rest`) is suppressed because no subsequent findings exist — the menu shows three options: Apply / Defer / Skip.
 
-- **Open-Questions append unavailable** (read-only document, write-failed): when `references/open-questions-defer.md` reports the in-doc append mechanic cannot run, option B is omitted. The question text appends one line explaining why (e.g., `Defer unavailable — document is read-only in this environment.`). The menu shows three options: Apply / Skip / Auto-resolve with best judgment on the rest. Before rendering options, remap any per-finding `Defer` recommendation from synthesis to `Skip` so the `(recommended)` marker lands on an option that's actually in the menu. Surface the remap on the conflict-context line (e.g., `Synthesis recommended Defer; downgraded to Skip — document is read-only.`).
-
-- **Combined N=1 + no-append:** the menu shows two options: Apply / Skip.
-
 Only when `ToolSearch` explicitly returns no match or the tool call errors — or on a platform with no blocking question tool — fall back to presenting the options as a numbered list and waiting for the user's next reply.
 
 ---
@@ -164,7 +162,7 @@ Only when `ToolSearch` explicitly returns no match or the tool call errors — o
 For each finding's answer, record the outcome in the in-memory decision list **and** append the same entry to the on-disk decision log (see "State" below) before advancing to the next finding. The disk write happens every turn, not just at loop end — that's what makes decisions survive a mid-walk-through interruption.
 
 - **Apply the proposed fix** — add the finding's id to an in-memory Apply set. Advance to the next finding. Do not edit the document inline — Apply accumulates for end-of-walk-through batch execution. **No-fix guard:** if the merged finding has no `suggested_fix` (possible on `manual` findings where the agent flagged the issue as observation without a concrete resolution), Apply is not executable. Do not add the finding to the Apply set. Instead, surface the no-fix sub-question described below before advancing.
-- **Defer — append to Open Questions section** — invoke the append flow from `references/open-questions-defer.md`. The walk-through's position indicator stays on the current finding during any failure-path sub-question (Retry / Fall back / Convert to Skip). On success, record the append location and reference in the in-memory decision list and advance. On conversion-to-Skip from the failure path, advance with the failure noted in the completion report.
+- **Defer — append to Open Questions section** — invoke the append flow from `references/open-questions-defer.md`. The walk-through's position indicator stays on the current finding during any failure-path sub-question (Retry / Record only / Convert to Skip). On success, record the append location and reference in the in-memory decision list and advance. On conversion-to-Skip from the failure path, advance with the failure noted in the completion report.
 - **Skip — don't apply, don't append** — record Skip in the in-memory decision list. Advance. No side effects.
 - **Auto-resolve with best judgment on the rest** — exit the walk-through loop. Dispatch the bulk preview from `references/bulk-preview.md`, scoped to the current finding and everything not yet decided. The preview header reports the count of already-decided findings ("K already decided"). If the user picks Cancel from the preview, return to the current finding's per-finding question (not to the routing question). If the user picks Proceed, execute the plan per `references/bulk-preview.md` — Apply findings join the in-memory Apply set with the ones the user already picked, Defer findings route through `references/open-questions-defer.md`, Skip is no-op — then proceed to end-of-walk-through execution. Every finding resolved through the bulk preview also gets a decision-log entry appended at the moment it's resolved, same as the per-finding loop.
 
@@ -188,18 +186,16 @@ How should the agent proceed?
 **Options (fixed order; each description states its effect):**
 
 ```
-A. Defer to Open Questions  (recommended) — adds the finding to the doc's Open Questions section; changes nothing now
+A. Defer to Open Questions  (recommended) — appends the finding to the doc's Open Questions section now; no fix is applied
 B. Skip — leaves the document unchanged and records no follow-up
 C. Acknowledge without applying — records it as acknowledged in the completion report; no document edit
 ```
 
 **Routing:**
 
-- **A. Defer to Open Questions** — invoke the append flow from `references/open-questions-defer.md` as though the user had originally picked Defer. Failure-path handling is identical (Retry / Fall back / Convert to Skip). On success, record the append location in the decision list (annotated `redirected from Apply — no suggested_fix`) and advance.
+- **A. Defer to Open Questions** — invoke the append flow from `references/open-questions-defer.md` as though the user had originally picked Defer. Failure-path handling is identical (Retry / Record only / Convert to Skip). On success, record the append location in the decision list (annotated `redirected from Apply — no suggested_fix`) and advance.
 - **B. Skip** — record Skip in the decision list (annotated `redirected from Apply — no suggested_fix`). Advance. No side effects.
 - **C. Acknowledge without applying** — record the finding in the decision list as `acknowledged` (annotated `Apply picked but no suggested_fix — no edit dispatched`). Do not add to the Apply set. Advance. The completion report surfaces Acknowledged as its own dedicated bucket with its own count, its own per-finding action label, and its own position in the report ordering (`Applied / Deferred / Skipped / Acknowledged`) — see "Minimum required fields" and "Report ordering" in the unified completion report section below for the full contract. The acknowledgement reason is surfaced on each per-finding line. For round-to-round suppression (distinct from report display), Acknowledged decisions carry forward in the multi-round decision primer as a rejected-class decision alongside Skip and Defer so round-N+1 synthesis suppresses re-raises via R29 — semantically the user saw the finding, chose not to act, and wants it recorded, which is equivalent to Skip for suppression purposes but remains its own bucket in the report.
-
-**Availability adaptation.** When `references/open-questions-defer.md` has cached `append_available: false` for the session, omit option A and append one line to the question text explaining why (e.g., `Defer unavailable — document is read-only in this environment.`). The menu becomes Skip / Acknowledge without applying, with Skip labeled `(recommended)`.
 
 **Cascading roots.** When the finding is a root with dependents and the user picks A (Defer) or B (Skip) from this sub-question, run the cascade confirmation in "Cascading root decisions" above — treat the sub-question's choice as the root's effective action. Option C (Acknowledge) does not cascade; the root is recorded as acknowledged and dependents each get their own walk-through entry.
 
