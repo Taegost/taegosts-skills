@@ -85,6 +85,18 @@ clutter the doc and break TOC generation.
 For substantial artifacts, use horizontal rules (`---`) between top-level
 H2 sections. Omit for short docs where separators would dominate.
 
+### Lead line for long sections
+
+Sections of 300+ words open with a one-line bolded summary:
+`**In short:** ...`. Implementation units are exempt — their Goal field is
+already the lead line. A wall of undifferentiated text defers understanding
+and drives readers past the section; the bolded lead line gives the point
+before the detail.
+
+Tables use descriptive headers, not bare IDs — a column headed `Requirement`
+or `Decision` orients where `R#` forces a lookup. The unit heading convention
+(`### U1. Name`) is unchanged.
+
 ### Tables for genuinely comparative info only
 
 Use tables for the uniform-shape case in "Content shape" above. Don't use
