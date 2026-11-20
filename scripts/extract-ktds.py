@@ -146,7 +146,6 @@ def extract_ktds(section_content: str) -> list[dict]:
             dmatch = dentry_pattern.search(para)
             if dmatch:
                 in_dentry = True
-                para = para[:dmatch.start()]
 
             if in_dentry:
                 # D-entry body (Decision/Why/Source lines and any text

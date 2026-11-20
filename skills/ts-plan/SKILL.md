@@ -567,7 +567,7 @@ Extension is always `.md`. Sequence number `NNN` is derived from existing plan f
 
 Compose the plan using the content from `references/plan-sections.md` and the format principles from `references/markdown-rendering.md`.
 
-**Write tight.** A section being material is not license to pad it. Hold every kept section to the prose-economy discipline in `references/plan-sections.md`: one idea per sentence, a requirement or unit is intent plus at most one qualifier, defer forks to Open Questions rather than specifying both arms, resolve superseded text in place rather than stacking strata — except decision-log entries, which stay struck through with their Status line ("Decision log (D-entries)" in `references/plan-sections.md`). Before declaring the plan written, run the named test there — could the implementer find a contradiction in each section in one pass?
+**Write tight.** A section being material is not license to pad it. Hold every kept section to the prose-economy discipline in `references/plan-sections.md`: one idea per sentence, a requirement or unit is intent plus at most one qualifier, defer forks to Open Questions rather than specifying both arms, resolve superseded text in place rather than stacking strata — except superseded decision-log entries, which stay struck through with their Status line ("Decision log (D-entries)" in `references/plan-sections.md`). Before declaring the plan written, run the named test there — could the implementer find a contradiction in each section in one pass?
 
 Confirm (use absolute path so the reference is clickable in modern terminals):
 

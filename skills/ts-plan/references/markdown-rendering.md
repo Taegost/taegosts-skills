@@ -79,9 +79,10 @@ bullets — not deeper heading levels.
 
 This gives the bullet structure without needing H4/H5 headings that would
 clutter the doc and break TOC generation. Level-4 headings are reserved for
-decision-log entries (see "Decision log (D-entries)" in `plan-sections.md`);
-the bold-leader-label guidance above governs substructure inside bullets, not
-decision-log blocks.
+decision-log entries (see "Decision log (D-entries)" in `plan-sections.md`) —
+the decision-log format mandates that nesting level so an entry sits inside
+its governing section without ending it; the bold-leader-label guidance above
+governs substructure inside bullets, not decision-log blocks.
 
 ### Section separators
 

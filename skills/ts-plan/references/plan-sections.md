@@ -198,8 +198,8 @@ silently reverted.
 **Named test, run before the plan is declared written:** could the implementer
 find a contradiction in each section in one pass? A sentence carrying more than
 one parenthetical *aside*, or an item specifying two outcomes, fails the test —
-split it or defer it. ID glosses (`R2 (offline support)`) are not asides; a
-sentence may carry several.
+split it or defer it. ID glosses (`R2 (offline support)`) are not asides —
+glossing is reference resolution, not digression; a sentence may carry several.
 
 ## Plan metadata fields
 
