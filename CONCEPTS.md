@@ -64,6 +64,14 @@ A script invoked directly as a command, as opposed to a sourced or imported libr
 
 The confidence value a reviewer attaches to a finding, drawn from a fixed ladder of steps. Distinct from severity, which ranks impact; the anchor ranks how sure the reviewer is. Merge rules act on the anchor — agreement across reviewers promotes it one step, and low anchors are suppressed late in the merge except for the most severe findings.
 
+## Self-Contained Question
+
+A blocking decision question that carries all information needed to make the decision inside its own question text — position, severity, explanation, and proposed fix — never relying on terminal output printed before it, which Claude Code collapses while the dialog is open. Codified in `docs/standards/question-standards.md`.
+
+## Transcript Duplicate
+
+Terminal output printed before a blocking question that repeats the question's own content for transcript readability. It may mirror a Self-Contained Question's text but never holds the only copy of any decision information — markdown rendering lives here, not in the question.
+
 ## Linemap
 
 The mapping of every added line in a pull-request diff to its head-side file and line number, computed before review findings are posted. An inline PR review comment is only valid at a line present in the linemap; findings that land anywhere else route to a flat PR comment instead of being dropped.

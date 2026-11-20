@@ -100,9 +100,9 @@ Silent failure is not acceptable. If the user does not respond to the sub-questi
 
 ## Upstream availability signal
 
-The walk-through and bulk-preview check append-availability before offering Defer as an option. When the document is known-unwritable (e.g., initial read shows it's on a read-only filesystem), the orchestrator caches an `append_available: false` signal at Phase 4 start and Defer is suppressed in the walk-through menu and in the routing question's option C. See `references/walkthrough.md` under "Adaptations" for the menu behavior and `references/bulk-preview.md` under "Edge cases" for the preview behavior.
+At Phase 4 start, before the routing question, the orchestrator runs a write-access check on the document under review (both the append mechanic defined here and the end-of-walk-through Apply batch need write access). On failure, the write-access gate in `references/walkthrough.md` (routing section) fires — a self-contained Retry-or-Exit blocking question; no review proceeds past a failed gate and no Defer option is ever suppressed or downgraded.
 
-When append-availability is true at Phase 4 start but an individual append fails mid-flow, the failure path above handles the specific finding — this does not flip the session-level cached signal (other findings may still append successfully if the failure was transient).
+When the document is writable at the gate but an individual append fails mid-flow, the failure path above handles that specific finding; this does not cache a session-level unavailable signal (other findings may still append successfully if the failure was transient).
 
 ---
 

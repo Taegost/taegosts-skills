@@ -11,7 +11,7 @@ Interactive mode only.
 Three call sites:
 
 1. **Routing option B (top-level best-judgment)** — after the user picks `Auto-resolve with best judgment — apply per-finding edits the agent can defend, surface the rest` from the routing question, but before any action executes. Scope: every pending `gated_auto` or `manual` finding at confidence anchor `75` or `100`.
-2. **Routing option C (top-level Append-to-Open-Questions)** — after the user picks `Append findings to the doc's Open Questions section and proceed` but before any append runs. Scope: every pending `gated_auto` or `manual` finding at confidence anchor `75` or `100`. Every finding appears under `Appending to Open Questions (N):` regardless of the agent's natural recommendation, because option C is batch-defer.
+2. **Routing option C (top-level Append-to-Open-Questions)** — after the user picks `Append findings to the doc's Open Questions section — unresolved items recorded in the document for a later pass — and proceed` but before any append runs. Scope: every pending `gated_auto` or `manual` finding at confidence anchor `75` or `100`. Every finding appears under `Appending to Open Questions (N):` regardless of the agent's natural recommendation, because option C is batch-defer.
 3. **Walk-through `Auto-resolve with best judgment on the rest`** — after the user picks `Auto-resolve with best judgment on the rest` from a per-finding question, but before the remaining findings are resolved. Scope: the current finding and everything not yet decided. Already-decided findings from the walk-through are not included in the preview.
 
 In all three cases the user confirms with `Proceed` or backs out with `Cancel`. No per-item decisions inside the preview — per-item decisioning is the walk-through's role.
@@ -82,11 +82,26 @@ When no `why_it_matters` is available for a finding (rare — only if agent outp
 
 After the preview body is rendered, ask the user using the platform's blocking question tool (see SKILL.md — Interactive mode rules for the per-platform tool list, pre-load step, and fallback conditions).
 
-Stem (adapted to the path):
+**Question text (carries the execution summary):** the preview body printed before the question is only a transcript duplicate — the question text is the authoritative carrier (same rule as `walkthrough.md` "Per-finding presentation"). When the digest caps the question at 4 per-finding lines, the preview body also carries the full uncapped plan — that is its role. Open with a plain-text execution summary mirroring the plan's non-empty buckets, each line carrying its count plus the sections it touches:
 
-- For routing B: `The agent is about to apply the plan above. Proceed?`
-- For routing C: `The agent is about to append the findings above to the doc's Open Questions section. Proceed?`
-- For walk-through `Auto-resolve with best judgment on the rest`: `The agent is about to resolve the remaining findings above. Proceed?`
+```
+Execution summary:
+Applying {N} — {section}, {section}, {section}
+Appending to Open Questions {N} — {section}, {section}
+Skipping {N} — {section}, {section}
+{action} {severity word} {section} — {one-line summary}
+{action} {severity word} {section} — {one-line summary}
+{action} {severity word} {section} — {one-line summary}
+{action} {severity word} {section} — {one-line summary}
+```
+
+Bucket lines appear only for non-empty buckets (same omission rule as the preview body); they remain the summary's group headers. After the bucket lines, the summary also carries up to 4 compressed per-finding lines in the routing list format from `references/walkthrough.md`, prefixed with the finding's action (`apply` / `defer` / `skip`) — `{action} {severity word} {section} — {one-line summary}` — covering the highest-severity findings first; above 4, the first 4 followed by `and {K} more findings`. The action prefix keeps the finding-to-bucket mapping visible when one section has findings in different buckets; the routing question's own inline lines stay action-free because its findings await decision. The preview body (the full plan, printed before the question as the transcript duplicate / standard response) stays uncapped — the per-finding lines are the question-text digest, not a replacement for the preview. Name at most 4 sections per bucket, comma-separated; above that, the first 4 followed by `and {K} more sections`. Multiple findings in one section name the section once. "Open Questions" gets a short inline explanation at first use in question text (e.g., "— unresolved items recorded in the document for a later pass") unless an earlier question in this run already explained it.
+
+Stem (adapted to the path; counts inline, zero-count buckets drop their clause):
+
+- For routing B: `The agent is about to apply {A} fixes, append {D} Open Questions entries, and skip {S} findings. Proceed?`
+- For routing C: `The agent is about to append all {N} findings to the doc's Open Questions section. Proceed?`
+- For walk-through `Auto-resolve with best judgment on the rest`: `The agent is about to resolve the remaining {N} findings — apply {A}, append {D}, skip {S}. Proceed?`
 
 Options (exactly two, in all three cases):
 
@@ -115,7 +130,7 @@ When the user picks `Proceed`:
 - **Routing option C (top-level Append-to-Open-Questions):** every finding routes through `references/open-questions-defer.md` for Open Questions append. No document edits apply (beyond the Open Questions section additions themselves). After all appends complete (or fail), emit the unified completion report.
 - **Walk-through `Auto-resolve with best judgment on the rest`:** same as routing option B, but scoped to the findings the user hadn't decided on. Apply findings join the in-memory Apply set with the ones the user already picked during the walk-through; all dispatch together in the single end-of-walk-through Apply pass.
 
-Failure during `Proceed` (e.g., an Open Questions append fails for one finding during a batch Defer) follows the failure path defined in `references/open-questions-defer.md` — surface the failure inline with Retry / Fall back / Convert to Skip, continue with the rest of the plan, and capture the failure in the completion report's failure section.
+Failure during `Proceed` (e.g., an Open Questions append fails for one finding during a batch Defer) follows the failure path defined in `references/open-questions-defer.md` — surface the failure inline with Retry / Record only / Convert to Skip, continue with the rest of the plan, and capture the failure in the completion report's failure section.
 
 ---
 
@@ -124,5 +139,5 @@ Failure during `Proceed` (e.g., an Open Questions append fails for one finding d
 - **Zero findings in a bucket:** omit the bucket header. A preview with only Apply and Skip does not show an empty `Appending to Open Questions (0):` line.
 - **All findings in one bucket:** preview still shows the bucket header; Proceed / Cancel still offered. This is the common case for routing option C (every finding under `Appending to Open Questions`).
 - **N=1 preview (only one finding in scope):** the preview still uses the grouped format, just with a single-line bucket. `Proceed` / `Cancel` still apply.
-- **Open Questions append unavailable** (document is read-only, append flow reports no-go): routing option C is not offered upstream (see `references/open-questions-defer.md` unavailability handling). Best-judgment (option B) and walk-through `Auto-resolve with best judgment on the rest` can still run — they may contain per-finding Defer recommendations from synthesis. Before rendering any best-judgment-shaped preview, downgrade every Defer recommendation to Skip when the session's cached append-availability is false, and surface the downgrade on the preview itself (e.g., a `Skipping — append unavailable (N):` bucket, or a note in the header: `N Defer recommendations downgraded to Skip — document is read-only.`).
+- **Open Questions append unavailable:** the preview assumes the Phase-4-start write-access gate (see `references/walkthrough.md`, routing section) has passed — the document is writable. An Open-Questions append that fails during `Proceed` execution fires the per-finding failure path from `references/open-questions-defer.md` (Retry / Record only / Convert to Skip) inline, continuing with the rest of the plan; no Defer recommendation is ever silently downgraded to Skip.
 - **Walk-through `Auto-resolve with best judgment on the rest` with zero remaining findings:** the walk-through's own logic suppresses `Auto-resolve with best judgment on the rest` as an option when N=1 and otherwise, so the preview should never be invoked with zero remaining findings. If it is, render `Auto-resolve plan — 0 remaining findings` and present Proceed / Cancel. Proceed is a no-op, but the user must explicitly confirm.
