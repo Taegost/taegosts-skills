@@ -78,12 +78,28 @@ bullets — not deeper heading levels.
 ```
 
 This gives the bullet structure without needing H4/H5 headings that would
-clutter the doc and break TOC generation.
+clutter the doc and break TOC generation. Level-4 headings are reserved for
+decision-log entries (see "Decision log (D-entries)" in `plan-sections.md`) —
+the decision-log format mandates that nesting level so an entry sits inside
+its governing section without ending it; the bold-leader-label guidance above
+governs substructure inside bullets, not decision-log blocks.
 
 ### Section separators
 
 For substantial artifacts, use horizontal rules (`---`) between top-level
 H2 sections. Omit for short docs where separators would dominate.
+
+### Lead line for long sections
+
+Sections of 300+ words open with a one-line bolded summary:
+`**In short:** ...`. Implementation units are exempt — their Goal field is
+already the lead line. A wall of undifferentiated text defers understanding
+and drives readers past the section; the bolded lead line gives the point
+before the detail.
+
+Tables use descriptive headers, not bare IDs — a column headed `Requirement`
+or `Decision` orients where `R#` forces a lookup. The unit heading convention
+(`### U1. Name`) is unchanged.
 
 ### Tables for genuinely comparative info only
 

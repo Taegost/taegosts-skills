@@ -4,7 +4,7 @@ description: "Index of documentation in docs/plans/."
 status: active
 version: "1.0"
 created: 2026-07-08
-last-updated: 2026-11-19
+last-updated: 2026-11-20
 owner: wave-2-dispatch-index-automation
 dependencies: []
 tags: [index]
@@ -24,3 +24,4 @@ Paths below are relative to this index's directory. On Claude Code marketplace i
 | [2026-09-09-001-fix-repo-documentation-review-plan.md](./2026-09-09-001-fix-repo-documentation-review-plan.md) | Run a repo-wide documentation review for Issue #119: validate every documented standard, concept, and best practice against current reality; trust-classify every directive (external best-practice v... |
 | [2026-10-05-001-split-ratification-csv-plan.md](./2026-10-05-001-split-ratification-csv-plan.md) | The issue #119 ratification workflow (branch `docs/119-repo-documentation-review`) needs `ratification-decisions.csv` (repo root, 761 rows) split into smaller per-audit-surface files under `resourc... |
 | [2026-11-19-001-fix-doc-review-question-self-containment-plan.md](./2026-11-19-001-fix-doc-review-question-self-containment-plan.md) | Rewrite the ts-doc-review interactive walk-through so every blocking decision question carries the complete information needed to answer it: the full finding inside the per-finding question, findin... |
+| [ts-audhd-retrofit-instructions.md](./ts-audhd-retrofit-instructions.md) | **For:** a coding agent working in `taegost/taegosts-skills` (clone: https://github.com/taegost/taegosts-skills) **Skills touched:** `ts-plan`, `ts-doc-review` (primarily their SKILL.md and `refere... |

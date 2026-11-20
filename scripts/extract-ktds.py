@@ -85,10 +85,18 @@ def extract_ktds(section_content: str) -> list[dict]:
         re.IGNORECASE
     )
 
+    # Pattern for decision-log (D-entry) headings: a level-4 heading whose
+    # title starts with a scoped decision ID (<section>.D<sequence>, e.g.
+    # KTD1.D1, U3.D2). Per the decision-log rules these live inside the KTD
+    # section for plan-wide decisions; their text and file references belong
+    # to the decision log, not to any KTD's spec.
+    dentry_pattern = re.compile(r'^####\s+\S+\.D\d+\b', re.MULTILINE)
+
     # Split content into paragraphs
     paragraphs = re.split(r'\n\s*\n', section_content)
 
     current_ktd = None
+    in_dentry = False
 
     for para in paragraphs:
         para = para.strip()
@@ -98,6 +106,9 @@ def extract_ktds(section_content: str) -> list[dict]:
         # Check if this paragraph starts a new KTD
         heading_match = heading_pattern.search(para)
         if heading_match:
+            # A KTD heading always ends any D-entry block before it
+            in_dentry = False
+
             # Save previous KTD if exists
             if current_ktd:
                 ktds.append(current_ktd)
@@ -105,6 +116,13 @@ def extract_ktds(section_content: str) -> list[dict]:
             ktd_id = f"KTD{heading_match.group(1)}"
             ktd_type = (heading_match.group(2) or 'literal').lower()
             ktd_title = heading_match.group(3).strip()
+
+            # A D-entry heading may share this paragraph with KTD text
+            # (no blank line between them) — cut the paragraph there first
+            dmatch = dentry_pattern.search(para)
+            if dmatch:
+                in_dentry = True
+                para = para[:dmatch.start()]
 
             # The spec is everything after the heading in this paragraph
             # plus subsequent paragraphs until the next KTD heading
@@ -122,17 +140,29 @@ def extract_ktds(section_content: str) -> list[dict]:
                 'spec': spec_text,
                 'files': list(file_refs)
             }
-        elif current_ktd:
-            # This paragraph is part of the current KTD's spec
-            if current_ktd['spec']:
-                current_ktd['spec'] += '\n\n' + para
-            else:
-                current_ktd['spec'] = para
+        else:
+            # A D-entry heading ends the current KTD's spec collection:
+            # everything from the heading on belongs to the decision log
+            dmatch = dentry_pattern.search(para)
+            if dmatch:
+                in_dentry = True
 
-            # Extract file references from the spec
-            # Match any backtick-wrapped filename with an extension
-            file_refs = re.findall(r'`([^`]+\.[a-zA-Z0-9]+)`', para)
-            current_ktd['files'].extend(file_refs)
+            if in_dentry:
+                # D-entry body (Decision/Why/Source lines and any text
+                # truncated above) is excluded from every KTD record
+                continue
+
+            if current_ktd and para:
+                # This paragraph is part of the current KTD's spec
+                if current_ktd['spec']:
+                    current_ktd['spec'] += '\n\n' + para
+                else:
+                    current_ktd['spec'] = para
+
+                # Extract file references from the spec
+                # Match any backtick-wrapped filename with an extension
+                file_refs = re.findall(r'`([^`]+\.[a-zA-Z0-9]+)`', para)
+                current_ktd['files'].extend(file_refs)
 
     # Don't forget the last KTD
     if current_ktd:

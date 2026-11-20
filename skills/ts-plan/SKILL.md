@@ -20,6 +20,18 @@ When asking the user a question, use the platform's blocking question tool: `Ask
 
 Ask one question at a time. Prefer a concise single-select choice when natural options exist.
 
+## Conversational Output
+
+These rules govern the three moments `ts-plan` speaks to the user: asking clarifying questions (Phase 2 and the Phase 0 gates), presenting a plan or revision for approval (the scoping synthesis gates and the post-generation menu), and summarizing an applied edit (resume/edit sessions). The conversation carries the same failures as the documents — bare IDs, unnumbered question piles, walls of text, buried completions — so the same mechanisms apply.
+
+1. **Gloss every ID in chat.** Every plan-item ID mentioned in a chat message carries its meaning in place — `U3 (payment retry loop)`. A bare ID in chat costs the same document round-trip it costs on the page.
+2. **Questions are numbered, listed together, blocking first.** When a turn needs multiple questions despite the one-at-a-time default above, number them and list them one after another, the blocking question first. No cap on count — many clear questions beat few crammed ones; interleaved prose buries the actual ask.
+3. **Open every turn with a one-line state recap.** In an ongoing session, each turn opens with one line stating where the work is and what is pending. The reader re-enters the conversation cold; the recap replaces the scrolling they would otherwise do.
+4. **Present the delta, not the artifact.** Presenting a plan or revision for approval shows a summary of what changed since the user's last look, then the ask — never the full document. On first presentation the summary covers the whole plan; it is still a summary. A re-read costs a round-trip the reader will not make; the delta is what they need to judge.
+5. **Confirm applied edits in one line.** After an edit is applied, one line stating what changed and where, before any next question. Buried completions do not register as done.
+
+**Scope:** these rules govern messages a human reads directly. Pipeline/headless and subagent output is exempt — machine consumers need parseability — except that a headless summary destined for the user passes through complete, never summarized away. Structured question tools comply when used as designed: continue numbering across calls, and never compress or truncate a question's context to fit the tool — a truncated question returns a wrong answer; if it does not fit, ask in plain text.
+
 ## Feature Description
 
 <feature_description> #$ARGUMENTS </feature_description>
@@ -69,6 +81,8 @@ If the user references an existing plan file or there is an obvious recent match
 - Read it
 - Confirm whether to update it in place or create a new plan
 - If updating, revise only the still-relevant sections. Plans do not carry per-unit progress state — progress is derived from git by `ts-work`, so there is no progress to preserve across edits
+
+**Log user corrections as D-entries.** Any user correction applied to the plan during an editing session MUST be recorded as a D-entry (format and trigger: "Decision log (D-entries)" in `references/plan-sections.md`) in the same pass as the edit — deferring the log write loses the reason. Before finishing an editing session, verify every user correction from this session has a D-entry with a Why.
 
 **Deepen intent:** The word "deepen" (or "deepening") in reference to a plan is the primary trigger for the deepening fast path. When the user says "deepen the plan", "deepen my plan", "run a deepening pass", or similar, the target document is a **plan** in `docs/plans/`, not a requirements document. Use any path, keyword, or context the user provides to identify the right plan. If a path is provided, verify it is actually a plan document. If the match is not obvious, confirm with the user before proceeding.
 
@@ -386,6 +400,8 @@ See `references/plan-sections.md` for the section catalog including HTD's "inclu
 
 When the plan's approach is a one-paragraph pattern application that prose conveys directly, skip the section. The presence of HTD should earn its keep with content that genuinely benefits from visualization.
 
+Design decisions recorded in this section follow the same D-entry rule as implementation units (Phase 3.5): user decisions, meaning-changing auto-applied review fixes, and non-obvious-reason decisions get a D-entry — a decision whose reason is not in the document gets reverted by a later pass.
+
 Plan diagrams render authoritative content alongside the prose — they are not "directional sketches." Do not add hedging captions like *"directional guidance for review, not implementation specification"* to plan diagrams; the prose-is-authoritative rule already governs disagreement, and the hedging weakens the diagram unnecessarily.
 
 #### 3.4b Output Structure (Optional)
@@ -400,8 +416,8 @@ Each unit is a level-3 heading carrying a stable U-ID prefix matching the format
 
 For each unit, include:
 - **Goal** - what this unit accomplishes
-- **Requirements** - which requirements or success criteria it advances (cite R-IDs, and A/F/AE IDs when origin supplies them)
-- **Dependencies** - what must exist first (cite by U-ID, e.g., "U1, U3")
+- **Requirements** - which requirements or success criteria it advances (cite R-IDs with parenthetical glosses — `R2 (offline support)` — and A/F/AE IDs with glosses when origin supplies them; a bare ID costs the reader a round-trip they will not make)
+- **Dependencies** - what must exist first (cite by U-ID with glosses, e.g., "U1 (auth scaffolding), U3 (token refresh)")
 - **Files** - repo-relative file paths to create, modify, or test (never absolute paths)
 - **Approach** - key decisions, data flow, component boundaries, or integration notes
 - **Execution note** - optional, only for non-default posture (test-first, characterization-first)
@@ -415,6 +431,10 @@ For each unit, include:
 - **Verification** - how an implementer should know the unit is complete, expressed as outcomes rather than shell command scripts
 
 Every feature-bearing unit should include the test file path in `**Files:**`.
+
+**D-entries during unit writing.** When a unit's Approach or fields encode a decision from the user, a meaning-changing fix auto-applied by a reviewer agent, or any decision with a non-obvious reason, record it as a D-entry inside the unit (`#### U3.D1. ...`) rather than bare prose — the reason must travel with the text it governs, or a later pass reverts the constraint. Format, trigger, and Source values: "Decision log (D-entries)" in `references/plan-sections.md`.
+
+**Bare-ID limit in unit fields.** The gloss requirement on the Requirements and Dependencies fields has one allowance: a bare ID is acceptable only within 10 source lines of the item's own definition (full rule: "Glossed references" in `references/plan-sections.md`). Beyond that distance the gloss is required — the reader cannot resolve a far-away ID without a round-trip they will not make.
 
 Use `Execution note` sparingly. Good uses include:
 - `Execution note: Start with a failing integration test for the request/response contract.`
@@ -500,6 +520,9 @@ Before finalizing, check:
 - The plan does not invent product behavior that should have been defined in `ts-brainstorm`
 - If there was no origin document, the bounded planning bootstrap established enough product clarity to plan responsibly
 - Every major decision is grounded in the origin document or research
+- Every user decision and every meaning-changing auto-applied review fix from this session is logged as a D-entry; every decision with a non-obvious reason carries a Why; no user correction is unlogged (trigger and format: "Decision log (D-entries)" in `references/plan-sections.md`)
+- Deletion test on KTDs and Approaches: delete every ID token — is the decision still understandable? If not, rewrite so the sentence carries the meaning and the ID is only a pointer
+- Every cross-reference carries its parenthetical gloss (`U3 (payment retry loop)`) — except bare IDs within the 10-source-line allowance (Phase 3.5 / "Glossed references") — and any finding or edit that would change, remove, or contradict a `Source: user` D-entry says so explicitly
 - Each implementation unit is concrete, dependency-ordered, and implementation-ready
 - If test-first or characterization-first posture was explicit or strongly implied, the relevant units carry it forward with a lightweight `Execution note`
 - Each feature-bearing unit has test scenarios from every applicable category (happy path, edge cases, error paths, integration) — right-sized to the unit's complexity, not padded or skimped
@@ -544,7 +567,7 @@ Extension is always `.md`. Sequence number `NNN` is derived from existing plan f
 
 Compose the plan using the content from `references/plan-sections.md` and the format principles from `references/markdown-rendering.md`.
 
-**Write tight.** A section being material is not license to pad it. Hold every kept section to the prose-economy discipline in `references/plan-sections.md`: one idea per sentence, a requirement or unit is intent plus at most one qualifier, defer forks to Open Questions rather than specifying both arms, resolve superseded text in place rather than stacking strata. Before declaring the plan written, run the named test there — could the implementer find a contradiction in each section in one pass?
+**Write tight.** A section being material is not license to pad it. Hold every kept section to the prose-economy discipline in `references/plan-sections.md`: one idea per sentence, a requirement or unit is intent plus at most one qualifier, defer forks to Open Questions rather than specifying both arms, resolve superseded text in place rather than stacking strata — except superseded decision-log entries, which stay struck through with their Status line ("Decision log (D-entries)" in `references/plan-sections.md`). Before declaring the plan written, run the named test there — could the implementer find a contradiction in each section in one pass?
 
 Confirm (use absolute path so the reference is clickable in modern terminals):
 

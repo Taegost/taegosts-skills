@@ -189,12 +189,17 @@ the precision itself.
 later decision supersedes earlier text, rewrite or remove the original — don't
 leave it standing as strikethrough or stack a separate "resolutions" layer on
 top of it. Version control holds the history. Stacked strata double the reading
-surface and hide which text is live.
+surface and hide which text is live. One recorded exception: the decision log
+(see "Decision log (D-entries)" under ID and content rules). Superseded D-entries
+stay in place, struck through, with a Status line naming their replacement — the
+ledger's reason trail is content, not strata; deleting it is how constraints get
+silently reverted.
 
 **Named test, run before the plan is declared written:** could the implementer
 find a contradiction in each section in one pass? A sentence carrying more than
-one parenthetical, or an item specifying two outcomes, fails the test — split it
-or defer it.
+one parenthetical *aside*, or an item specifying two outcomes, fails the test —
+split it or defer it. ID glosses (`R2 (offline support)`) are not asides —
+glossing is reference resolution, not digression; a sentence may carry several.
 
 ## Plan metadata fields
 
@@ -256,6 +261,25 @@ These apply regardless of rendering format.
   up gaps."
 - **Plain prefix.** `R1.`, `U1.` as bullet prefixes. Do not bold; the prefix
   is visually distinctive on its own.
+- **Glossed references.** When the plan references an item it defines
+  elsewhere, the reference carries a parenthetical gloss naming the item —
+  `U3 (payment retry loop)`, not `U3`; `R2 (offline support requirement)`,
+  not `R2`. A bare ID costs the reader a document round-trip they will not
+  make. Bare IDs are acceptable only within 10 source-markdown lines of the
+  item's own definition (the item's heading starts the count), inside the
+  same `##`/`###` section that defines it. Applies to `R#`, `U#`, `KTD#`,
+  `F#`, `AE#`, and scoped decision IDs (`U3.D2`); a decision sentence stating
+  its substance satisfies this requirement (see the next bullet); the
+  ID-and-title heading format `U3. Payment retry loop` satisfies this where
+  the title is adjacent.
+- **Decisions state substance; IDs are pointers.** Wherever a decision is
+  made or honored (KTDs, unit Approaches, D-entries), the sentence itself
+  carries the decision's meaning; the ID pointer sits in parentheses and
+  never carries the meaning — `Use an alphanumeric-only alphabet (U1.D2)`.
+  A decision sentence in this format satisfies the glossed-reference rule —
+  the sentence is the gloss; the ID pointer is supplementary.
+  Test: delete every ID token; every decision must remain understandable.
+  An approval artifact whose decisions read only as IDs is a rubber stamp.
 - **Repo-relative paths.** Always. Never absolute paths in plan content;
   they break portability across machines, worktrees, teammates.
 - **No process exhaust.** No "captured at Phase X" notes, no `## Next Steps`
@@ -270,6 +294,106 @@ These apply regardless of rendering format.
   the order requirements were discussed. R-IDs stay continuous across groups
   (R1, R2 in the first group; R3, R4 in the second; never restart at R1 per
   group).
+
+### Decision log (D-entries)
+
+Decisions that arrive after the first draft — user corrections, constraints,
+review-driven changes — are recorded as D-entries: stable, append-only blocks
+inside the section they govern. A decision whose reason lives only in
+conversation gets reverted by a later pass that saw the constraint but not
+the why. The KTD section remains the record of original plan-time decisions;
+D-entries record what changed later. The trigger governs whenever a decision
+arrives: original plan-time technical decisions are KTDs, but a user
+constraint or non-obvious decision at any point — including initial drafting —
+that is not recorded as a KTD gets a D-entry.
+
+**Trigger (the single rule, used everywhere):** a D-entry is REQUIRED for
+(a) every decision that came from the user (constraints, corrections,
+walkthrough decisions), (b) every fix a reviewer agent auto-applied that
+changes meaning — not typo, spelling, or formatting fixes, which git history
+already records — and (c) any other decision whose reason is non-obvious.
+Optional otherwise.
+
+**Format:**
+
+```
+#### <section>.D<sequence>. <decision title>
+**Status:** <superseded entries only — always the FIRST line: "superseded by <section>.D<sequence> (<one-line subject>)">
+**Decision:** <what was decided, one sentence>
+**Why:** <the reason in plain words — including reasons stated only in conversation>
+**Source:** <value>, YYYY-MM-DD <context phrase or short user quote>
+```
+
+Rules:
+
+- **Scoped IDs, not flat.** `<section>.D<sequence>` — the prefix is the
+  governing item's ID when it has one (`U3`, `A3`, `KTD1`), otherwise a
+  one-word section name as you would say it in conversation (`Overview.D1`,
+  `Risks.D2`). The sequence restarts at 1 within each section. A scoped ID
+  carries its location, survives inserts, and sorts next to its parent; a
+  flat `D7` renumbers on every insert.
+- **Level-4 headings, always.** Implementation units are level-3 (`### U1.
+  ...`); a level-3 D-entry would sit beside the unit and end it. Level-4
+  nests the entry inside the section it governs.
+- **Never inside a bulleted list.** A heading inside a list breaks the list's
+  rendering. When a D-entry decides a list item (a requirement, a risk), it
+  goes after the list ends, and its Decision line names the item with a
+  gloss.
+- **Placement and timing.** The entry lives INSIDE the section it governs,
+  written in the same editing pass as the change — deferring the log write
+  is how reasons die. Entries travel with their section: an implementer
+  handed one unit receives every constraint that binds it.
+- **Source names who made the decision** — not who found the issue or
+  proposed the fix. Closed list: `user` (a decision the user made or
+  dictated), `plan` (an original plan-time decision), `review agent <Name>`
+  (a fix auto-applied by a named reviewer agent with NO user decision
+  involved — never a bare "review"), `research` (external material). Every
+  Source carries a date taken from the system (`date +%F`), never inferred,
+  plus a context phrase — a plain phrase (`plan discussion`) or a short
+  quote of the user's words. When a reviewer proposes and the user approves,
+  Source is `user` with the agent named in the context phrase
+  (`user, 2026-11-19 approved review agent Feasibility's proposal`).
+- **Stable and append-only.** Superseding an entry never deletes it: the old
+  heading stays, struck through (`~~...~~`), and gains the required
+  `Status:` line as its FIRST line naming the replacement by full scoped ID;
+  its Decision/Why lines stay legible so the history reads coherently.
+- **`Source: user` entries are constraints, not suggestions.** Superseding
+  one is itself a change to a user decision: it requires the user, and the
+  replacement also carries `Source: user` — protection transfers down the
+  chain, so only the live entry needs guarding.
+- **Relationship to KTDs.** Do not convert KTDs into D-entries or duplicate
+  a decision in both. When a D-entry changes what a KTD says, update the KTD
+  text and add a glossed pointer: `KTD3 (database choice) — amended by
+  KTD3.D1 (stay on Postgres, user constraint)`. Plan-wide decisions (no
+  single governing section) get their D-entry in the KTD section, and each
+  affected unit carries a one-line pointer: `Bound by KTD3.D1 (Postgres
+  only, plan-wide)`.
+- **Not process exhaust.** A D-entry is a decision record with a Source, not
+  a provenance note; the no-process-exhaust rule does not suppress it.
+- **Cross-references to D-entries are glossed and flagged.** Any text or
+  finding that would change, remove, or contradict a `Source: user` D-entry
+  says so explicitly — a user-stated constraint must stay visible to every
+  later pass.
+
+**Worked example:**
+
+````markdown
+### U1. Provision service credentials
+**Goal:** Service account gets a generated credential written to the env file.
+**Approach:** Generate a random alphanumeric password (see U1.D2 below for why
+alphanumeric) and write it to `.env.service`.
+
+#### U1.D1. ~~Create a randomly generated password~~
+**Status:** superseded by U1.D2 (alphanumeric only)
+**Decision:** Generate a random password for the service account.
+**Why:** Initial plan-time approach; no alphabet constraint was known yet.
+**Source:** plan, 2026-11-17 initial draft
+
+#### U1.D2. Random alphanumeric password only
+**Decision:** Generated passwords use `[a-zA-Z0-9]` only.
+**Why:** Special characters break quoting in the bash deployment scripts.
+**Source:** user, 2026-11-17 plan discussion
+````
 
 ## Rendering
 
