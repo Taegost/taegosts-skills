@@ -70,6 +70,8 @@ If the user references an existing plan file or there is an obvious recent match
 - Confirm whether to update it in place or create a new plan
 - If updating, revise only the still-relevant sections. Plans do not carry per-unit progress state — progress is derived from git by `ts-work`, so there is no progress to preserve across edits
 
+**Log user corrections as D-entries.** Any user correction applied to the plan during an editing session MUST be recorded as a D-entry (format and trigger: "Decision log (D-entries)" in `references/plan-sections.md`) in the same pass as the edit — deferring the log write loses the reason. Before finishing an editing session, verify every user correction from this session has a D-entry with a Why.
+
 **Deepen intent:** The word "deepen" (or "deepening") in reference to a plan is the primary trigger for the deepening fast path. When the user says "deepen the plan", "deepen my plan", "run a deepening pass", or similar, the target document is a **plan** in `docs/plans/`, not a requirements document. Use any path, keyword, or context the user provides to identify the right plan. If a path is provided, verify it is actually a plan document. If the match is not obvious, confirm with the user before proceeding.
 
 Words like "strengthen", "confidence", "gaps", and "rigor" are NOT sufficient on their own to trigger deepening. These words appear in normal editing requests ("strengthen that section about the diagram", "there are gaps in the test scenarios") and should not cause a holistic deepening pass. Only treat them as deepening intent when the request clearly targets the plan as a whole and does not name a specific section or content area to change — and even then, prefer to confirm with the user before entering the deepening flow.
@@ -386,6 +388,8 @@ See `references/plan-sections.md` for the section catalog including HTD's "inclu
 
 When the plan's approach is a one-paragraph pattern application that prose conveys directly, skip the section. The presence of HTD should earn its keep with content that genuinely benefits from visualization.
 
+Design decisions recorded in this section follow the same D-entry rule as implementation units (Phase 3.5): user decisions, meaning-changing auto-applied review fixes, and non-obvious-reason decisions get a D-entry — a decision whose reason is not in the document gets reverted by a later pass.
+
 Plan diagrams render authoritative content alongside the prose — they are not "directional sketches." Do not add hedging captions like *"directional guidance for review, not implementation specification"* to plan diagrams; the prose-is-authoritative rule already governs disagreement, and the hedging weakens the diagram unnecessarily.
 
 #### 3.4b Output Structure (Optional)
@@ -400,8 +404,8 @@ Each unit is a level-3 heading carrying a stable U-ID prefix matching the format
 
 For each unit, include:
 - **Goal** - what this unit accomplishes
-- **Requirements** - which requirements or success criteria it advances (cite R-IDs, and A/F/AE IDs when origin supplies them)
-- **Dependencies** - what must exist first (cite by U-ID, e.g., "U1, U3")
+- **Requirements** - which requirements or success criteria it advances (cite R-IDs with parenthetical glosses — `R2 (offline support)` — and A/F/AE IDs with glosses when origin supplies them; a bare ID costs the reader a round-trip they will not make)
+- **Dependencies** - what must exist first (cite by U-ID with glosses, e.g., "U1 (auth scaffolding), U3 (token refresh)")
 - **Files** - repo-relative file paths to create, modify, or test (never absolute paths)
 - **Approach** - key decisions, data flow, component boundaries, or integration notes
 - **Execution note** - optional, only for non-default posture (test-first, characterization-first)
@@ -415,6 +419,8 @@ For each unit, include:
 - **Verification** - how an implementer should know the unit is complete, expressed as outcomes rather than shell command scripts
 
 Every feature-bearing unit should include the test file path in `**Files:**`.
+
+**D-entries during unit writing.** When a unit's Approach or fields encode a decision from the user, a meaning-changing fix auto-applied by a reviewer agent, or any decision with a non-obvious reason, record it as a D-entry inside the unit (`#### U3.D1. ...`) rather than bare prose — the reason must travel with the text it governs, or a later pass reverts the constraint. Format, trigger, and Source values: "Decision log (D-entries)" in `references/plan-sections.md`.
 
 Use `Execution note` sparingly. Good uses include:
 - `Execution note: Start with a failing integration test for the request/response contract.`
@@ -500,6 +506,9 @@ Before finalizing, check:
 - The plan does not invent product behavior that should have been defined in `ts-brainstorm`
 - If there was no origin document, the bounded planning bootstrap established enough product clarity to plan responsibly
 - Every major decision is grounded in the origin document or research
+- Every user decision and every meaning-changing auto-applied review fix from this session is logged as a D-entry; every decision with a non-obvious reason carries a Why; no user correction is unlogged (trigger and format: "Decision log (D-entries)" in `references/plan-sections.md`)
+- Deletion test on KTDs and Approaches: delete every ID token — is the decision still understandable? If not, rewrite so the sentence carries the meaning and the ID is only a pointer
+- Every cross-reference carries its parenthetical gloss (`U3 (payment retry loop)`), and any finding or edit that would change, remove, or contradict a `Source: user` D-entry says so explicitly
 - Each implementation unit is concrete, dependency-ordered, and implementation-ready
 - If test-first or characterization-first posture was explicit or strongly implied, the relevant units carry it forward with a lightweight `Execution note`
 - Each feature-bearing unit has test scenarios from every applicable category (happy path, edge cases, error paths, integration) — right-sized to the unit's complexity, not padded or skimped
