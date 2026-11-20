@@ -12,7 +12,7 @@ After `safe_auto` fixes apply and synthesis produces the remaining finding set, 
 
 Use the platform's blocking question tool (see SKILL.md — Interactive mode rules for the per-platform tool list, pre-load step, and fallback conditions). Rendering the routing question as narrative text without the numbered-list fallback is a bug.
 
-**Question text (carries the finding set):** the question is the authoritative carrier of the finding set — the Phase 4 report printed before it is only a transcript duplicate (same rule as "Per-finding presentation" below). Plain text, in this order:
+**Question text (carries the finding set):** the question is the authoritative carrier of the finding set — the Phase 4 report printed before it is only a transcript duplicate (same rule as "Per-finding presentation" below). Above the inline cap the report carries the full findings list as the standard response while the question keeps the capped digest — the cap bounds question text only. Plain text, in this order:
 
 1. Count line: `There are {N} findings awaiting your decision:` — the colon is present only when the findings list follows (over-cap variant ends the line at "decision"). N=1 renders `There is 1 finding awaiting your decision:`.
 2. Findings list — only when N ≤ 4: one line per finding in the compressed one-line format from `references/bulk-preview.md` ("Per-finding line format"), with the plain-English severity word in place of the `[P0]` tag (`must fix` / `should fix` / `consider fixing` / `worth noting` — same mapping as the per-finding substitutions below): `{severity word} {section} — {one-line summary}`, lines near 80 columns.
@@ -72,7 +72,7 @@ Each finding's recommended action has already been normalized by synthesis step 
    Cascade this {action} to all {D} dependents?
    ```
 
-   The question text lists at most 4 dependent lines; above 4, list the first 4 followed by `and {K} more dependents`. The `{D} dependent finding(s)` count line keeps carrying the true total — the cap bounds only the per-dependent lines.
+   The question text lists at most 4 dependent lines; above 4, list the first 4 followed by a remainder line carrying the true count and the omitted dependents' severity counts in plain words, zero tiers omitted — e.g. `and 9 more dependents — 4 must fix, 3 should fix, 2 consider fixing` (mirrors the routing over-cap summary line, so the bulk Cascade option acts on an aggregate-described set exactly as routing options B and C do; `Decide each dependent individually` remains the full-visibility path). The `{D} dependent finding(s)` count line keeps carrying the true total — the cap bounds only the per-dependent lines.
 
 2. Options (two; each description states its effect):
    - `Cascade — apply same action to all dependents` (recommended) — applies the same action to every dependent now; no further questions about them
@@ -94,7 +94,7 @@ When the user picks Apply on a root, do NOT cascade — the premise held, so dep
 
 ## Per-finding presentation
 
-The blocking question is the single authoritative carrier of decision information: every per-finding question contains the complete finding inside its own question text. Text printed before a question collapses while the dialog is open, so the question never relies on anything printed before it. The terminal output block is only a transcript duplicate of the same content, rendered in markdown for readability — never the only place content appears.
+The blocking question is the single authoritative carrier of decision information: every per-finding question contains the complete finding inside its own question text. Text printed before a question collapses while the dialog is open, so the question never relies on anything printed before it. The terminal output block is only a transcript duplicate of the same content, rendered in markdown for readability — never the only place content appears. When a cap has omitted items from the question text, the duplicate also carries the full uncapped set — that is the standard response's role; it still never holds the only copy of anything the question does show.
 
 ### Question text (contains the full finding)
 

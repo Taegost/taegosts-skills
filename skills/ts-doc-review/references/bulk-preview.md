@@ -82,20 +82,20 @@ When no `why_it_matters` is available for a finding (rare — only if agent outp
 
 After the preview body is rendered, ask the user using the platform's blocking question tool (see SKILL.md — Interactive mode rules for the per-platform tool list, pre-load step, and fallback conditions).
 
-**Question text (carries the execution summary):** the preview body printed before the question is only a transcript duplicate — the question text is the authoritative carrier (same rule as `walkthrough.md` "Per-finding presentation"). Open with a plain-text execution summary mirroring the plan's non-empty buckets, each line carrying its count plus the sections it touches:
+**Question text (carries the execution summary):** the preview body printed before the question is only a transcript duplicate — the question text is the authoritative carrier (same rule as `walkthrough.md` "Per-finding presentation"). When the digest caps the question at 4 per-finding lines, the preview body also carries the full uncapped plan — that is its role. Open with a plain-text execution summary mirroring the plan's non-empty buckets, each line carrying its count plus the sections it touches:
 
 ```
 Execution summary:
 Applying {N} — {section}, {section}, {section}
 Appending to Open Questions {N} — {section}, {section}
 Skipping {N} — {section}, {section}
-{severity word} {section} — {one-line summary}
-{severity word} {section} — {one-line summary}
-{severity word} {section} — {one-line summary}
-{severity word} {section} — {one-line summary}
+{action} {severity word} {section} — {one-line summary}
+{action} {severity word} {section} — {one-line summary}
+{action} {severity word} {section} — {one-line summary}
+{action} {severity word} {section} — {one-line summary}
 ```
 
-Bucket lines appear only for non-empty buckets (same omission rule as the preview body); they remain the summary's group headers. After the bucket lines, the summary also carries up to 4 compressed per-finding lines in the routing list format from `references/walkthrough.md` — `{severity word} {section} — {one-line summary}` — covering the highest-severity findings first; above 4, the first 4 followed by `and {K} more findings`. The preview body (the full plan, printed before the question as the transcript duplicate / standard response) stays uncapped — the per-finding lines are the question-text digest, not a replacement for the preview. Name at most 4 sections per bucket, comma-separated; above that, the first 4 followed by `and {K} more sections`. Multiple findings in one section name the section once. "Open Questions" gets a short inline explanation at first use in question text (e.g., "— unresolved items recorded in the document for a later pass") unless an earlier question in this run already explained it.
+Bucket lines appear only for non-empty buckets (same omission rule as the preview body); they remain the summary's group headers. After the bucket lines, the summary also carries up to 4 compressed per-finding lines in the routing list format from `references/walkthrough.md`, prefixed with the finding's action (`apply` / `defer` / `skip`) — `{action} {severity word} {section} — {one-line summary}` — covering the highest-severity findings first; above 4, the first 4 followed by `and {K} more findings`. The action prefix keeps the finding-to-bucket mapping visible when one section has findings in different buckets; the routing question's own inline lines stay action-free because its findings await decision. The preview body (the full plan, printed before the question as the transcript duplicate / standard response) stays uncapped — the per-finding lines are the question-text digest, not a replacement for the preview. Name at most 4 sections per bucket, comma-separated; above that, the first 4 followed by `and {K} more sections`. Multiple findings in one section name the section once. "Open Questions" gets a short inline explanation at first use in question text (e.g., "— unresolved items recorded in the document for a later pass") unless an earlier question in this run already explained it.
 
 Stem (adapted to the path; counts inline, zero-count buckets drop their clause):
 

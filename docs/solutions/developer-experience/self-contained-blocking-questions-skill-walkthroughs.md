@@ -44,7 +44,7 @@ Three earlier approaches failed or were rejected, and are worth recording:
 
 ## Guidance
 
-**The question text is the single authoritative carrier of decision information.** Anything printed before a question is at most a transcript duplicate — it may repeat the question's content, never hold the only copy of it. Since the collapse is a platform property, the fix is to make the collapse harmless by moving all decision-relevant content inside the question.
+**The question text is the single authoritative carrier of decision information.** Anything printed before a question is at most a transcript duplicate — it may repeat the question's content, never hold the only copy of it. When a cap has omitted items from the question, the duplicate also carries the full uncapped set — that is its role. Since the collapse is a platform property, the fix is to make the collapse harmless by moving all decision-relevant content inside the question.
 
 Rules that make question text survive the blocking-question tool's renderer:
 
@@ -59,11 +59,11 @@ Apply the same self-containment at every decision site:
 - **Routing question** always carries the finding set: `There are {N} findings awaiting your decision:`, then at most 4 findings inline in the compressed one-line format (`{severity word} {section} — {one-line summary}`). Above 4, a one-line severity-and-sections summary (severity counts with zero tiers omitted, up to 4 section names, `and {K} more` beyond) precedes the same `A summary is too long to print here — how do you want to handle this?` handback stem. The 4-item cap applies to question text only — the full findings list stays in the Phase 4 report (standard response).
 - **Bulk-preview Proceed/Cancel** carries the execution summary in the question text (counts plus the sections each bucket touches, at most 4 section names per bucket before `and {K} more sections`), with counts inline in the stem.
 - **Phase 5 terminal question** carries the completion summary: `Review complete — {A} applied, {D} deferred, {S} skipped.` (zero-count buckets omitted, `{K} acknowledged` appended when non-zero).
-- **Terminal markdown blocks remain**, shrunk to duplicates: they repeat the question's content rendered in markdown for transcript readability, and add, drop, and rewrite nothing.
+- **Terminal markdown blocks remain**, shrunk to duplicates: they repeat the question's content rendered in markdown for transcript readability, and add, drop, and rewrite nothing — except that when a cap omitted items from the question, the block also carries the full uncapped set (that is its role).
 
 ## Why This Matters
 
-Claude Code's collapse of pre-question text is a platform property — no skill-side wording can make collapsed text readable. The failure was never the question's wording; it was the architecture that placed decision-relevant content outside the question. Moving the complete finding into the question text makes the collapse harmless: whatever is hidden behind the dialog is, by construction, a duplicate.
+Claude Code's collapse of pre-question text is a platform property — no skill-side wording can make collapsed text readable. The failure was never the question's wording; it was the architecture that placed decision-relevant content outside the question. Moving the complete finding into the question text makes the collapse harmless: whatever is hidden behind the dialog is, by construction, a duplicate — or, when a cap omitted items from the question, the standard response carrying the full uncapped set.
 
 Two design-rule heuristics generalize from the false starts: when a spec separates explanation from decision, check what the platform does to pre-dialog output before ratifying the separation; and before adding a second enforcement mechanism (the forbidden-words list), check whether an existing rule already covers the violation.
 
