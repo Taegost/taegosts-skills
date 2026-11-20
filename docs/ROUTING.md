@@ -54,6 +54,7 @@ Documented solutions to past problems, organized by category with YAML frontmatt
 | [solutions/workflow-issues/](solutions/workflow-issues/) | Workflow patterns and resilience |
 | [solutions/documentation-gaps/](solutions/documentation-gaps/) | Documentation lifecycle solutions |
 | [solutions/architecture-patterns/](solutions/architecture-patterns/) | Structural patterns for skills and pipelines |
+| [solutions/developer-experience/](solutions/developer-experience/) | Developer experience and interaction-design solutions |
 
 ## Plans
 
