@@ -46,6 +46,16 @@ State this split and the dependency in both PR descriptions.
 **Why:** The constraint guard (change C5) and walkthrough logging (change C7) depend on the D-entry format that change B1 (decision log) installs; Part C first would force the agent to invent its own format.
 **Source:** user, 2026-11-19 — "I accept your recommendation."
 
+#### Global.D3. Plans are mutable: decisions append as they arrive
+**Decision:** Plans are no longer read-only artifacts; decisions made during execution and review are appended to the plan as D-entries in the same pass, per rule A3.
+**Why:** A plan whose later decisions live only in conversation re-opens the rationale-loss cascade this retrofit exists to stop; the ledger in the plan is the record.
+**Source:** user, 2026-11-20 — "Plans are no longer read-only, they must have the Decisions updated in them as we go along."
+
+#### Global.D4. Scripts and tests are never out of scope
+**Decision:** The Out-of-scope line's `scripts/` and `tests/` exclusions are overridden: any change that alters what a script consumes or a test guards updates that script and its tests in the same change — safety nets are never sidelined.
+**Why:** Stale scripts and tests break every safety net downstream; the extractor's D-entry absorption (found in PR 225 review) shipped only because the plan sidelined them.
+**Source:** user, 2026-11-20 — "ALWAYS update scripts, if we don't all of our safety nets are going to break."
+
 ## Non-goals
 
 - Do not rename accessibility concepts into cutesy substitutes, and do not remove technical rigor. Dense technical content stays; what changes is how it is structured and referenced.
@@ -62,14 +72,19 @@ Rule IDs are stable; gaps from removed rules are intentional — do not renumber
 **A1. Resolve references in place.**
 Mechanism: working-memory limits (fact 1 in "Why this work exists").
 Rule: when a plan or review document **references** another item (points at it), the reference carries enough words to be understood WITHOUT navigating: `U3 (payment retry loop)`, not `U3`; `R2 (offline support requirement)`, not `R2`. This is the *reference* format: ID first, meaning in parentheses. It is distinct from the *decision* format of rule A2 (the decision, then the pointer) — see A2 for the side-by-side. Bare IDs are only acceptable within the same section where the item is defined, within 10 source-markdown lines of that item's definition (the item's own heading starts the count). "Section" means the nearest enclosing `##` or `###` heading. The ID set this applies to: `R#`, `U#`, `KTD#`, `F#`, `AE#`, and scoped decision IDs (`U3.D2` form).
-Acceptance: scan any generated plan; no bare `R#`/`U#`/`KTD#`/`F#`/`AE#` token — and no bare scoped-decision ID (an `<section>.D<sequence>` reference without its parenthetical gloss) — appears more than 10 source lines away from that item's own definition. ID-and-title format `U3. Payment retry loop` continues to satisfy this where the title is adjacent.
+Acceptance: scan any generated plan; no bare `R#`/`U#`/`KTD#`/`F#`/`AE#` token — and no bare scoped-decision ID (an `<section>.D<sequence>` reference without its parenthetical gloss) — appears more than 10 source lines away from that item's own definition. ID-and-title format `U3. Payment retry loop` continues to satisfy this where the title is adjacent. A decision sentence in the rule A2 format satisfies this — the sentence is the gloss; the ID pointer is supplementary (A1.D1, decision sentence is the gloss).
+
+#### A1.D1. A decision sentence satisfies the gloss requirement
+**Decision:** A decision sentence in the rule A2 format (meaning first, ID pointer in parentheses) satisfies rule A1's gloss requirement — the sentence is the gloss; the ID pointer is supplementary. A bare `(U1.D2)` pointer in a sentence that does not state the decision's substance still requires a gloss.
+**Why:** The A1 acceptance scan, read literally, flagged the A2 example's `(U1.D2)` as a bare ID — a plan following the taught format failed the check; the two rules contradicted each other.
+**Source:** user, 2026-11-20 PR 225 review walkthrough — chose the reconciliation clause for both copies.
 
 **A2. The decision, then the pointer.**
 Mechanism: an approval artifact unread is a rubber stamp (the known failure mode).
 Rule: wherever a **decision** is made or honored (KTDs, unit Approaches, review findings), state the decision's substance in the sentence itself; the ID pointer is supplementary, in parentheses, never the carrier of meaning. This is the *decision* format: meaning first, ID in parentheses. Side by side:
 
 - Reference (rule A1, resolve references in place): `U3 (payment retry loop)` — the ID is the subject; the parenthesis is the meaning.
-- Decision (rule A2, the decision then the pointer): `Use an alphanumeric-only alphabet (U1.D2)` — the meaning is the sentence; the ID is the pointer.
+- Decision (rule A2, the decision then the pointer): `Use an alphanumeric-only alphabet (U1.D2)` — the meaning is the sentence; the ID is the pointer. This format satisfies rule A1's gloss requirement — the sentence is the gloss (A1.D1).
 
 Test: delete every ID token — `U3`, `(U1.D2)`, `KTD4` — keeping the surrounding words. The document must still make its decisions understandable.
 Acceptance: the deletion test, performed on the section that matters (KTDs, Requirements, units).
@@ -201,6 +216,11 @@ Add: sections of 300+ words open with a `**In short:**` bolded line; implementat
 
 **B4. Leave intact (do not "fix" these).**
 Phase 5.3 confidence/deepening machinery, approach-altitude, U-ID stability rules, the markdown-always decision, headless-mode behavior, and the reference/agent prompts under ts-plan. If a change in Part B — B1 (decision log), B2 (reference resolution), B3 (scannability), or B6 (conversational output rules, ts-plan half) — seems to require touching these, stop and note it in the PR description instead of proceeding. Exception: the conversational rules from change B6 may be stated in SKILL.md's phase instructions themselves (they govern how the skill converses); they still do not touch the 5.3 machinery.
+
+#### B4.D1. Deepening 5.3.7 gains the D-entry carve-out in PR 225
+**Decision:** The B4 freeze on the deepening machinery is lifted for one wording change: deepening-workflow.md 5.3.7's "delete superseded text outright" instruction and its allowed-changes bullet carry the decision-log exception, landed in PR 225 rather than deferred.
+**Why:** 5.3.7 governs the editing passes where supersessions concentrate; without the carve-out it deletes struck-through D-entries — the exact rationale-loss cascade this retrofit stops, executed by its own machinery.
+**Source:** user, 2026-11-20 PR 225 review walkthrough — approved amending within the PR.
 
 **B6. Conversational output rules (the ts-plan half of Part F).**
 Files: `skills/ts-plan/SKILL.md` — the interviewing phase (clarifying questions), the plan-presentation moment (presenting a plan or revision for approval), and the post-edit moment (summarizing what changed).

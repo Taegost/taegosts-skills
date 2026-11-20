@@ -197,8 +197,9 @@ silently reverted.
 
 **Named test, run before the plan is declared written:** could the implementer
 find a contradiction in each section in one pass? A sentence carrying more than
-one parenthetical, or an item specifying two outcomes, fails the test — split it
-or defer it.
+one parenthetical *aside*, or an item specifying two outcomes, fails the test —
+split it or defer it. ID glosses (`R2 (offline support)`) are not asides; a
+sentence may carry several.
 
 ## Plan metadata fields
 
@@ -267,12 +268,16 @@ These apply regardless of rendering format.
   make. Bare IDs are acceptable only within 10 source-markdown lines of the
   item's own definition (the item's heading starts the count), inside the
   same `##`/`###` section that defines it. Applies to `R#`, `U#`, `KTD#`,
-  `F#`, `AE#`, and scoped decision IDs (`U3.D2`); the ID-and-title heading
-  format `U3. Payment retry loop` satisfies this where the title is adjacent.
+  `F#`, `AE#`, and scoped decision IDs (`U3.D2`); a decision sentence stating
+  its substance satisfies this requirement (see the next bullet); the
+  ID-and-title heading format `U3. Payment retry loop` satisfies this where
+  the title is adjacent.
 - **Decisions state substance; IDs are pointers.** Wherever a decision is
   made or honored (KTDs, unit Approaches, D-entries), the sentence itself
   carries the decision's meaning; the ID pointer sits in parentheses and
   never carries the meaning — `Use an alphanumeric-only alphabet (U1.D2)`.
+  A decision sentence in this format satisfies the glossed-reference rule —
+  the sentence is the gloss; the ID pointer is supplementary.
   Test: delete every ID token; every decision must remain understandable.
   An approval artifact whose decisions read only as IDs is a rubber stamp.
 - **Repo-relative paths.** Always. Never absolute paths in plan content;
@@ -297,7 +302,10 @@ review-driven changes — are recorded as D-entries: stable, append-only blocks
 inside the section they govern. A decision whose reason lives only in
 conversation gets reverted by a later pass that saw the constraint but not
 the why. The KTD section remains the record of original plan-time decisions;
-D-entries record what changed later.
+D-entries record what changed later. The trigger governs whenever a decision
+arrives: original plan-time technical decisions are KTDs, but a user
+constraint or non-obvious decision at any point — including initial drafting —
+that is not recorded as a KTD gets a D-entry.
 
 **Trigger (the single rule, used everywhere):** a D-entry is REQUIRED for
 (a) every decision that came from the user (constraints, corrections,

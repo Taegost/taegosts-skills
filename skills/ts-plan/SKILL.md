@@ -522,7 +522,7 @@ Before finalizing, check:
 - Every major decision is grounded in the origin document or research
 - Every user decision and every meaning-changing auto-applied review fix from this session is logged as a D-entry; every decision with a non-obvious reason carries a Why; no user correction is unlogged (trigger and format: "Decision log (D-entries)" in `references/plan-sections.md`)
 - Deletion test on KTDs and Approaches: delete every ID token — is the decision still understandable? If not, rewrite so the sentence carries the meaning and the ID is only a pointer
-- Every cross-reference carries its parenthetical gloss (`U3 (payment retry loop)`), and any finding or edit that would change, remove, or contradict a `Source: user` D-entry says so explicitly
+- Every cross-reference carries its parenthetical gloss (`U3 (payment retry loop)`) — except bare IDs within the 10-source-line allowance (Phase 3.5 / "Glossed references") — and any finding or edit that would change, remove, or contradict a `Source: user` D-entry says so explicitly
 - Each implementation unit is concrete, dependency-ordered, and implementation-ready
 - If test-first or characterization-first posture was explicit or strongly implied, the relevant units carry it forward with a lightweight `Execution note`
 - Each feature-bearing unit has test scenarios from every applicable category (happy path, edge cases, error paths, integration) — right-sized to the unit's complexity, not padded or skimped
@@ -567,7 +567,7 @@ Extension is always `.md`. Sequence number `NNN` is derived from existing plan f
 
 Compose the plan using the content from `references/plan-sections.md` and the format principles from `references/markdown-rendering.md`.
 
-**Write tight.** A section being material is not license to pad it. Hold every kept section to the prose-economy discipline in `references/plan-sections.md`: one idea per sentence, a requirement or unit is intent plus at most one qualifier, defer forks to Open Questions rather than specifying both arms, resolve superseded text in place rather than stacking strata. Before declaring the plan written, run the named test there — could the implementer find a contradiction in each section in one pass?
+**Write tight.** A section being material is not license to pad it. Hold every kept section to the prose-economy discipline in `references/plan-sections.md`: one idea per sentence, a requirement or unit is intent plus at most one qualifier, defer forks to Open Questions rather than specifying both arms, resolve superseded text in place rather than stacking strata — except decision-log entries, which stay struck through with their Status line ("Decision log (D-entries)" in `references/plan-sections.md`). Before declaring the plan written, run the named test there — could the implementer find a contradiction in each section in one pass?
 
 Confirm (use absolute path so the reference is clickable in modern terminals):
 
