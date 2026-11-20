@@ -25,12 +25,12 @@ Ask one question at a time. Prefer a concise single-select choice when natural o
 These rules govern the three moments `ts-plan` speaks to the user: asking clarifying questions (Phase 2 and the Phase 0 gates), presenting a plan or revision for approval (the scoping synthesis gates and the post-generation menu), and summarizing an applied edit (resume/edit sessions). The conversation carries the same failures as the documents — bare IDs, unnumbered question piles, walls of text, buried completions — so the same mechanisms apply.
 
 1. **Gloss every ID in chat.** Every plan-item ID mentioned in a chat message carries its meaning in place — `U3 (payment retry loop)`. A bare ID in chat costs the same document round-trip it costs on the page.
-2. **Questions are numbered, listed together, blocking first.** When a turn genuinely needs multiple questions despite the one-at-a-time default above, number them and list them one after another, the blocking question first. No cap on count — many clear questions beat few crammed ones; interleaved prose buries the actual ask.
+2. **Questions are numbered, listed together, blocking first.** When a turn needs multiple questions despite the one-at-a-time default above, number them and list them one after another, the blocking question first. No cap on count — many clear questions beat few crammed ones; interleaved prose buries the actual ask.
 3. **Open every turn with a one-line state recap.** In an ongoing session, each turn opens with one line stating where the work is and what is pending. The reader re-enters the conversation cold; the recap replaces the scrolling they would otherwise do.
 4. **Present the delta, not the artifact.** Presenting a plan or revision for approval shows a summary of what changed since the user's last look, then the ask — never the full document. On first presentation the summary covers the whole plan; it is still a summary. A re-read costs a round-trip the reader will not make; the delta is what they need to judge.
 5. **Confirm applied edits in one line.** After an edit is applied, one line stating what changed and where, before any next question. Buried completions do not register as done.
 
-**Scope:** these rules govern messages a human reads directly. Pipeline/headless and subagent output is exempt — machine consumers need parseability — except that a headless summary destined for the user passes through complete, never summarized away.
+**Scope:** these rules govern messages a human reads directly. Pipeline/headless and subagent output is exempt — machine consumers need parseability — except that a headless summary destined for the user passes through complete, never summarized away. Structured question tools comply when used as designed: continue numbering across calls, and never compress or truncate a question's context to fit the tool — a truncated question returns a wrong answer; if it does not fit, ask in plain text.
 
 ## Feature Description
 
@@ -433,6 +433,8 @@ For each unit, include:
 Every feature-bearing unit should include the test file path in `**Files:**`.
 
 **D-entries during unit writing.** When a unit's Approach or fields encode a decision from the user, a meaning-changing fix auto-applied by a reviewer agent, or any decision with a non-obvious reason, record it as a D-entry inside the unit (`#### U3.D1. ...`) rather than bare prose — the reason must travel with the text it governs, or a later pass reverts the constraint. Format, trigger, and Source values: "Decision log (D-entries)" in `references/plan-sections.md`.
+
+**Bare-ID limit in unit fields.** The gloss requirement on the Requirements and Dependencies fields has one allowance: a bare ID is acceptable only within 10 source lines of the item's own definition (full rule: "Glossed references" in `references/plan-sections.md`). Beyond that distance the gloss is required — the reader cannot resolve a far-away ID without a round-trip they will not make.
 
 Use `Execution note` sparingly. Good uses include:
 - `Execution note: Start with a failing integration test for the request/response contract.`

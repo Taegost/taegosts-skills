@@ -322,8 +322,8 @@ Rules:
   governing item's ID when it has one (`U3`, `A3`, `KTD1`), otherwise a
   one-word section name as you would say it in conversation (`Overview.D1`,
   `Risks.D2`). The sequence restarts at 1 within each section. A scoped ID
-  carries its own location, survives inserts, and sorts next to its parent;
-  a flat `D7` has no address and renumbers on every insert.
+  carries its location, survives inserts, and sorts next to its parent; a
+  flat `D7` renumbers on every insert.
 - **Level-4 headings, always.** Implementation units are level-3 (`### U1.
   ...`); a level-3 D-entry would sit beside the unit and end it. Level-4
   nests the entry inside the section it governs.
