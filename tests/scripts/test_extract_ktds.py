@@ -20,6 +20,12 @@ Covers the public surface directly (no subprocess):
 - the U3 emitted shape — active D-entry headings plus a superseded entry
   whose heading is struck through — parses with no extractor changes, and
   no D-entry text reaches any KTD's spec
+- list-item KTD formats parse alongside the bold heading format: the
+  bold-wrapped decision ("- KTDn. **decision.** rationale" — spec is the
+  bold text alone, rationale excluded, files from the full line) and the
+  bare remainder format ("- KTD-n [type] spec" — hyphenated ID normalized,
+  no bold wrapper); a D-entry heading on the line right after a list item
+  is absorbed, and bold and list entries coexist in order
 
 Import bootstrap mirrors tests/scripts/test_update_indexes.py: the script's
 filename is hyphenated (not a valid module name), so it is loaded directly
@@ -199,3 +205,99 @@ def test_section_without_dentries_unchanged():
     assert ktds[0]["type"] == "literal"
     assert ktds[1]["type"] == "behavioral"
     assert ktds[0]["files"] == ["src/a.py"]
+
+
+def test_list_format_bold_decision_parses():
+    # Format A (2026-11-24 gloss/D-entry plan): "- KTD1. **decision.**
+    # rationale" — the spec is the bold decision alone (literal checks do
+    # exact string comparison and implementers quote the decision, not the
+    # rationale); files come from the full line, rationale included
+    content = _section(
+        "- KTD1. **Render rules live once.** Cross-read from `refs/rules.md`; copies drift.\n"
+        "- KTD2. **Glossing is idempotent.** Two passes double-gloss.\n"
+    )
+
+    ktds = extract_ktds(find_ktd_section(content))
+    assert [k["id"] for k in ktds] == ["KTD1", "KTD2"]
+    assert ktds[0]["spec"] == "Render rules live once."
+    assert "Copies drift" not in ktds[0]["spec"]
+    assert ktds[0]["title"] == ""
+    assert ktds[0]["type"] == "literal"
+    assert ktds[0]["files"] == ["refs/rules.md"]
+    assert ktds[1]["spec"] == "Glossing is idempotent."
+
+
+def test_list_format_bold_decision_with_behavioral_marker():
+    content = _section(
+        "- KTD2 [behavioral]. **Gate fires once per batch.** Re-classification drifts.\n"
+    )
+
+    ktds = extract_ktds(find_ktd_section(content))
+    assert len(ktds) == 1
+    assert ktds[0]["id"] == "KTD2"
+    assert ktds[0]["type"] == "behavioral"
+    assert ktds[0]["spec"] == "Gate fires once per batch."
+    assert "Re-classification" not in ktds[0]["spec"]
+
+
+def test_list_format_hyphenated_id_with_marker():
+    # Format B (2026-11-19 self-containment plan): "- KTD-1 [behavioral]
+    # spec ... rationale" — no bold wrapper, so decision and rationale stay
+    # together in the spec; the hyphenated ID normalizes to KTD1
+    content = _section(
+        "- KTD-1 [behavioral] Question text carries the decision; the transcript duplicates it. "
+        "Rationale: pre-question text is collapsed.\n"
+    )
+
+    ktds = extract_ktds(find_ktd_section(content))
+    assert len(ktds) == 1
+    assert ktds[0]["id"] == "KTD1"
+    assert ktds[0]["type"] == "behavioral"
+    assert ktds[0]["spec"].startswith("Question text carries the decision")
+    assert "Rationale: pre-question text is collapsed." in ktds[0]["spec"]
+    assert ktds[0]["title"] == ""
+
+
+def test_list_format_unmarked_defaults_literal():
+    content = _section(
+        "- KTD-7 Keep the existing suites green. Rationale: no new tooling.\n"
+    )
+
+    ktds = extract_ktds(find_ktd_section(content))
+    assert len(ktds) == 1
+    assert ktds[0]["id"] == "KTD7"
+    assert ktds[0]["type"] == "literal"
+    assert ktds[0]["spec"] == "Keep the existing suites green. Rationale: no new tooling."
+
+
+def test_dentry_heading_after_list_ktd_without_blank_line():
+    # The D-entry heading follows the list line with no blank line — one
+    # paragraph; the cut must happen at the heading, before spec extraction
+    content = _section(
+        "- KTD1. **Render rules live once.** Copies drift.\n"
+        "#### KTD1.D1. Where the rule lives\n"
+        "**Decision:** The rule lives in the walkthrough.\n"
+    )
+
+    ktds = extract_ktds(find_ktd_section(content))
+    assert len(ktds) == 1
+    assert ktds[0]["spec"] == "Render rules live once."
+    assert "walkthrough" not in ktds[0]["spec"]
+    assert ktds[0]["files"] == []
+
+
+def test_mixed_bold_and_list_formats_order_preserved():
+    content = _section(
+        "**KTD1. Alpha approach.** Offset breaks.\n\n"
+        "- KTD2. **Bold-wrapped decision.** Rationale tail.\n"
+        "- KTD-3 [behavioral] Remainder spec. Rationale: compact.\n\n"
+        "**KTD4. Delta approach.** Stable ordering.\n"
+    )
+
+    ktds = extract_ktds(find_ktd_section(content))
+    assert [k["id"] for k in ktds] == ["KTD1", "KTD2", "KTD3", "KTD4"]
+    assert ktds[0]["spec"] == "Offset breaks."
+    assert ktds[1]["spec"] == "Bold-wrapped decision."
+    assert ktds[2]["type"] == "behavioral"
+    assert ktds[2]["spec"] == "Remainder spec. Rationale: compact."
+    assert ktds[3]["spec"] == "Stable ordering."

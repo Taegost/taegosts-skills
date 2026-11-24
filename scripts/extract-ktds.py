@@ -20,6 +20,21 @@ KTD heading format:
     **KTDN. Title.**          (old format, defaults to [literal])
 
 Where N is a number, [type] is literal or behavioral, and Title is free text.
+
+List-item formats are also recognized — a paragraph starting with "- KTD":
+
+    - KTDN. **Decision sentence.** rationale tail
+    - KTDN [type]. **Decision sentence.** rationale tail
+
+The bold-wrapped decision is the spec; the trailing rationale is excluded
+(literal KTD verification does exact string comparison). Title is empty and
+file references come from the full line. Without a bold wrapper:
+
+    - KTD-N [type] spec text and rationale
+
+the ID may be hyphenated (KTD-1 normalizes to KTD1) and the whole remainder
+after the ID and marker is the spec. An omitted type marker defaults to
+[literal] in both list formats.
 """
 
 import json
@@ -85,6 +100,18 @@ def extract_ktds(section_content: str) -> list[dict]:
         re.IGNORECASE
     )
 
+    # Pattern for list-item KTD entries (a paragraph line starting with
+    # "- KTD"), recognized alongside the bold heading format:
+    # - KTD1. **Decision.** rationale      (bold-wrapped decision)
+    # - KTD-1 [behavioral] spec rationale  (hyphenated ID, no bold wrapper)
+    # The ID may be hyphenated (normalized below); the type marker is
+    # optional and defaults to literal; the entry ends at the next period
+    # (bold format) or whitespace (bare format).
+    list_pattern = re.compile(
+        r'^-\s+KTD-?(\d+)(?:\s*\[(literal|behavioral)\])?[.\s]',
+        re.IGNORECASE | re.MULTILINE
+    )
+
     # Pattern for decision-log (D-entry) headings: a level-4 heading whose
     # title starts with a scoped decision ID (<section>.D<sequence>, e.g.
     # KTD1.D1, U3.D2). Per the decision-log rules these live inside the KTD
@@ -93,7 +120,23 @@ def extract_ktds(section_content: str) -> list[dict]:
     dentry_pattern = re.compile(r'^####\s+\S+\.D\d+\b', re.MULTILINE)
 
     # Split content into paragraphs
-    paragraphs = re.split(r'\n\s*\n', section_content)
+    raw_paragraphs = re.split(r'\n\s*\n', section_content)
+
+    # A markdown list carries no blank lines between items, so one paragraph
+    # can hold several list-format KTDs (plus any interleaved prose). Split
+    # each such paragraph at every list KTD line start so items are handled
+    # one at a time, in order; text between items keeps its own segment and
+    # still appends to the preceding KTD's spec.
+    paragraphs = []
+    for raw in raw_paragraphs:
+        starts = [m.start() for m in list_pattern.finditer(raw)]
+        if not starts:
+            paragraphs.append(raw)
+            continue
+        bounds = starts if starts[0] == 0 else [0] + starts
+        for i, bound in enumerate(bounds):
+            end = bounds[i + 1] if i + 1 < len(bounds) else len(raw)
+            paragraphs.append(raw[bound:end])
 
     current_ktd = None
     in_dentry = False
@@ -105,7 +148,61 @@ def extract_ktds(section_content: str) -> list[dict]:
 
         # Check if this paragraph starts a new KTD
         heading_match = heading_pattern.search(para)
-        if heading_match:
+
+        # A paragraph beginning with a list-format marker starts a KTD too;
+        # the list match wins so a decision sentence that itself opens with
+        # "KTD..." inside the bold wrapper is not misread as a bold heading
+        list_match = list_pattern.match(para)
+
+        if list_match:
+            # A list-format KTD always ends any D-entry block before it
+            in_dentry = False
+
+            # Save previous KTD if exists
+            if current_ktd:
+                ktds.append(current_ktd)
+
+            # The hyphenated ID form (KTD-1) normalizes here
+            ktd_id = f"KTD{list_match.group(1)}"
+            ktd_type = (list_match.group(2) or 'literal').lower()
+
+            # A D-entry heading may share this paragraph with the list line
+            # (no blank line between them) — cut the paragraph there first,
+            # mirroring the bold-format handling
+            dmatch = dentry_pattern.search(para)
+            if dmatch:
+                in_dentry = True
+                para = para[:dmatch.start()]
+
+            remainder = para[list_match.end():].strip()
+
+            bold_match = re.match(r'\*\*(.*?)\*\*', remainder)
+            if bold_match:
+                # Bold-wrapped decision ("- KTD1. **Decision.** rationale"):
+                # the spec is the bold decision alone — literal KTD checks
+                # do exact string comparison, and implementers quote the
+                # decision, not the trailing rationale. Title stays empty;
+                # file references below still come from the full line.
+                spec_text = bold_match.group(1).strip()
+            else:
+                # Bare format ("- KTD-1 [behavioral] spec ... rationale"):
+                # decision and rationale are not separable without a bold
+                # wrapper, so the whole remainder is the spec.
+                spec_text = remainder
+
+            # Extract file references from the full list line (bold and
+            # rationale alike)
+            # Match any backtick-wrapped filename with an extension
+            file_refs = re.findall(r'`([^`]+\.[a-zA-Z0-9]+)`', para)
+
+            current_ktd = {
+                'id': ktd_id,
+                'type': ktd_type,
+                'title': '',
+                'spec': spec_text,
+                'files': list(file_refs)
+            }
+        elif heading_match:
             # A KTD heading always ends any D-entry block before it
             in_dentry = False
 
