@@ -227,9 +227,33 @@ Cross-session persistence (a *new* invocation of ts-doc-review after the prior o
 
 After the loop terminates — either every finding has been answered, or the user took `Auto-resolve with best judgment on the rest → Proceed` — the walk-through hands off to the execution phase:
 
-1. **Apply set:** in a single pass, the orchestrator applies every accumulated Apply-set finding's `suggested_fix` to the document. Document edits happen inline via the platform's edit tool — ts-doc-review has no batch-fixer subagent (per scope boundary); the orchestrator performs the edits directly, since `gated_auto` and `manual` fixes for documents are single-file markdown changes with no cross-file dependencies. **Defensive no-fix check:** before dispatching the edit for each Apply-set entry, verify the merged finding carries a `suggested_fix`. If it does not (the decision-time no-fix guard in "Per-finding routing" should prevent this, but treat it as a defensive fallback), skip the edit, record the finding in the completion report's failure section with reason `Apply skipped — no suggested_fix available`, and continue the batch. Do not fail the entire pass because one Apply-set entry lacks a fix.
+1. **Apply set:** in a single pass, the orchestrator applies every accumulated Apply-set finding's `suggested_fix` to the document. Document edits happen inline via the platform's edit tool — ts-doc-review has no batch-fixer subagent (per scope boundary); the orchestrator performs the edits directly, since `gated_auto` and `manual` fixes for documents are single-file markdown changes with no cross-file dependencies. **Defensive no-fix check:** before dispatching the edit for each Apply-set entry, verify the merged finding carries a `suggested_fix`. If it does not (the decision-time no-fix guard in "Per-finding routing" should prevent this, but treat it as a defensive fallback), skip the edit, record the finding in the completion report's failure section with reason `Apply skipped — no suggested_fix available`, and continue the batch. Do not fail the entire pass because one Apply-set entry lacks a fix. On a plan-classified document (see "D-entry emission in the batch pass" below), each landed edit is followed in the same pass by its D-entry write — the pairing is part of this batch, not a separate pass.
 2. **Defer set:** already executed inline during the walk-through via `references/open-questions-defer.md`. Nothing to dispatch here.
 3. **Skip:** no-op.
+
+### D-entry emission in the batch pass
+
+Read the D-entry format, the Source closed list, and the supersession mechanics from `${CLAUDE_PLUGIN_ROOT}/skills/ts-plan/references/plan-sections.md` ("Decision log (D-entries)"), together with its glossed-references rule. Sibling skills sit side by side under the plugin root in both the repository checkout and the marketplace cache, so this path resolves in both; on a platform where `${CLAUDE_PLUGIN_ROOT}` is unset or the file is missing, say so visibly and fall back per the plugin path-resolution rule (`docs/solutions/tooling-decisions/claude-code-plugin-script-path-resolution.md`) — never silently skip the contract read, because an unread contract is an unenforced one. Emission scope, recorded here where the two contracts meet: Apply edits and meaning-changing fixes emit D-entries; Defer's durable record is its Open Questions entry (already appended inline during the walk-through), and Skip and Acknowledge stay in the decision list and completion report — they stage no content change, so the ledger has nothing to record.
+
+**Classification gate.** Consult the Phase 1 document classification once at batch start: emission fires only for `plan`-classified documents, and the gate never re-classifies — it reads the same settled Phase 1 result the primer and routing already used, so the ledger and the review cannot disagree about what kind of document they edited. Requirements-classified documents take the batch edits only: no D-entries are written, and the completion report omits the D-entry line.
+
+**Per-edit mechanics.** After each Apply-set edit lands, emit its D-entry into the section the edit touched, in the same pass:
+
+- **Prefix** — take the section prefix from the governing heading or unit ID where the edit landed, read from the document's live structure, never from the finding's `section` string: `section` is free text and can name a location the headings do not carry, while a scoped ID must match the document's real structure.
+- **Sequence** — scan the section's live D-entry headings at emission time and continue after the highest number present, so a second round on the same section keeps numbering monotonic without renumbering anything.
+- **Source** — `user`, with the originating reviewer named in the context phrase (e.g., `user, <date> approved review agent coherence's proposal`): the user made the decision, and naming whose proposal they approved keeps the ledger auditable.
+- **Date** — run `date +%F` at emission; never infer the date from session memory or the document.
+
+**Re-read before every write.** The batch pass extends the concurrent-edit discipline from `references/open-questions-defer.md`: re-read the document from disk before each edit-and-entry pair, not once at batch start — the user may be editing alongside a long batch, and a stale read would clobber their changes.
+
+**Failure paths.**
+
+- **Edit fails** — record the finding in the completion report's failure section, emit no D-entry for it, and continue the batch: an entry for an edit that did not land would record a decision the document does not carry.
+- **D-entry write fails after the edit landed** — retry the write in-pass; on persistent failure, surface it prominently in the report's failure section and continue the batch. An edit that landed without its ledger entry is the exact unlogged-change cascade this emission exists to stop, so the failure is never silently skipped.
+
+**Supersession.** Together with the classification gate at batch start, scan the target sections' live D-entries. When an Apply contradicts an existing entry, supersede it per plan-sections — old heading struck through, `Status:` line first naming the replacement by full scoped ID, Decision/Why lines left legible. A `Source: user` entry supersedes only through a user Apply — this batch is a user decision, so it qualifies — and the replacement entry also carries `Source: user`, because protection transfers down the chain and only the live entry needs guarding.
+
+**KTD obligations carry over** from plan-sections: a plan-wide decision (no single governing section) logs its D-entry in the KTD section and each affected unit carries a glossed one-line pointer; a D-entry that changes what a KTD says updates the KTD text and adds the glossed amendment pointer.
 
 After execution completes, delete the decision-log file for this run id — the walk-through finished normally, so there's nothing left to resume. If a later round of the same session starts a new walk-through (e.g., re-verification after fixes land), it generates a fresh run id and a fresh log rather than reusing the deleted one.
 
@@ -251,7 +275,8 @@ Every terminal path of Interactive mode emits the same completion report structu
 
 - **Per-finding entries:** for every finding the flow touched, a line with — at minimum — title, severity, the action taken (Applied / Deferred / Skipped / Acknowledged), the append location for Deferred entries, a one-line reason for Skipped entries (grounded in the finding's confidence anchor or the one-line `why_it_matters` snippet), and the acknowledgement reason for Acknowledged entries (e.g., `Apply picked but no suggested_fix available`). Any `why_it_matters` snippet reused in a per-finding line carries the same plan-item ID gloss the Substitutions block requires — the report applies the same rule, with no separate wording.
 - **Summary counts by action:** totals per bucket (e.g., `4 applied, 2 deferred, 2 skipped`). Include an `acknowledged` count when any entries land in that bucket; omit the label when the count is zero.
-- **Failures called out explicitly:** any Apply that failed (e.g., document write error, or the defensive no-fix fallback skipping an Apply-set entry), any Open-Questions append that failed. Failures surface above the per-finding list so they are not missed.
+- **D-entry line:** when the run emitted D-entries, a line listing the count and the scoped IDs (e.g., `Decision entries written: 3 — U2.D1, KTD1.D1, Risks.D2`), rendered alongside the summary counts. The count equals edits that actually landed, never the Apply-set size — a failed edit writes no entry — and the line is omitted entirely when the count is zero, which covers the all-Defer and all-Skip terminals and every requirements-classified run.
+- **Failures called out explicitly:** any Apply that failed (e.g., document write error, or the defensive no-fix fallback skipping an Apply-set entry), any Open-Questions append that failed, and any D-entry write that failed persistently after its edit landed. Failures surface above the per-finding list so they are not missed.
 - **End-of-review verdict:** carried over from Phase 4's Coverage section.
 
 ### Report ordering
@@ -278,8 +303,10 @@ All actionable findings resolved — 3 fixes applied. (2 FYI observations, 1 res
 Verdict: Ready.
 ```
 
+On a plan-classified document whose fixes emitted D-entries, the same one-line summary appends the ledger count and scoped IDs (e.g., `All findings resolved — 3 fixes applied; decision entries: Overview.D1, Risks.D2`), omitted when the count is zero — a requirements document's degenerate line is unchanged.
+
 ---
 
 ## Execution posture
 
-The walk-through is operationally read-only with respect to the project except for four permitted writes: the in-memory Apply set / decision list (managed by the orchestrator), the on-disk decision log (`${TMPDIR:-/tmp}/ts-doc-review-decisions-<run_id>.jsonl`, appended after every finding), the in-doc Open Questions appends (external side effects managed by `references/open-questions-defer.md`), and the end-of-walk-through batch document edits (the orchestrator's final Apply pass). Those agents remain strictly read-only. Unlike `ts-code-review`, there is no fixer subagent — the orchestrator owns the document edit directly.
+The walk-through is operationally read-only with respect to the project except for five permitted writes: the in-memory Apply set / decision list (managed by the orchestrator), the on-disk decision log (`${TMPDIR:-/tmp}/ts-doc-review-decisions-<run_id>.jsonl`, appended after every finding), the in-doc Open Questions appends (external side effects managed by `references/open-questions-defer.md`), the Phase 4 `safe_auto` fix pass (the silent-apply pass in `references/synthesis-and-presentation.md`; on a plan-classified document each meaning-changing fix lands paired with its D-entry), and the end-of-walk-through batch document edits (the orchestrator's final Apply pass, whose landed edits are paired in the same pass with their D-entries on a plan-classified document — emission rides the edit passes, it is not an additional write surface). Those agents remain strictly read-only. Unlike `ts-code-review`, there is no fixer subagent — the orchestrator owns the document edit directly.
