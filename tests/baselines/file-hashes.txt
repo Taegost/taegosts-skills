@@ -1,5 +1,5 @@
 4c79e18ff7bf9a92ae5bdcd8a7214f853c16a2d32bd375bd7d7bcddd11f30fdb  skills/ts-plan/SKILL.md
-8ddd023eab2f27bc1c70ac2c8dff113bf59eea5d3105ce27ed9b15f8f35a17e1  skills/ts-plan/references/plan-handoff.md
+30296021f14bd6984dd42ce20b37312e47954304dc451d282061e33f883981eb  skills/ts-plan/references/plan-handoff.md
 3ecbb227193ffd36d0d5856c5507d851ea635013a3ec9bdc4da7fac23e1d8946  skills/ts-plan/references/plan-sections.md
 b661e552d990143a990dfc4033e78d87957852557b8639cf93dcc68a5687e630  skills/ts-plan/references/synthesis-summary.md
 ffaeb2137aaef0587c6bc9e922c738941faffa2581c59817beb287c2b157e240  skills/ts-plan/references/deepening-workflow.md
