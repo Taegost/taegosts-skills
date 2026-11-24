@@ -136,7 +136,7 @@ def test_dentry_emitted_shape_with_superseded_strikethrough():
         "**Why:** Decodable cursors invite client-side parsing.\n"
         "**Source:** user, 2026-11-20 plan discussion\n\n"
         "#### ~~KTD1.D1.~~ Opaque cursor token\n"
-        "**Status:** superseded by KTD1.D2\n\n"
+        "**Status:** superseded by KTD1.D2 (opaque cursor token)\n\n"
         "#### KTD1.D2. Replacement rule\n"
         "**Decision:** Retry with an idempotency key.\n"
         "**Why:** Duplicate inserts corrupt the offset table.\n"
