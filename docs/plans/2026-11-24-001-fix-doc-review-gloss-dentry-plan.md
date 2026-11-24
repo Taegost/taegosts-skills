@@ -2,6 +2,7 @@
 title: "fix: ts-doc-review render gloss and D-entry emission (#227, #228)"
 type: fix
 date: 2026-11-24
+status: completed
 ---
 
 # fix: ts-doc-review render gloss and D-entry emission (#227, #228)
