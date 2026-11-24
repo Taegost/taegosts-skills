@@ -17,6 +17,9 @@ Covers the public surface directly (no subprocess):
   append to the preceding KTD's spec, and non-D-entry level-4 headings still
   append (unchanged legacy behavior)
 - D-entry bodies split across multiple paragraphs are excluded entirely
+- the U3 emitted shape — active D-entry headings plus a superseded entry
+  whose heading is struck through — parses with no extractor changes, and
+  no D-entry text reaches any KTD's spec
 
 Import bootstrap mirrors tests/scripts/test_update_indexes.py: the script's
 filename is hyphenated (not a valid module name), so it is loaded directly
@@ -119,6 +122,40 @@ def test_dentry_body_across_paragraphs_fully_excluded():
     assert ktds[0]["spec"] == "Offset breaks."
     assert "Parsing invites" not in ktds[0]["spec"]
     assert ktds[1]["spec"] == "Stable ordering."
+
+
+def test_dentry_emitted_shape_with_superseded_strikethrough():
+    # U3 emitted shape (skills/ts-plan/references/plan-sections.md): an
+    # active D-entry, a superseded entry whose heading is struck through
+    # with a Status line naming its replacement, and a second active
+    # entry — parses with no extractor changes; nothing leaks into the spec
+    content = _section(
+        "**KTD1. Alpha approach.** Offset breaks under concurrent inserts.\n\n"
+        "#### KTD1.D1. Opaque cursor token\n"
+        "**Decision:** The cursor is an opaque, signed token.\n"
+        "**Why:** Decodable cursors invite client-side parsing.\n"
+        "**Source:** user, 2026-11-20 plan discussion\n\n"
+        "#### ~~KTD1.D1.~~ Opaque cursor token\n"
+        "**Status:** superseded by KTD1.D2\n\n"
+        "#### KTD1.D2. Replacement rule\n"
+        "**Decision:** Retry with an idempotency key.\n"
+        "**Why:** Duplicate inserts corrupt the offset table.\n"
+    )
+
+    ktds = extract_ktds(find_ktd_section(content))
+    assert [k["id"] for k in ktds] == ["KTD1"]
+    assert ktds[0]["spec"] == "Offset breaks under concurrent inserts."
+    assert ktds[0]["files"] == []
+
+    # No D-entry body text in the spec: active entries' wording, the
+    # supersession wording, and the struck-through marker itself
+    spec = ktds[0]["spec"]
+    assert "Opaque cursor token" not in spec
+    assert "signed token" not in spec
+    assert "Replacement rule" not in spec
+    assert "idempotency key" not in spec
+    assert "superseded by" not in spec
+    assert "~~" not in spec
 
 
 def test_plain_prose_between_ktds_still_appends():
