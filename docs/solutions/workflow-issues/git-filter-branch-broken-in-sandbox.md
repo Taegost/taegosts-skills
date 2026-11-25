@@ -27,11 +27,18 @@ A commit-message rewrite in this repository used `git filter-branch --msg-filter
 
 Treat `--msg-filter` as broken in sandboxed Bash; rebuild with `git commit -F` instead.
 
-Recovery that preserved uncommitted user files:
+Recovery that preserves uncommitted user files. The sequence matters: cherry-picking a commit that already sits at HEAD yields an empty pick, so the rebuild must start below the commits being rewritten:
 
-1. Abandon the rewritten branch tip without touching the working tree: `git reset --keep refs/original/refs/heads/<branch>` — `--keep`, not `--hard`, because `--hard` discards uncommitted user files.
-2. Rebuild sequentially: for each original commit, `git cherry-pick -n <commit>` (no commit) followed by `git commit -F <msgfile>` with the corrected message in a file.
-3. Guard each rebuild against the duplicated `Co-Authored-By` trailer — a message file that already carries the trailer plus an appending commit template produces it twice.
+1. Save the original tip under a stable name: `git branch msgfix-source refs/original/refs/heads/<branch>`. Every later cherry-pick names its commit from this ref, never from the branch itself.
+2. Record any staged selection before resetting — `reset --keep` resets the index, so a partially staged file keeps its content in the working tree but loses what was staged. A local change to a file that differs between HEAD and the reset target aborts the reset outright (a safe outcome — nothing moves, the staged selection survives). Save `git diff --cached --name-only` (and per-file `git diff --cached` where partial staging matters) and re-stage from it after the rebuild.
+3. Move the branch below the range to rewrite without touching the working tree: `git reset --keep msgfix-source~<n>` — `--keep`, not `--hard`, because `--hard` discards uncommitted user files.
+4. Rebuild sequentially: for each original commit, oldest first, `git cherry-pick -n msgfix-source~<k>` (no commit, commit named from the source ref) followed by `git commit -F <msgfile>` with the corrected message in a file.
+5. Guard each rebuild against the duplicated `Co-Authored-By` trailer — a message file that already carries the trailer plus an appending commit template produces it twice.
+
+Two applicability limits:
+
+- Linear history only: `git cherry-pick -n` on a merge commit fails without a `-m <mainline>` flag, and adding the mainline flattens the merge instead of preserving its parents. When the rewritten range contains merges, stop and use a merge-preserving rebuild method for those commits instead of this procedure.
+- Uncommitted overlap: if an uncommitted user change touches a file a replayed commit also modifies, the cherry-pick stops to protect that change. Run the rebuild in an isolated worktree (`git worktree add`) or temporarily shelve the overlapping change, then restore it afterwards.
 
 ## Why This Matters
 
@@ -55,9 +62,12 @@ git filter-branch --msg-filter '...' -- <range>
 The rebuild, per commit:
 
 ```bash
-git reset --keep refs/original/refs/heads/<branch>
-git cherry-pick -n <commit>
+git branch msgfix-source refs/original/refs/heads/<branch>
+git diff --cached --name-only > /tmp/staged.txt   # reset --keep clears staged selections
+git reset --keep msgfix-source~<n>                # --keep, never --hard: preserves uncommitted files
+git cherry-pick -n msgfix-source~<k>              # commit from the source ref, oldest first
 git commit -F <msgfile>   # corrected message; watch for duplicated Co-Authored-By trailer
+git add $(cat /tmp/staged.txt)   # restore the recorded staged selection (per-file diffs for partial staging)
 ```
 
 ## Related
