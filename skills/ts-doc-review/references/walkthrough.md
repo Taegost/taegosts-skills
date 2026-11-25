@@ -240,7 +240,7 @@ Read the D-entry format, the Source closed list, and the supersession mechanics 
 **Per-edit mechanics.** After each Apply-set edit lands, emit its D-entry into the section the edit touched, in the same pass:
 
 - **Prefix** — take the section prefix from the governing heading or unit ID where the edit landed, read from the document's live structure, never from the finding's `section` string: `section` is free text and can name a location the headings do not carry, while a scoped ID must match the document's real structure.
-- **Sequence** — scan the section's live D-entry headings at emission time and continue after the highest number present, so a second round on the same section keeps numbering monotonic without renumbering anything.
+- **Sequence** — scan the section's D-entry headings at emission time — superseded struck-through entries included — and continue after the highest number present, so a second round on the same section keeps numbering monotonic without renumbering anything.
 - **Source** — `user`, with the originating reviewer named in the context phrase (e.g., `user, <date> approved review agent coherence's proposal`): the user made the decision, and naming whose proposal they approved keeps the ledger auditable.
 - **Date** — run `date +%F` at emission; never infer the date from session memory or the document.
 

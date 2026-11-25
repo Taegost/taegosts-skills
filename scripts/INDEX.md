@@ -4,7 +4,7 @@ description: "Index of all scripts in scripts/."
 status: active
 version: "1.0"
 created: 2026-07-08
-last-updated: 2026-11-20
+last-updated: 2026-11-25
 owner: wave-2-dispatch-index-automation
 dependencies: []
 tags: [index, scripts]

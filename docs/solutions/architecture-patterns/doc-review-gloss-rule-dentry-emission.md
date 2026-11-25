@@ -116,8 +116,6 @@ Completion-report ledger line (omitted at zero):
 Decision entries written: 3 — U2.D1, KTD1.D1, Risks.D2
 ```
 
-Cautionary example — history rewrite in a sandboxed shell: `git filter-branch --msg-filter` produced empty messages in this environment (msg-filter stdin broken) and mangled subjects. Recovery that preserved uncommitted user files: `git reset --keep refs/original/refs/heads/<branch>` (not `--hard`), then a sequential rebuild with `git cherry-pick -n <commit>` + `git commit -F <msgfile>` per commit, guarded against the duplicated `Co-Authored-By` trailer. Treat `--msg-filter` as broken in sandboxed Bash; rebuild with `git commit -F` instead.
-
 ## Related
 
 - `docs/solutions/tooling-decisions/claude-code-plugin-script-path-resolution.md` — the `${CLAUDE_PLUGIN_ROOT}` substitution tiers this pattern extends from scripts to reference-doc reads

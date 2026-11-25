@@ -26,6 +26,17 @@ Covers the public surface directly (no subprocess):
   bare remainder format ("- KTD-n [type] spec" — hyphenated ID normalized,
   no bold wrapper); a D-entry heading on the line right after a list item
   is absorbed, and bold and list entries coexist in order
+- a bold-heading KTD on the line directly after a list item (no blank
+  line) is its own entry, not a silently dropped one
+- a soft-wrapped bold decision matches across the newline
+- a bullet starting "KTDn …" inside a D-entry body is body continuation:
+  no phantom KTD, no **Source:** leak into any spec
+- spec purity per format: prose after a bold-format list KTD never appends
+  (spec stays the decision alone); prose interleaved between bare-format
+  list items folds into the item's spec
+- a list-format KTD starting its own paragraph after a completed D-entry
+  body is extracted — only mid-paragraph bullets inside that body are
+  treated as body text
 
 Import bootstrap mirrors tests/scripts/test_update_indexes.py: the script's
 filename is hyphenated (not a valid module name), so it is loaded directly
@@ -301,3 +312,103 @@ def test_mixed_bold_and_list_formats_order_preserved():
     assert ktds[2]["type"] == "behavioral"
     assert ktds[2]["spec"] == "Remainder spec. Rationale: compact."
     assert ktds[3]["spec"] == "Stable ordering."
+
+
+def test_adjacent_bold_heading_after_list_ktd_parsed():
+    # A bold-heading KTD on the line directly after a list-format KTD (no
+    # blank line) shares one raw paragraph; the splitter must cut at the
+    # heading's line start too or the heading entry is silently dropped
+    content = _section(
+        "- KTD1. **First decision.** Rationale.\n"
+        "**KTD2. Second approach.** Second specification.\n"
+    )
+
+    ktds = extract_ktds(find_ktd_section(content))
+    assert [k["id"] for k in ktds] == ["KTD1", "KTD2"]
+    assert ktds[0]["spec"] == "First decision."
+    assert ktds[0]["title"] == ""
+    assert ktds[1]["title"] == "Second approach"
+    assert ktds[1]["spec"] == "Second specification."
+
+
+def test_list_bold_decision_spans_wrapped_lines():
+    # A soft-wrapped bold decision crosses a newline; the bold match needs
+    # re.DOTALL or the fallback records the delimiters and rationale as the
+    # spec, breaking literal exact-string checks
+    content = _section(
+        "- KTD1. **Soft-wrapped decision spanning\n two lines.** Rationale tail.\n"
+    )
+
+    ktds = extract_ktds(find_ktd_section(content))
+    assert len(ktds) == 1
+    assert ktds[0]["spec"] == "Soft-wrapped decision spanning\n two lines."
+    assert "Rationale tail" not in ktds[0]["spec"]
+
+
+def test_dentry_body_bullet_does_not_create_ktd():
+    # A bullet starting "KTD2 …" inside a D-entry body is body
+    # continuation, not a list-format KTD — no phantom record, and the
+    # following **Source:** line must not leak into any spec
+    content = _section(
+        "**KTD1. Offset approach.** Broken under load.\n\n"
+        "#### KTD1.D1. Some decision\n"
+        "**Decision:** Use the opaque token.\n"
+        "**Why:** Rationale detail:\n"
+        "- KTD2 supersedes the offset approach entirely\n"
+        "**Source:** user, 2026-11-20\n"
+    )
+
+    ktds = extract_ktds(find_ktd_section(content))
+    assert [k["id"] for k in ktds] == ["KTD1"]
+    assert ktds[0]["spec"] == "Broken under load."
+    for ktd in ktds:
+        assert "supersedes" not in ktd["spec"]
+        assert "Source" not in ktd["spec"]
+
+
+def test_list_ktd_after_completed_dentry_body_extracted():
+    # A list-format KTD that begins its own paragraph (blank line before
+    # it) after a completed D-entry body is a real new entry — the
+    # in-body suppression must not swallow it
+    content = _section(
+        "- KTD1. **Decision one.** Rationale one.\n\n"
+        "#### KTD1.D1. Some decision\n\n"
+        "**Why:** rationale text\n\n"
+        "- KTD2. **Decision two.** Rationale two.\n"
+        "- KTD3. **Decision three.** Rationale three.\n"
+    )
+
+    ktds = extract_ktds(find_ktd_section(content))
+    assert [k["id"] for k in ktds] == ["KTD1", "KTD2", "KTD3"]
+    assert ktds[1]["spec"] == "Decision two."
+    assert ktds[2]["spec"] == "Decision three."
+    for ktd in ktds:
+        assert "rationale text" not in ktd["spec"]
+
+
+def test_prose_after_bold_list_ktd_not_appended():
+    # Bold-format list KTD: the spec is the bold decision alone — a later
+    # prose paragraph never appends (literal checks compare exact strings)
+    content = _section(
+        "- KTD1. **Decision two.** Rationale two.\n\n"
+        "prose paragraph after list\n"
+    )
+
+    ktds = extract_ktds(find_ktd_section(content))
+    assert len(ktds) == 1
+    assert ktds[0]["spec"] == "Decision two."
+
+
+def test_prose_between_bare_list_items_folds_into_spec():
+    # Bare-format list KTDs have no separable rationale, so interleaved
+    # prose inside the item's segment folds into that item's spec
+    content = _section(
+        "- KTD-1 First spec. Rationale one.\n"
+        "interleaved prose line\n"
+        "- KTD-2 Second spec. Rationale two.\n"
+    )
+
+    ktds = extract_ktds(find_ktd_section(content))
+    assert [k["id"] for k in ktds] == ["KTD1", "KTD2"]
+    assert "interleaved prose line" in ktds[0]["spec"]
+    assert ktds[1]["spec"] == "Second spec. Rationale two."
