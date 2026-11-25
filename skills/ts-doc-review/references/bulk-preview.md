@@ -68,10 +68,10 @@ Skipping (2):
 
 ## Per-finding line format
 
-Each line uses the compressed form of the framing-quality guidance from the subagent template (observable-consequence-first, no internal section numbering unless needed to locate). The one-line summary is drawn from the agent-produced `why_it_matters` by taking the first sentence (and, when the first sentence is too long for the preview width, paraphrasing it tightly to fit).
+Each line uses the compressed form of the framing-quality guidance from the subagent template (observable-consequence-first, no internal section numbering unless needed to locate). The one-line summary is drawn from the agent-produced `why_it_matters` by taking the first sentence (and, when the first sentence is too long for the preview width, paraphrasing it tightly to fit) and glossing its plan-item IDs per the canonical render gloss rule (`references/walkthrough.md`, "Per-finding presentation" → Substitutions); the format inherits the rule, it does not restate it.
 
 - **Shape:** `[<severity>] <section> — <one-line summary>`
-- **Width target:** keep lines near 80 columns so the preview renders cleanly in narrow terminals. Truncate with ellipsis when necessary.
+- **Width target:** keep lines near 80 columns so the preview renders cleanly in narrow terminals. Fitting is done by the tight paraphrase, not by truncation; when the paraphrase drops a glossed ID token, re-gloss after fitting so a width-fitted line never loses its gloss.
 - **No section numbering** unless the reader needs it to locate the issue (when multiple findings hit the same named section).
 
 When no `why_it_matters` is available for a finding (rare — only if agent output was malformed), fall back to the finding's title directly. Note the gap in the completion report's Coverage section if it affects more than a few findings in the same run.
@@ -126,7 +126,7 @@ In every case, `Cancel` changes no on-disk or in-memory state.
 
 When the user picks `Proceed`:
 
-- **Routing option B (top-level best-judgment):** for each finding in the plan, execute the recommended action. Apply findings go into the Apply set for a single end-of-batch document-edit pass (see `walkthrough.md` for the Apply batching rules). Defer findings route through `references/open-questions-defer.md`. Skip findings are recorded as no-action. After all actions complete, emit the unified completion report (see `walkthrough.md`).
+- **Routing option B (top-level best-judgment):** for each finding in the plan, execute the recommended action. Apply findings go into the Apply set for a single end-of-batch document-edit pass (see `walkthrough.md` for the Apply batching rules). Emission inherits from those same batching rules: on a plan-classified document, each landed Apply edit writes its D-entry in the batch pass, with `user` Source carrying a batch-level approval context phrase (e.g., `user, <date> approved best-judgment batch`) rather than a per-finding quote — the single Proceed approved the whole plan, so the ledger names the batch, not one question. Defer findings route through `references/open-questions-defer.md`. Skip findings are recorded as no-action. After all actions complete, emit the unified completion report (see `walkthrough.md`).
 - **Routing option C (top-level Append-to-Open-Questions):** every finding routes through `references/open-questions-defer.md` for Open Questions append. No document edits apply (beyond the Open Questions section additions themselves). After all appends complete (or fail), emit the unified completion report.
 - **Walk-through `Auto-resolve with best judgment on the rest`:** same as routing option B, but scoped to the findings the user hadn't decided on. Apply findings join the in-memory Apply set with the ones the user already picked during the walk-through; all dispatch together in the single end-of-walk-through Apply pass.
 

@@ -42,7 +42,7 @@ After all mutations in this run have settled (initial write, deepening synthesis
 
 **Path format:** Use absolute paths for chat-output file references — relative paths are not auto-linked as clickable in most terminals.
 
-**Summary line above the menu (always):** Print a single concise line summarizing the headless review state — e.g., `Doc review applied 3 fixes. 2 decisions, 1 proposed fix, 4 FYI observations remain (1 at P1).` When no fixes were applied and no findings remain, print `Doc review clean — no fixes needed.` This line establishes what the autofix pass did (or didn't) so the user has the context to choose between the menu options below.
+**Summary line above the menu (always):** Print a single concise line summarizing the headless review state — e.g., `Doc review applied 3 fixes. 2 decisions, 1 proposed fix, 4 FYI observations remain (1 at P1).` When no fixes were applied and no findings remain, print `Doc review clean — no fixes needed.` This line establishes what the autofix pass did (or didn't) so the user has the context to choose between the menu options below. When the deeper review (option 2) returns, the re-rendered line keeps this shape with the deeper review's refreshed counts and gains the D-entry verification result — the verified count when every claimed entry is present (e.g., `Deeper review applied 2 fixes. 1 decision remains. 3 decision entries verified.`), or the named gaps when verification found claimed-but-missing entries (e.g., `Deeper review verified 2 of 3 decision entries — KTD1.D2 (batch retry rule) missing; repair offered.`). The line reports this session's verification result, not the review's own claim, so the menu context reflects what actually landed in the document.
 
 **Question:** "Plan ready at `<absolute path to plan>`. What would you like to do next?"
 
@@ -58,7 +58,11 @@ After all mutations in this run have settled (initial write, deepening synthesis
 
 Based on selection:
 - **Start `/ts-work`** -> Invoke `ts-work` via the platform's skill-invocation primitive, passing the plan path. Fire the invocation now — do not merely tell the user to type `/ts-work`.
-- **Run deeper doc review** -> Re-invoke `ts-doc-review` on the plan path without `mode:headless`. The headless pass's R29 suppression prevents re-raising prior-round Skipped/Deferred entries. Re-render this menu after.
+- **Run deeper doc review** -> Re-invoke `ts-doc-review` on the plan path without `mode:headless`. Re-render this menu after, with the deeper review's refreshed counts and the D-entry verification result in the summary line.
+  - Landed fixes stay visible to the fresh round through the document itself: the walkthrough and `safe_auto` passes emit D-entries into plan-classified documents, and synthesis's R30 fix-landed check (verification that prior applied entries landed) matches against the current document text — the prior headless pass records no decisions, so nothing suppresses across that invocation boundary. R29 rejected-finding suppression matches via fingerprint and evidence overlap against recorded decisions, which headless never produces.
+  - On return, verify every D-entry obligation the completion report claims is present in the document by scanning the level-4 `#### <section>.D<seq>.` headings, and carry the verified count into the summary line. Scope the check to obligations the report claims, not every walkthrough decision — Skip, Defer, and Acknowledge legitimately emit no D-entry (Defer's durable record is its Open Questions entry), so an over-broad check would flag non-gaps.
+  - The mechanism mirrors SKILL.md Phase 0.1's end-of-session verify rule (every user correction carries a D-entry with a Why before the session ends): a review that claims ledger writes is checked as part of returning, not trusted.
+  - On a claimed-but-missing entry, name it in the summary line and offer repair — this session's transcript holds the Why. The entry is appended only with the user's consent, because an unrequested ledger write is the pattern the ledger exists to stop.
 - **Create Issue** -> Follow the Issue Creation section below.
 - **Done for now** -> Confirm the plan file is saved and end the turn.
 - **Free-form prompts targeting findings** (e.g., "review", "walk through") -> route as `Run deeper doc review`.

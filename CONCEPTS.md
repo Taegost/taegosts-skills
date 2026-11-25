@@ -75,3 +75,19 @@ Terminal output printed before a blocking question that repeats the question's o
 ## Linemap
 
 The mapping of every added line in a pull-request diff to its head-side file and line number, computed before review findings are posted. An inline PR review comment is only valid at a line present in the linemap; findings that land anywhere else route to a flat PR comment instead of being dropped.
+
+## D-entry
+
+A decision-log entry recorded inside the plan section it governs, as a level-4 heading (`#### <section>.D<sequence>.`) with Decision, Why, and Source lines. Captures decisions arriving after the first draft: user decisions, meaning-changing auto-applied review fixes, and non-obvious decisions. Contract owned by `skills/ts-plan/references/plan-sections.md`; consumed by ts-plan and ts-doc-review.
+
+## safe_auto
+
+The autofix classification for findings whose fix ts-doc-review applies silently in its Phase 4 pass, without user gating. Contrast `gated_auto` (previewed before applying) and `manual` (user decision required).
+
+## Gloss
+
+The brief parenthetical meaning carried beside a plan-item ID where it appears — `R4 (explicit version tag)` — so a reader decodes the reference without round-tripping to the source document. The glossed-references rule lives in the plan-sections contract; at render time, glossing fires only on un-glossed tokens and never invents a meaning the document cannot resolve.
+
+## Cross-read
+
+The pattern where one skill reads a contract file owned by a sibling skill via the plugin-root-anchored path, instead of duplicating the contract text. The reading skill states the cross-read at the exact instruction site that needs the contract, with a visible error when the path does not resolve; the owner file marks the coupling with a consumer-declaration line so changes propagate knowingly to every consumer.

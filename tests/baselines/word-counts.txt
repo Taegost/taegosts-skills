@@ -1,7 +1,7 @@
-12592 skills/ts-plan/SKILL.md
-3842 skills/ts-doc-review/references/subagent-template.md
-6539 skills/ts-doc-review/references/synthesis-and-presentation.md
+9003 skills/ts-plan/SKILL.md
+4104 skills/ts-doc-review/references/subagent-template.md
+6854 skills/ts-doc-review/references/synthesis-and-presentation.md
 585 skills/ts-doc-review/references/findings-schema.json
-2546 skills/ts-doc-review/SKILL.md
-5047 skills/ts-work/SKILL.md
-746 skills/ts-verify-implementation/SKILL.md
+3190 skills/ts-doc-review/SKILL.md
+5232 skills/ts-work/SKILL.md
+1041 skills/ts-verify-implementation/SKILL.md

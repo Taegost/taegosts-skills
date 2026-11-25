@@ -307,6 +307,9 @@ arrives: original plan-time technical decisions are KTDs, but a user
 constraint or non-obvious decision at any point — including initial drafting —
 that is not recorded as a KTD gets a D-entry.
 
+*Consumed by ts-doc-review: its walk-through and `safe_auto` passes emit their
+D-entries under this contract; changes here propagate to both skills.*
+
 **Trigger (the single rule, used everywhere):** a D-entry is REQUIRED for
 (a) every decision that came from the user (constraints, corrections,
 walkthrough decisions), (b) every fix a reviewer agent auto-applied that

@@ -20,6 +20,7 @@ Paths below are relative to this index's directory. On Claude Code marketplace i
 |------|-------------|
 | [behavioral-ktd-verification.md](./behavioral-ktd-verification.md) | This document defines what a `[behavioral]` KTD is, how to write one that can be verified, and how to verify that an implementation satisfies it. It applies to plan authors, to `ts-verify-implement... |
 | [ktd-normalization-policy.md](./ktd-normalization-policy.md) | This document defines the normalization rules for comparing `[literal]` KTD specifications against implementations. These rules are applied by `scripts/verify-ktd-literal.py` and by the Completenes... |
+| [architecture-patterns/INDEX.md](architecture-patterns/INDEX.md) | Index of documentation in docs/solutions/architecture-patterns/. |
 | [conventions/INDEX.md](conventions/INDEX.md) | Index of documentation in docs/solutions/conventions/. |
 | [developer-experience/INDEX.md](developer-experience/INDEX.md) | Index of documentation in docs/solutions/developer-experience/. |
 | [documentation-gaps/INDEX.md](documentation-gaps/INDEX.md) | Index of documentation in docs/solutions/documentation-gaps/. |
