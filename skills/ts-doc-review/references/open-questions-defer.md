@@ -44,6 +44,8 @@ Fields come from the finding's schema:
 - `{confidence}` — the integer anchor (`50`, `75`, or `100`), emitted without a decimal point or percent sign
 - `{why_it_matters}` — the full why_it_matters text, preserving the framing guidance from the subagent template
 
+ID tokens in `{title}` or `{why_it_matters}` gloss per the canonical render gloss rule (`references/walkthrough.md`, "Per-finding presentation" → Substitutions), and the assembled entry passes the pre-fire audit (`references/walkthrough.md`, "Pre-fire audit") before the append lands — the entry becomes permanent document text.
+
 Do not include `suggested_fix` or the full `evidence` array in the appended entry. Those live in the review run artifact (when applicable) and do not belong in the document's Open Questions section — the entry is a concern summary for the reader returning later, not a full decision packet.
 
 ### Step 4: Idempotence on compound-key collisions
