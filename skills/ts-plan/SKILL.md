@@ -150,6 +150,12 @@ If no relevant requirements document exists, planning may proceed from the user'
 
 #### 0.4 Planning Bootstrap (No Requirements Doc or Unclear Input)
 
+**Justification gate (fires once, at this phase's entry).** After the Phase 0.2/0.3 origin-doc search resolves, check for a rationale source: a why stated in the prompt itself; a linked issue whose body states the problem (when the prompt references an issue, read the body per Core Principle 8 — a task-only body with no why does not count); or the origin requirements document from Phase 0.2. This determination is made once here; later phases consume the confirmed rationale or the recorded assumption without re-deriving it.
+
+**If no rationale source exists, ask the user** (see Interaction Method) and never fabricate a justification. The question text must be self-contained per `docs/standards/question-standards.md` — plain-text labeled lines carrying the whole decision: the request states a task but no reason for doing it, and planning without a justification would build the plan on an unverified assumption; a free-text path supplies the justification; and the decline option's one-clause effect is to proceed while recording the missing rationale as an explicit entry under the plan's `## Assumptions` section. Then wait for their response before continuing.
+
+**Headless/pipeline mode:** skip the ask and record the missing justification as that same explicit `## Assumptions` entry — a recorded unknown, never an invented rationale.
+
 If no relevant requirements document exists, or the input needs more structure:
 - Assess whether the request is already clear enough for direct technical planning — if so, continue to Phase 0.5
 - If the ambiguity is mainly product framing, user behavior, or scope definition, recommend `ts-brainstorm` as a suggestion — but always offer to continue planning here as well
@@ -222,7 +228,7 @@ All specialist research and deepening prompts used in this phase are skill-local
 
 Prepare a concise planning context summary (a paragraph or two) to pass as input to the research agents:
 - If an origin document exists, summarize the problem frame, requirements, and key decisions from that document
-- Otherwise use the feature description directly
+- Otherwise use the feature description directly, stating the Phase 0.4 justification gate's confirmed rationale as the problem frame's source — cite it (or, when declined or headless-recorded, the explicit `## Assumptions` entry recording its absence) and never invent a rationale
 - If `STRATEGY.md` exists, read it and include the relevant pieces (target problem, approach, active tracks) in the summary so downstream research and planning decisions are anchored to product strategy
 - If `CONCEPTS.md` exists at repo root, read it — its definitions are the canonical names for domain entities, named processes, and status concepts. Plan with those terms rather than synonyms.
 
@@ -518,7 +524,7 @@ Omit "include when material" sections that don't carry information for this spec
 
 Before finalizing, check:
 - The plan does not invent product behavior that should have been defined in `ts-brainstorm`
-- If there was no origin document, the bounded planning bootstrap established enough product clarity to plan responsibly
+- If there was no origin document, the bounded planning bootstrap established enough product clarity to plan responsibly — and in every case the problem frame traces to a real rationale source: a why stated in the prompt, a linked issue body, the origin document, the user's answer at the Phase 0.4 justification gate, or the explicit `## Assumptions` entry recording a missing rationale (declined or headless). A problem frame tracing to no source fails this check
 - Every major decision is grounded in the origin document or research
 - Every user decision and every meaning-changing auto-applied review fix from this session is logged as a D-entry; every decision with a non-obvious reason carries a Why; no user correction is unlogged (trigger and format: "Decision log (D-entries)" in `references/plan-sections.md`)
 - Deletion test on KTDs and Approaches: delete every ID token — is the decision still understandable? If not, rewrite so the sentence carries the meaning and the ID is only a pointer
