@@ -82,6 +82,8 @@ If the user references an existing plan file or there is an obvious recent match
 - Confirm whether to update it in place or create a new plan
 - If updating, revise only the still-relevant sections. Plans do not carry per-unit progress state — progress is derived from git by `ts-work`, so there is no progress to preserve across edits
 
+**Section placement.** A section created during a resume or editing session places per the section-order rule in `references/markdown-rendering.md` ("Section order (plan documents)").
+
 **Log user corrections as D-entries.** Any user correction applied to the plan during an editing session MUST be recorded as a D-entry (format and trigger: "Decision log (D-entries)" in `references/plan-sections.md`) in the same pass as the edit — deferring the log write loses the reason. Before finishing an editing session, verify every user correction from this session has a D-entry with a Why.
 
 **Deepen intent:** The word "deepen" (or "deepening") in reference to a plan is the primary trigger for the deepening fast path. When the user says "deepen the plan", "deepen my plan", "run a deepening pass", or similar, the target document is a **plan** in `docs/plans/`, not a requirements document. Use any path, keyword, or context the user provides to identify the right plan. If a path is provided, verify it is actually a plan document. If the match is not obvious, confirm with the user before proceeding.
@@ -499,7 +501,7 @@ For sufficiently large, risky, or cross-cutting work, add sections that genuinel
 
 Compose the plan using two paired references:
 
-- `references/plan-sections.md` — the section contract. Describes what the plan contains: the outcome the plan must enable for downstream consumers, the hard floor (Summary, Problem Frame, Requirements, KTDs, Implementation Units), the include-when-material catalog (HTD, Scope Boundaries, Open Questions, System-Wide Impact, Risks & Dependencies, Acceptance Examples, Documentation/Operational Notes, Sources & Research), the agency-driven escape hatch (introduce new sections when content warrants), and the ID/content rules.
+- `references/plan-sections.md` — the section contract. Describes what the plan contains: the outcome the plan must enable for downstream consumers, the hard floor (Summary, Problem Frame, Requirements, KTDs, Implementation Units), the include-when-material catalog (Scope Boundaries, Risks & Dependencies, Open Questions, Assumptions, HTD, System-Wide Impact, Acceptance Examples, Documentation/Operational Notes, Sources & Research), the agency-driven escape hatch (introduce new sections when content warrants), and the ID/content rules.
 - `references/markdown-rendering.md` — how to present the sections in markdown.
 
 The section catalog is the same regardless of format.
