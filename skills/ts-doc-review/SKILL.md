@@ -44,6 +44,8 @@ If `mode:headless` is not present, the skill runs in its default interactive mod
 
 **If no document is specified (headless mode):** Return a structured headless failure: `{"status":"failed","reason":"headless mode requires a document path","reinvoke":"Skill(ts-doc-review, mode:headless <path>)"}`. Do not dispatch agents.
 
+**Derive the ID-to-gloss map.** Scan the document under review for level-2 to level-4 headings (U-IDs, KTD items, D-entry IDs, section names) and bullet-prefix IDs (`R#`, `KTD#`, `F#`, `AE#`, `A#`); composite tokens (e.g., "U2 step 4") resolve via their parent ID; re-derive the map at each review round (round 2+ operates on changed document state). The map travels as orchestrator context to the walk-through Entry and the headless envelope — never a `findings-schema.json` field.
+
 ### Classify Document Type
 
 Classify the document by reading its **content shape**, not its file path. Path is a tie-breaker hint, not the primary signal — a brainstorm-style doc placed under `docs/plans/` should still classify as `requirements`, and a plan-shaped doc under `docs/brainstorms/` should still classify as `plan`. The reviewers below operate differently depending on this classification, so misclassifying a plan-shaped doc as a requirements doc (or vice versa) produces noisy or under-scrutinized findings.
