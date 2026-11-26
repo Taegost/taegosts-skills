@@ -4,7 +4,7 @@ description: "Index of documentation in docs/plans/."
 status: active
 version: "1.0"
 created: 2026-07-08
-last-updated: 2026-11-25
+last-updated: 2026-11-26
 owner: wave-2-dispatch-index-automation
 dependencies: []
 tags: [index]

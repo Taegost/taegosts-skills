@@ -119,20 +119,48 @@ contracts — the agent picks the shape that fits the content.
   render a flat list only when every requirement is about the same thing.
   When requirements have status, traceability, or severity that warrant
   additional columns, escalate to a table.
+- **Key Technical Decisions** — bullets with bold decision name + prose
+  rationale, or numbered KTD-N pattern when traceability matters.
+- **Scope Boundaries** — bullets, optionally split into "Deferred for
+  later" / "Outside this product's identity" sub-headings when the
+  positioning distinction matters.
+- **Open Questions** — bullets, one unresolved question per bullet.
+- **Risks & Dependencies** — bullets; each risk paired with its mitigation
+  where one exists.
 - **Implementation Units** — H3 heading per unit with `U<N>.` prefix.
   Fields (Goal, Files, Patterns, Test Scenarios, Verification) render as
   bullets with bold leader labels, or as sub-headings if the field has
   multi-paragraph content.
-- **Key Technical Decisions** — bullets with bold decision name + prose
-  rationale, or numbered KTD-N pattern when traceability matters.
 - **Key Flows / Acceptance Examples** — bullets with bold leader labels
   (Trigger / Actors / Steps / Outcome / Covers / Given-When-Then).
-- **Scope Boundaries** — bullets, optionally split into "Deferred for
-  later" / "Outside this product's identity" sub-headings when the
-  positioning distinction matters.
 
 The agent picks more elaborate or simpler shapes based on what each
 specific artifact's content needs.
+
+## Section order (plan documents)
+
+Plan documents render their H2 sections in this order:
+
+Summary → Problem Frame → Requirements → Key Technical Decisions →
+Scope Boundaries → Risks & Dependencies → Open Questions → Assumptions →
+System-Wide Impact → Acceptance Examples → Documentation / Operational
+Notes → High-Level Technical Design → Implementation Units → Sources &
+Research
+
+*Consumed by ts-doc-review: its fix-application pass cross-reads this
+order rule to place the sections its fixes create; changes here propagate
+to both skills.*
+
+- **Skip absent sections.** An omitted section takes no placeholder
+  position — which sections exist never changes where present ones sit.
+- **Front-block anchor.** Scope Boundaries, Risks & Dependencies, Open
+  Questions, and Assumptions anchor immediately after Key Technical
+  Decisions; when Key Technical Decisions is absent, they anchor after the
+  last present section among Requirements, Problem Frame, and Summary.
+- **Never below Implementation Units.** No front-block section renders
+  below Implementation Units.
+- **Placement only.** The rule orders sections; it never adds or drops one.
+  Inclusion criteria are owned by `plan-sections.md`.
 
 ## Diagrams
 
