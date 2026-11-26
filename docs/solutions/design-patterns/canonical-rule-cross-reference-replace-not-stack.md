@@ -92,7 +92,7 @@ The audit is defined once, beside the canonical gloss rule in `walkthrough.md` (
 
 - **Explicit surface enumeration.** Before emitting any text rendered from the findings set — routing-question digest lines, bulk-preview one-liners, per-finding questions, dependent-list lines, completion-report lines (the headless envelope audits at its own emission, cross-referencing the same definition). Naming every surface is what makes audit coverage independent of routing choice; "audit user-facing text" without the enumeration recreates the surface-by-surface inconsistency being fixed.
 - **One self-healing pass, bounded by idempotence.** Enumerate every ID token, gloss resolvable bare tokens in a single pass, then stop — the canonical rule's idempotence clause (it fires only on un-glossed tokens) means a second application would double-gloss.
-- **Unresolvable tokens pass bare.** The audit confirms every remaining bare token is unresolvable-class (map and held document both lack it) rather than inventing a gloss.
+- **Remaining bare tokens are accounted for, not blanket-failed.** The audit confirms every remaining bare token is either unresolvable-class (map and held document both lack it → passes bare per the never-invent clause) or same-clause-exempt (the item's function is named in the same clause as the ID token, so the canonical rule adds no gloss); titles and headings are never exempt.
 - **Completes before any user-facing render**, so the per-finding question and its terminal transcript duplicate mirror the same glossed text and the duplicates-rewrite-nothing rule sees no divergence.
 
 ## Why This Matters
@@ -194,8 +194,9 @@ digest lines, bulk-preview one-liners, per-finding questions,
 dependent-list lines, completion-report lines — run one audit over the
 assembled text: enumerate every ID token ..., gloss resolvable bare tokens
 ... in a single self-healing pass, then stop ..., and confirm every
-remaining bare token is unresolvable-class ..., so it passes bare per the
-never-invent clause.
+remaining bare token is unresolvable-class (passes bare per the
+never-invent clause) or same-clause-exempt per the canonical rule ...
+.
 ```
 
 Cross-reference form (each surface applies, none restates):
