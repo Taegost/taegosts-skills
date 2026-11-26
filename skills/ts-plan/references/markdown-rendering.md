@@ -124,15 +124,15 @@ contracts — the agent picks the shape that fits the content.
 - **Scope Boundaries** — bullets, optionally split into "Deferred for
   later" / "Outside this product's identity" sub-headings when the
   positioning distinction matters.
-- **Open Questions** — bullets, one unresolved question per bullet.
 - **Risks & Dependencies** — bullets; each risk paired with its mitigation
   where one exists.
+- **Open Questions** — bullets, one unresolved question per bullet.
+- **Key Flows / Acceptance Examples** — bullets with bold leader labels
+  (Trigger / Actors / Steps / Outcome / Covers / Given-When-Then).
 - **Implementation Units** — H3 heading per unit with `U<N>.` prefix.
   Fields (Goal, Files, Patterns, Test Scenarios, Verification) render as
   bullets with bold leader labels, or as sub-headings if the field has
   multi-paragraph content.
-- **Key Flows / Acceptance Examples** — bullets with bold leader labels
-  (Trigger / Actors / Steps / Outcome / Covers / Given-When-Then).
 
 The agent picks more elaborate or simpler shapes based on what each
 specific artifact's content needs.

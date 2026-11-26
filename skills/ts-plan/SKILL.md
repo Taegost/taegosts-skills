@@ -501,7 +501,7 @@ For sufficiently large, risky, or cross-cutting work, add sections that genuinel
 
 Compose the plan using two paired references:
 
-- `references/plan-sections.md` — the section contract. Describes what the plan contains: the outcome the plan must enable for downstream consumers, the hard floor (Summary, Problem Frame, Requirements, KTDs, Implementation Units), the include-when-material catalog (Scope Boundaries, Risks & Dependencies, Open Questions, Assumptions, HTD, System-Wide Impact, Acceptance Examples, Documentation/Operational Notes, Sources & Research), the agency-driven escape hatch (introduce new sections when content warrants), and the ID/content rules.
+- `references/plan-sections.md` — the section contract. Describes what the plan contains: the outcome the plan must enable for downstream consumers, the hard floor (Summary, Problem Frame, Requirements, KTDs, Implementation Units), the include-when-material catalog (Scope Boundaries, Risks & Dependencies, Open Questions, Assumptions, System-Wide Impact, Acceptance Examples, Documentation/Operational Notes, HTD, Sources & Research), the agency-driven escape hatch (introduce new sections when content warrants), and the ID/content rules.
 - `references/markdown-rendering.md` — how to present the sections in markdown.
 
 The section catalog is the same regardless of format.
