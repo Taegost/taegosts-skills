@@ -253,7 +253,7 @@ After safe_auto fixes apply, remaining findings split into buckets:
 - FYI-subsection findings → surface in the presentation only, no routing
 - Zero actionable findings remaining → skip the routing question; flow directly to Phase 5 terminal question
 
-**Headless mode:** Do not use interactive question tools. Output all findings as a structured text envelope the caller can parse. Internal enum values (`safe_auto`, `gated_auto`, `manual`, `FYI`) stay in the schema and synthesis prose; the envelope below uses user-facing vocabulary — "fixes", "Proposed fixes", "Decisions", "FYI observations" — so headless output reads the same way interactive output does. Envelope assembly consumes the per-round ID-to-gloss map as a required input, same provenance as the walk-through Entry (`references/walkthrough.md`, "Entry") — derived by the orchestrator at Phase 1 (see `SKILL.md` Phase 1); a round-2 envelope re-derives the map against the changed document.
+**Headless mode:** Do not use interactive question tools. Output all findings as a structured text envelope the caller can parse. Internal enum values (`safe_auto`, `gated_auto`, `manual`, `FYI`) stay in the schema and synthesis prose; the envelope below uses user-facing vocabulary — "fixes", "Proposed fixes", "Decisions", "FYI observations" — so headless output reads the same way interactive output does. Envelope assembly consumes the per-round ID-to-gloss map as a required input, same provenance as the walk-through Entry (`references/walkthrough.md`, "Entry (walk-through mode)") — derived by the orchestrator at Phase 1 (see `SKILL.md` Phase 1); a round-2 envelope re-derives the map against the changed document.
 
 ```
 Document review complete (headless mode).
