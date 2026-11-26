@@ -91,3 +91,19 @@ The brief parenthetical meaning carried beside a plan-item ID where it appears �
 ## Cross-read
 
 The pattern where one skill reads a contract file owned by a sibling skill via the plugin-root-anchored path, instead of duplicating the contract text. The reading skill states the cross-read at the exact instruction site that needs the contract, with a visible error when the path does not resolve; the owner file marks the coupling with a consumer-declaration line so changes propagate knowingly to every consumer.
+
+## Problem Frame
+
+The plan section that states why the work is being done — the rationale every other section builds on. A problem frame is valid only when it traces to a real source (a why in the prompt, a problem-stating issue body, the origin document, the user's answer at the justification gate, or the recorded assumption noting its absence); a frame tracing to no source fails plan review.
+
+## Justification Gate
+
+The conditional check at a planning workflow's bootstrap entry that decides whether a rationale source exists before any problem frame is drafted. Checks three sources — a why stated in the prompt, a linked issue body that states the problem (a task-only body does not count), or the origin requirements document — and fires once; when no source exists it asks the user, while a decline or headless run records the missing rationale as an explicit assumption rather than inventing one.
+
+## Fabrication Site
+
+A workflow phase that instructs an agent to produce a framed artifact without conditioning it on any input source — a demand for content with no supply constraint, which completion pressure fills with invention. Remedied by the inverse pattern: a gate at phase entry, downstream consumption checks that cite the confirmed source, and explicit-unknown recording instead of synthesis.
+
+## Assumptions Section
+
+The plan section that records unvalidated bets and known unknowns explicitly, including a missing rationale the user declined to supply or a headless run could not ask for. It is the single destination for recorded unknowns, so downstream checks need to accept exactly one shape for them.

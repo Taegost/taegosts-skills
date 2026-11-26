@@ -4,7 +4,7 @@ description: "Index of documentation in docs/solutions/workflow-issues/."
 status: active
 version: "1.0"
 created: 2026-07-08
-last-updated: 2026-11-24
+last-updated: 2026-11-25
 owner: wave-2-dispatch-index-automation
 dependencies: []
 tags: [index]
@@ -21,3 +21,4 @@ Paths below are relative to this index's directory. On Claude Code marketplace i
 | [composition-over-generalization-for-verification.md](./composition-over-generalization-for-verification.md) | When adding verification to `ts-pr-fix-findings`, we needed to decide whether to generalize `ts-verify-implementation` to handle both use cases or to compose it as a sub-skill. The two skills have ... |
 | [git-filter-branch-broken-in-sandbox.md](./git-filter-branch-broken-in-sandbox.md) | A commit-message rewrite in this repository used `git filter-branch --msg-filter` inside the sandboxed Bash environment. The filter never received the commit message on stdin, so the rewrite produc... |
 | [notification-resilience-via-disk-state.md](./notification-resilience-via-disk-state.md) | Background agent completions were lost ~40-50% of the time when the orchestrator is mid-generation. The harness-level notification (`<task-notification>`) is unreliable — it can be missed when the ... |
+| [ts-plan-phase-04-justification-gate.md](./ts-plan-phase-04-justification-gate.md) | `ts-plan`'s Phase 0.4 planning bootstrap fabricated a problem-frame rationale whenever the invocation carried none. The phase's bootstrap list named "Problem frame" as something to establish, but n... |
