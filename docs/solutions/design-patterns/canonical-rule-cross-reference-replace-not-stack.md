@@ -43,7 +43,7 @@ All changes are instruction prose in skill reference files, verified by dry-run 
 
 An order/presentation rule lives in exactly one reference file: the file that owns rendering. Every other surface carries a pointer line, never a restatement.
 
-- The owner is a new "Section order (plan documents)" subsection in `skills/ts-plan/references/markdown-rendering.md` (added by commit defd53d, U1). It states the full render order (Summary → Problem Frame → Requirements → Key Technical Decisions → Scope Boundaries → Risks & Dependencies → Open Questions → Assumptions → System-Wide Impact → Acceptance Examples → Documentation / Operational Notes → High-Level Technical Design → Implementation Units → Sources & Research), the skip-absent rule (which sections exist never changes where present ones sit), the front-block anchor rule, the never-below-Implementation-Units clause, and a placement-only clause (the rule orders sections; it never adds or drops one — inclusion criteria stay owned by `plan-sections.md`).
+- The owner is a new "Section order (plan documents)" subsection in `skills/ts-plan/references/markdown-rendering.md` (added by commit ccb3745, U1). It states the full render order (Summary → Problem Frame → Requirements → Key Technical Decisions → Scope Boundaries → Risks & Dependencies → Open Questions → Assumptions → System-Wide Impact → Acceptance Examples → Documentation / Operational Notes → High-Level Technical Design → Implementation Units → Sources & Research), the skip-absent rule (which sections exist never changes where present ones sit), the front-block anchor rule, the never-below-Implementation-Units clause, and a placement-only clause (the rule orders sections; it never adds or drops one — inclusion criteria stay owned by `plan-sections.md`).
 - The catalogs that carry de-facto ordering were reordered to match and given one-line pointers, not restatements. `plan-sections.md` gained "This list names membership, not render order — section order is owned by `references/markdown-rendering.md`" at its hard floor and "Listing order here is catalog order, not render order" at the end of the include-when-material list. `SKILL.md` Phase 4.2's catalog enumeration was re-sequenced to the render order.
 
 The choice of owner matters. `plan-sections.md`'s own header disclaims page-presentation jurisdiction, so restating the order rule there would have created a second drifting copy — the exact anti-pattern the gloss-rule learning records. Put the canonical copy where the jurisdiction already sits, and convert every other enumeration into a pointer.
@@ -52,7 +52,7 @@ The choice of owner matters. `plan-sections.md`'s own header disclaims page-pres
 
 Any list that enumerates items in order silently becomes a second copy of the order rule — including lists nobody thought of as order-bearing: section catalogs, `SKILL.md` summary enumerations, anatomy lists. When you introduce a canonical order, every ordered enumeration must be aligned to it, or it contradicts the rule one line below its own pointer.
 
-This bit after implementation passed its gates: dry-run scenario tracing (commit d2be908, U7) found `SKILL.md`'s Phase 4.2 enumeration and `markdown-rendering.md`'s Section anatomy list still carrying the old order — two contradicting copies inside the owning skill itself. The fix was mechanical once found, but finding them by inspection had already failed once.
+This bit after implementation passed its gates: dry-run scenario tracing (commit 577ae3d, U7) found `SKILL.md`'s Phase 4.2 enumeration and `markdown-rendering.md`'s Section anatomy list still carrying the old order — two contradicting copies inside the owning skill itself. The fix was mechanical once found, but finding them by inspection had already failed once.
 
 **Lesson: when landing an order rule, grep for every enumeration of the ordered set before declaring done.** Treat "list the sections/items in order" occurrences as rule restatements even when they read as summaries.
 
@@ -127,7 +127,7 @@ Before — three undeclared orderings in one skill (`markdown-rendering.md` Sect
 - **Scope Boundaries** — bullets ...
 ```
 
-After — one owned rule plus pointer lines (commit defd53d, d2be908). Owner, in `markdown-rendering.md`:
+After — one owned rule plus pointer lines (commit ccb3745, 577ae3d). Owner, in `markdown-rendering.md`:
 
 ```markdown
 ## Section order (plan documents)
@@ -207,7 +207,7 @@ pre-fire audit (`references/walkthrough.md`, "Pre-fire audit") before the
 question fires.
 ```
 
-Glossed output the pipeline now guarantees, from the envelope template example (commit 1537ddd):
+Glossed output the pipeline now guarantees, from the envelope template example (commit 7da8f6b):
 
 ```markdown
   Why: U3 (payment retry loop) sets no retry cap, so a provider outage loops charges

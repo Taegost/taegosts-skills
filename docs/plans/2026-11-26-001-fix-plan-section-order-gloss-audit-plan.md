@@ -142,6 +142,14 @@ The user's stated rationale for both: cut the work needed to understand plan bou
 - Reviewer agents read `subagent-template.md` at dispatch — the exclusion extension in U3 (fix placement) changes what every reviewer treats as document content versus prior-round output.
 - No runtime code, schemas (`findings-schema.json` unchanged), or scripts change; `open-questions-defer.md` needs no edit — its staging mechanics are position-free and its staging heading ("Deferred / Open Questions") does not collide with a plan's front-loaded "Open Questions" section.
 
+#### System-Wide Impact.D1. Open-questions-defer entry edit on review (PR #236)
+
+**Decision:** `open-questions-defer.md` gained one review-driven edit — its Step 4 dedup key now computes from the same post-gloss entry text the append writes (commit 121b37d, finding F5). The "needs no edit" claim above was scoped to section-order staging mechanics, which remain position-free and unchanged.
+
+**Why:** Step 3 glosses `{title}` and `{why_it_matters}` before the append lands, so a key computed from raw schema fields mismatches keys parsed from existing rendered bullets whenever a field carries a glossed ID token — the collision check would miss an entry that is already present.
+
+**Source:** PR #236 CodeRabbit review finding F5 (user-confirmed disposition: fix), 2026-11-26.
+
 ---
 
 ## High-Level Technical Design
@@ -245,6 +253,14 @@ flowchart TB
 **Test scenarios:** Test expectation: none — prompt-text assets. Dry-run verification lands in U7 (verification rounds).
 
 **Verification:** legacy-plan simulation — a fix creating Scope Boundaries inserts after Key Technical Decisions without splitting the Implementation Units block, the document's late Risks & Dependencies stays put, and no finding fires for its late position; round-2 reviewer simulation treats a review-created Open Questions section as own output and does not quote it as evidence.
+
+#### U3.D1. Review-created-section exclusion keeps substantive content in scope (PR #236)
+
+**Decision:** The U3 staging-exclusion extension was rescoped by review (commit 121b37d, finding F3): a review-created section is excluded only as to existence, placement, and format — its substantive content stays fully in review scope and may be quoted as evidence, exactly as for D-entry blocks. This supersedes this unit's Verification sentence "does not quote it as evidence".
+
+**Why:** The original wording contradicted the reviewer contract's mandatory-quote requirement and made defects inside review-created sections unreportable; the rescoped form mirrors the existing D-entry ledger suppression clause, which also keeps content findings fully in scope.
+
+**Source:** PR #236 CodeRabbit review finding F3 (user-confirmed disposition: fix), 2026-11-26.
 
 ### U4. Canonical gloss rule: tightened exemption and ID-to-gloss map
 
