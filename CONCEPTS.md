@@ -88,6 +88,28 @@ The autofix classification for findings whose fix ts-doc-review applies silently
 
 The brief parenthetical meaning carried beside a plan-item ID where it appears — `R4 (explicit version tag)` — so a reader decodes the reference without round-tripping to the source document. The glossed-references rule lives in the plan-sections contract; at render time, glossing fires only on un-glossed tokens and never invents a meaning the document cannot resolve.
 
+## ID-to-gloss map
+
+The per-round lookup table mapping each plan-item ID to the item's name, derived from the document under review before rendering — from its headings and its bullet-prefix IDs, since requirements documents carry their IDs as bullet prefixes rather than headings.
+
+Travels as orchestrator context to each rendering step, never as an output-schema field. Re-derived each review round against the changed document, and extended mid-run with the D-entry IDs emitted by applied fixes; composite tokens resolve via their parent ID.
+
+## Pre-fire audit
+
+The named check that runs the gloss procedure over assembled user-facing text before it renders, with every rendering surface enumerated explicitly so coverage does not depend on routing choice.
+
+One self-healing pass, bounded by gloss idempotence — a second application would double-gloss. Unresolvable tokens pass bare; the audit completes before any question or its transcript duplicate renders.
+
+## Front block
+
+The group of decision-forcing plan sections — Scope Boundaries, Risks & Dependencies, Open Questions, Assumptions — that render immediately after Key Technical Decisions.
+
+When Key Technical Decisions is absent, the block anchors after the last present section among Requirements, Problem Frame, and Summary; no front-block section renders below Implementation Units.
+
+## De-facto-ordering carrier
+
+Any list that enumerates items in order — a catalog, a summary enumeration, an anatomy list — and thereby silently becomes a second copy of an order rule. Introducing a canonical order requires aligning every enumeration of the ordered set, or the enumeration contradicts the rule one line below its own pointer.
+
 ## Cross-read
 
 The pattern where one skill reads a contract file owned by a sibling skill via the plugin-root-anchored path, instead of duplicating the contract text. The reading skill states the cross-read at the exact instruction site that needs the contract, with a visible error when the path does not resolve; the owner file marks the coupling with a consumer-declaration line so changes propagate knowingly to every consumer.

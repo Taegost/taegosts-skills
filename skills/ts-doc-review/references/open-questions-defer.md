@@ -44,6 +44,8 @@ Fields come from the finding's schema:
 - `{confidence}` — the integer anchor (`50`, `75`, or `100`), emitted without a decimal point or percent sign
 - `{why_it_matters}` — the full why_it_matters text, preserving the framing guidance from the subagent template
 
+ID tokens in `{title}` or `{why_it_matters}` gloss per the canonical render gloss rule (`references/walkthrough.md`, "Per-finding presentation" → Substitutions), and the assembled entry passes the pre-fire audit (`references/walkthrough.md`, "Pre-fire audit") before the append lands — the entry becomes permanent document text.
+
 Do not include `suggested_fix` or the full `evidence` array in the appended entry. Those live in the review run artifact (when applicable) and do not belong in the document's Open Questions section — the entry is a concern summary for the reader returning later, not a full decision packet.
 
 ### Step 4: Idempotence on compound-key collisions
@@ -55,8 +57,8 @@ If an entry with the same compound key already exists under the same `### From Y
 
 **Compound key for dedup:** `normalize(section) + normalize(title) + why_fingerprint`. All three reconstruct from the visible entry, so no hidden metadata is needed:
 
-- `normalize(section)` and `normalize(title)` use the same normalization as synthesis step 3.3 dedup (lowercase, strip punctuation, collapse whitespace). For a new finding, compute from the schema; for an existing entry, parse `{title}` (the bold leader) and `{section}` (the text between the em-dash and the opening `(`) out of the rendered bullet.
-- `why_fingerprint` is the first ~120 characters of the entry's `{why_it_matters}` prose, word-boundary-preserving, with any run of whitespace collapsed to a single space. Because why_it_matters renders verbatim in the entry, the same fingerprint recomputes from the visible bullet on any retry or reread. When why_it_matters is empty, fall back to `normalize(section) + normalize(title)` alone.
+- `normalize(section)` and `normalize(title)` use the same normalization as synthesis step 3.3 dedup (lowercase, strip punctuation, collapse whitespace). Both sides compute from the same representation — the glossed entry text the append writes: for a new finding, compute from the `{title}` and `{section}` text after Step 3's glossing, not from the raw schema fields; for an existing entry, parse `{title}` (the bold leader) and `{section}` (the text between the em-dash and the opening `(`) out of the rendered bullet. Computing the new key from unglossed schema text would mismatch keys parsed from rendered bullets whenever a field contains an ID token that Step 3 glosses, and the collision check would miss an entry that is already present.
+- `why_fingerprint` is the first ~120 characters of the entry's `{why_it_matters}` prose, word-boundary-preserving, with any run of whitespace collapsed to a single space. Because why_it_matters renders verbatim in the entry, the same fingerprint recomputes from the visible bullet on any retry or reread — compute it from the post-Step-3 (glossed) `why_it_matters` text for the same one-representation reason as the title and section above. When why_it_matters is empty, fall back to `normalize(section) + normalize(title)` alone.
 
 Title-only dedup is not sufficient: two different findings in the same document (even on the same review date) can legitimately share a short title if their sections or rationale differ. Using only `{title}` would silently drop one — losing user-visible backlog context. Matching on section and the why-fingerprint keeps distinct findings distinct, and stays close to the R29/R30 matching predicate (`section + title + evidence-substring overlap`) so cross-round and intra-round dedup behave consistently.
 

@@ -72,7 +72,9 @@ message or `docs/solutions/` if they're worth carrying forward.
 ## Hard floor
 
 When a plan doc is warranted, these sections are present. They carry the
-contracts downstream consumers depend on.
+contracts downstream consumers depend on. This list names membership, not
+render order — section order is owned by `references/markdown-rendering.md`
+("Section order (plan documents)").
 
 - **Summary** — what the plan proposes, in 1-3 lines. Forward-looking; orients
   the reader before they invest in detail.
@@ -96,32 +98,29 @@ elsewhere. The test is not "is this a substantial plan?" — it is
 *"does this specific plan have content this section would surface?"* Filling
 a section with placeholder prose is worse than omitting it.
 
-- **High-Level Technical Design** — include when the technical approach has
-  shape that prose alone doesn't carry well: architecture across components,
-  sequencing across processes, state machines, branching gates.
-  Visualizations (component topology, sequence, swim lane, flowchart,
-  data-flow) typically live here. Skip when the approach is a one-paragraph
-  pattern application that the prose itself conveys.
-
 - **Scope Boundaries** — include when scope is contested, when there are
   tempting non-goals worth naming explicitly, or when "deferred for later"
   needs distinguishing from "outside the product's identity." Skip when scope
   is obvious from Requirements alone.
 
+- **Risks & Dependencies** — include when there are real risks worth flagging
+  (external service changes, version pins under churn, behavioral assumptions
+  worth highlighting) or material upstream dependencies. Skip for low-risk
+  localized work.
+
 - **Open Questions** — include when there are genuinely unresolved items that
   block planning or implementation. Skip when the plan is complete; an empty
   "Open Questions: none" section signals false uncertainty.
+
+- **Assumptions** — include when the plan carries unvalidated bets that no
+  interactive synthesis validated. Skip in interactive plans, where the
+  scoping synthesis validated the bets.
 
 - **System-Wide Impact** — include when the change affects cross-cutting
   concerns (data lifecycles, auth boundaries, performance posture, cardinal
   rules, shared infrastructure, agent/tool parity, prompt context, shared
   workspaces). Skip for changes localized to one component where the impact is
   self-evident.
-
-- **Risks & Dependencies** — include when there are real risks worth flagging
-  (external service changes, version pins under churn, behavioral assumptions
-  worth highlighting) or material upstream dependencies. Skip for low-risk
-  localized work.
 
 - **Acceptance Examples** — include when any requirement has a state-dependent
   or conditional shape ("When X, Y") where the prose alone leaves ambiguity
@@ -133,6 +132,13 @@ a section with placeholder prose is worse than omitting it.
   work is purely internal and uses existing operational scaffolding without
   modification.
 
+- **High-Level Technical Design** — include when the technical approach has
+  shape that prose alone doesn't carry well: architecture across components,
+  sequencing across processes, state machines, branching gates.
+  Visualizations (component topology, sequence, swim lane, flowchart,
+  data-flow) typically live here. Skip when the approach is a one-paragraph
+  pattern application that the prose itself conveys.
+
 - **Sources / Research** — surface the research that orients the implementer
   or justifies load-bearing choices. The test: *"if I were the implementer
   reading this cold, would this breadcrumb help me make better choices?"*
@@ -141,6 +147,10 @@ a section with placeholder prose is worse than omitting it.
   not enumerated). Process exhaust (reading the user's prompt, glancing at
   obvious entry points, restating prose) → omit. Surface inline next to the
   KTD or unit it justifies, or as a dedicated section — both shapes work.
+
+Listing order here is catalog order, not render order — section order is
+owned by `references/markdown-rendering.md`
+("Section order (plan documents)").
 
 ## Agent agency
 

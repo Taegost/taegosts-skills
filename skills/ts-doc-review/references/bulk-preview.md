@@ -68,7 +68,7 @@ Skipping (2):
 
 ## Per-finding line format
 
-Each line uses the compressed form of the framing-quality guidance from the subagent template (observable-consequence-first, no internal section numbering unless needed to locate). The one-line summary is drawn from the agent-produced `why_it_matters` by taking the first sentence (and, when the first sentence is too long for the preview width, paraphrasing it tightly to fit) and glossing its plan-item IDs per the canonical render gloss rule (`references/walkthrough.md`, "Per-finding presentation" → Substitutions); the format inherits the rule, it does not restate it.
+Each line uses the compressed form of the framing-quality guidance from the subagent template (observable-consequence-first, no internal section numbering unless needed to locate). The one-line summary is drawn from the agent-produced `why_it_matters` by taking the first sentence (and, when the first sentence is too long for the preview width, paraphrasing it tightly to fit) and glossing its plan-item IDs per the canonical render gloss rule (`references/walkthrough.md`, "Per-finding presentation" → Substitutions); the format inherits the rule, it does not restate it. The assembled preview — body lines and question-text digest — passes the pre-fire audit (`references/walkthrough.md`, "Pre-fire audit") before the question fires.
 
 - **Shape:** `[<severity>] <section> — <one-line summary>`
 - **Width target:** keep lines near 80 columns so the preview renders cleanly in narrow terminals. Fitting is done by the tight paraphrase, not by truncation; when the paraphrase drops a glossed ID token, re-gloss after fitting so a width-fitted line never loses its gloss.

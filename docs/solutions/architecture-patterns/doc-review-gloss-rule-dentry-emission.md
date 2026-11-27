@@ -1,6 +1,7 @@
 ---
 title: Centralized gloss rule and D-entry emission across ts-doc-review surfaces
 date: 2026-11-24
+last_updated: 2026-11-26
 category: docs/solutions/architecture-patterns
 module: ts-doc-review
 problem_type: architecture_pattern
@@ -45,14 +46,14 @@ All changes land as instruction prose in skill reference files, verified by the 
 
 ### One canonical gloss rule at the render boundary
 
-`skills/ts-doc-review/references/walkthrough.md` ("Per-finding presentation" → Substitutions) holds the single **Glossed plan-item IDs** rule. Token list: `R#`, `U#`, `KTD#`, `F#`, `AE#`, scoped D-entry IDs such as `U3.D2`, composite tokens such as `U2 step 4`. Per-token decision procedure:
+`skills/ts-doc-review/references/walkthrough.md` ("Per-finding presentation" → Substitutions) holds the single **Glossed plan-item IDs** rule. Token list: `R#`, `U#`, `KTD#`, `F#`, `AE#`, `A#`, scoped D-entry IDs such as `U3.D2`, composite tokens such as `U2 step 4`. Per-token decision procedure:
 
 - Already followed by a parenthetical gloss → pass through unchanged (idempotence: render fires only on un-glossed tokens).
-- The surrounding sentence already states the item's substance (`KTD5's own bootstrap chown/repair` — the sentence is the gloss) → no gloss added.
-- The item is resolvable in the document under review (the orchestrator holds it from the Phase 1 read) → insert `ID (item name)`, e.g. `R4 (explicit version tag)`.
+- The item's function is named in the same clause as the ID token (`KTD5's own bootstrap chown/repair` — the clause is the gloss) → no gloss added; title lines and heading lines always gloss — no exemption. *(Tightened 2026-11-26 on `fix/plan-section-order-gloss-audit`: the earlier sentence-level exemption had stretched to title fragments.)*
+- The item is resolvable — looked up from the per-round ID-to-gloss map (derived by the orchestrator at Phase 1 from document headings and bullet-prefix IDs, falling back to the document under review held from the Phase 1 read) → insert `ID (item name)`, e.g. `R4 (explicit version tag)`.
 - Not resolvable → pass through bare. Never invent a gloss.
 
-The gloss lands at question-assembly time, so the terminal transcript duplicate mirrors the glossed question and the duplicates-rewrite-nothing rule sees no divergence. The three other surfaces cross-reference, not restate: the synthesis envelope's `Why:` lines and `Dependents` sub-block, the bulk-preview one-liners (with a width-fit rule — fitting by tight paraphrase, not truncation; re-gloss after fitting when the paraphrase drops a glossed token), and the review-output-template row cells. Source-side, the reviewer contract (`subagent-template.md`, read by every reviewer at dispatch) instructs gloss on first use in `why_it_matters` and `suggested_fix` — render re-glosses whatever source misses, and the idempotence check keeps the two layers from double-applying.
+The gloss lands at question-assembly time, so the terminal transcript duplicate mirrors the glossed question and the duplicates-rewrite-nothing rule sees no divergence. *(Extension, 2026-11-26: this assembly-time check is now a named "Pre-fire audit" over every findings-rendering surface, and the resolution source is a per-round ID-to-gloss map — see `docs/solutions/design-patterns/canonical-rule-cross-reference-replace-not-stack.md`.)* The other surfaces cross-reference, not restate: the synthesis envelope's `Why:` lines and `Dependents` sub-block, the bulk-preview one-liners (with a width-fit rule — fitting by tight paraphrase, not truncation; re-gloss after fitting when the paraphrase drops a glossed token), the review-output-template row cells, and the open-questions-defer append entry (glossing per the canonical rule and passing the pre-fire audit before the append lands). Source-side, the reviewer contract (`subagent-template.md`, read by every reviewer at dispatch) instructs gloss on first use in `why_it_matters` and `suggested_fix` — render re-glosses whatever source misses, and the idempotence check keeps the two layers from double-applying.
 
 ### D-entry emission folded into the edit passes
 
@@ -118,6 +119,7 @@ Decision entries written: 3 — U2.D1, KTD1.D1, Risks.D2
 
 ## Related
 
+- `docs/solutions/design-patterns/canonical-rule-cross-reference-replace-not-stack.md` — the follow-up learning that extends this pattern: section-order ownership, de-facto-ordering-carrier alignment, the per-round ID-to-gloss map, replace-not-stack tightening, and the pre-fire audit
 - `docs/solutions/tooling-decisions/claude-code-plugin-script-path-resolution.md` — the `${CLAUDE_PLUGIN_ROOT}` substitution tiers this pattern extends from scripts to reference-doc reads
 - `docs/solutions/developer-experience/self-contained-blocking-questions-skill-walkthroughs.md` — the question-side counterpart; this doc's gloss rule is the render-side half of the same self-contained-presentation standard
 - `docs/solutions/tooling-decisions/skills-lack-plan-ktd-validation.md` — same verify-claims-against-artifacts family, different artifact

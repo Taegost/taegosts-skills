@@ -241,6 +241,8 @@ Allowed changes:
 - Strengthen or add per-unit technical design fields where the unit's approach is non-obvious
 - Add or update `deepened: YYYY-MM-DD` in frontmatter when the plan was substantively improved
 
+A section this pass adds places per the section-order rule in `references/markdown-rendering.md` ("Section order (plan documents)") — it goes where the rule puts it, not appended at the document's end.
+
 Do **not**:
 - Add implementation code — no imports, exact method signatures, or framework-specific syntax. Pseudo-code sketches and DSL grammars are allowed
 - Add git commands, commit choreography, or exact test command recipes
